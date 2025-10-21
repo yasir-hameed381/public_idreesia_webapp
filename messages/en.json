@@ -1,0 +1,209 @@
+{
+  "homepage": {
+    "desc1": "SILSILA-E-MUHAMMADIA AMEENIA IDREESIA started in Pakistan when Al-Muhtarim Sayedi Sheikh Al-Hafiz Amin bin Abdur Rehman (صَلَّی اللہ علیہِ وَسلَّم پڑھنے والے), came to Pakistan after spending 40 years in Madinah Munawarah, Saudi Arabia. In few years Idreesia spread in every corner of Pakistan. Millions of people are now associated with it from every aspect of life",
+    "desc2": {
+      "title": "Blessings of Wazaif's",
+      "content": "If one wishes to have Allah's distinguished blessings then one should recite Wazaif with devotion, love, fondness and regularity. According to Hadith Sharif, Allah likes those deeds which are done regularly without interruption. One who is loyal to Allah and his Prophet صلی اللہ علیہ وسلم will see miracles in all his matters (Inshallah). In this world and hereafter they will have a guarantee and security of the Holy Prophet صلی اللہ علیہ وسلم. They will have love of Holy Prophet صلی اللہ علیہ وسلم. Livelihood will rain down upon them. Impossible and difficult matters shall resolve Inshallah."
+    }
+  },
+  "nav": {
+    "navigation": {
+      "newMessages": "Latest Messages",
+      "mehfils": "Mehfils",
+      "taleemat": "Taleemat",
+      "naatShareef": "Naat Shareef",
+      "wazaif": "Wazaif",
+      "gallery": "Gallery",
+      "mehfilAddress": "Mehfil Address"
+    }
+  },
+
+  "mehfil_directory": {
+    "heading": "MOHTARAM SHAIKH SAHAB Ki Muqarar Qarda Mahafil",
+    "searchPlaceholder": "Search Mehfil Directory",
+    "viewAllZones": "View All Zones",
+    "mehfilNumber": "Mehfil No",
+    "getDirections": "Get Directions",
+    "Time": "Time",
+    "no_results_found": "No results found for your search",
+    "mehfilAddress": "Mehfil Address Directory",
+    "description": "Learn more about Mehfil location and contact in your city and country.",
+    "buttonText": "Know Your Mehfil Address"
+  },
+
+  "RamzanForm": {
+    "name": "Name",
+    "fatherName": "Father's Name",
+    "city": "City",
+    "mobileNumber": "Mobile Number",
+    "recitations": "Parhaiyan",
+    "personal Information": "Personal Information",
+    "daroodIbrahimi": "Darood Ibrahimi Pehla Hissa",
+    "qulShareef": "Qul Shareef",
+    "yaseenShareef": "Yaseen Shareef",
+    "quranPak": "Quran Pak",
+    "submit": "Submit",
+    "placeholders": {
+      "name": "Enter your name",
+      "fatherName": "Enter your father's name",
+      "city": "Enter your city",
+      "mobileNumber": "Enter your mobile number"
+    },
+    "errors": {
+      "nameRequired": "Name is required",
+      "fatherNameRequired": "Father's name is required",
+      "cityRequired": "City is required",
+      "mobileNumberRequired": "Mobile number is required",
+      "invalidMobileNumber": "Please enter a valid mobile number"
+    }
+  },
+
+  "GALLERY": {
+    "title": "Photo Gallery"
+  },
+  "footer": {
+    "copyright": "All Rights Reserved. © 2025 SILSILA-E-MUHAMMADIA AMEENIA IDREESIA"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "address": "381-A Block Shah Rukn-e-Alam Colony, Multan, Pakistan"
+  },
+  "about": {
+    "title": "Learn More",
+    "contact_title": "Contact Us",
+    "silsilaName": "SILSILA-E-MUHAMMADIA AMEENIA IDREESIA",
+    "sms": "Receive SMS on mobile",
+    "address": "381-A Block Shah Rukn-e-Alam\n Colony, Near Thana Stop\n Multan, Pakistan",
+    "copyright": "© 2025 Silsila Muhammadia Ameenia Idreesia All Rights Reserved. "
+  },
+  "sms": {
+    "heading": "Receive SMS on mobile"
+  },
+  "notifications": {
+    "Iphone": "Enable notifications on IPhone",
+    "Android": "Enable notifications on Android"
+  },
+  "Android": {
+    "title": "Enable notifications on Android",
+    "steps": {
+      "1": "Open your phone's Settings app",
+      "2": "Tap Apps & notifications and then Notifications",
+      "3": "Under 'Lock screen,' tap Notifications on lock screen or On lock screen",
+      "4": "Choose Show alerting and silent notifications",
+      "5": "On some phones, choose Show all notification content"
+    }
+  },
+  "info": {
+    "title": "Receive SMS on mobile",
+    "headoffice": "366-A, Shah Rukn-e-Alam Colony, Multan, Pakistan"
+  },
+  "all_titles": {
+    "mehfilReport": "Mehfil Report",
+    "karkunan": "Karkunan",
+    "newEhad": "New Ehad",
+    "attendanceKarkunan": "Attendance Karkunan",
+    "attendanceEhadKarkunan": "Attendance Ehad Karkunan",
+    "wazaif": "Wazaif",
+    "mehfils": "Mehfils",
+    "taleemat": "Taleemat",
+    "naatShareef": "Naat Shareef",
+    "newMessages": "Latest Messages",
+    "gallery": "Gallery",
+    "mehfilAddress": "Mehfil Address"
+  },
+  "taleemat_titles": {
+    "nav": {
+      "AllTaleemat": "AllTaleemat",
+      "Basic Taleemat": "Basic Taleemat",
+      "Quran Recitations": "Quran Recitations",
+      "Dua Mubarak": "Dua Mubarak",
+      "Azan": "Azan",
+      "New/Daily Taleem": "New/Daily Taleem",
+      "Short Taleemat": "Short Taleemat"
+    }
+  },
+  "search_placeholder": {
+    "title": "Search in english or urdu",
+    "no_results_found": "No results found"
+  },
+  "naatsharif_titles": {
+    "nav": {
+      "All Naat Shareef": " All Naat Shareef",
+      "New Naat Shareef": "New Naat Shareef",
+      "Old Naat Shareef": " Old Naat Shareef"
+    }
+  },
+  "about_us": {
+    "heading": "About Us"
+  },
+  "main_navigation_title": {
+    "nav": {
+      "mehfils": "Mehfils",
+      "taleem": "Taleemat",
+      "naat": "Naat Shareef"
+    }
+  },
+  "main_cards_navigation_title": {
+    "nav": {
+      "Mehfils": "Mehfils",
+      "Taleemat": "Taleemat",
+      "Naat Shareef": "Naat Shareef",
+      "Wazaif": "Wazaif"
+    }
+  },
+
+  "search": {
+    "search_results_not_found": "No results found"
+  },
+
+  "sms_page": {
+    "sms": "Receive SMS on mobile",
+    "subscription_instructions": "To receive teachings via SMS on your mobile, you need to subscribe every month.",
+    "subscription_steps": "To subscribe, write SUB in a message and send it to the designated number.",
+    "confirmation_message": "You will receive a confirmation message, and teachings SMS will be sent to your number for 30 days.",
+    "subscription_charges": "Charges: 20 Rupees + Tax",
+    "renewal_instructions": "After every 30 days, you will receive an SMS for subscription renewal. To continue your subscription, write SUB in a message and send it to the designated number.",
+    "renewal_confirmation": "You will receive a confirmation message, and teachings SMS will be sent to your number for 30 days.",
+    "feedback_instructions": "If you face any issues in receiving teachings SMS even after subscribing or need information regarding SMS, write FB, add a space, then write your message or issue and send it to the designated number.",
+    "feedback_charges": "Charges: 1 Rupee + Tax",
+    "new_teaching_request": "To receive the new teaching (LTS) via SMS at any time, write LTS in a message and send it to the designated number.",
+    "new_teaching_charges": "Charges: 1 Rupee + Tax"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "rememberMe": "Remember Me",
+    "signIn": "Sign In",
+    "invalidEmail": "Invalid email format",
+    "emailRequired": "Email is required",
+    "invalidPassword": "Password must contain 1 uppercase, 1 lowercase, 1 special character, and 1 number",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 8 characters",
+    "userNotFound": "User not found",
+    "invalidCredentials": "Invalid email or password",
+    "success": "Login successful!",
+    "error": "An error occurred. Please try again."
+  },
+  "dashboard_cards": {
+    "mehfil-report": {
+      "button": "View Report"
+    },
+    "karkunan": {
+      "button": "View Karkunan"
+    },
+    "new-ehad": {
+      "button": "Add New Ehad"
+    },
+    "attendance-karkunan": {
+      "button": "View Attendance"
+    },
+    "attendance-ehad-karkunan": {
+      "button": "View Ehad Attendance"
+    },
+    "coming-soon": {
+      "title": "Coming Soon..."
+    }
+  }
+}

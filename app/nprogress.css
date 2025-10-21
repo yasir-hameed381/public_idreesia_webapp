@@ -1,0 +1,65 @@
+/* NProgress custom styles matching Laravel Livewire */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: var(--nprogress-color, #29d);
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+/* Fancy blur effect */
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px var(--nprogress-color, #29d), 0 0 5px var(--nprogress-color, #29d);
+  opacity: 1.0;
+  transform: rotate(3deg) translate(0px, -4px);
+}
+
+/* Spinner - Hidden */
+#nprogress .spinner {
+  display: none !important;  /* Completely hide the spinner */
+}
+
+#nprogress .spinner-icon {
+  display: none !important;  /* Completely hide the spinner icon */
+}
+
+.nprogress-custom-parent {
+  overflow: hidden;
+  position: relative;
+}
+
+.nprogress-custom-parent #nprogress .spinner,
+.nprogress-custom-parent #nprogress .bar {
+  position: absolute;
+}
+
+@keyframes nprogress-spinner {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Dark mode support */
+.dark #nprogress .bar {
+  background: var(--nprogress-color, #60a5fa);
+}
+
+.dark #nprogress .spinner-icon {
+  border-top-color: var(--nprogress-color, #60a5fa);
+  border-left-color: var(--nprogress-color, #60a5fa);
+}
+
+.dark #nprogress .peg {
+  box-shadow: 0 0 10px var(--nprogress-color, #60a5fa), 0 0 5px var(--nprogress-color, #60a5fa);
+}
+
