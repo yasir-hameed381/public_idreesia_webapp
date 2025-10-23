@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NewEhadTable } from "../../components/NewEhads/new-ehad-table";
 import { NewEhadForm } from "../../components/NewEhads/new-ehad-form";
+import { PermissionWrapper } from "@/components/PermissionWrapper";
+import { PERMISSIONS } from "@/types/permission";
 
 export default function NewEhadsPage() {
   const router = useRouter();
@@ -54,8 +56,14 @@ export default function NewEhadsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <NewEhadTable onEdit={handleEdit} onAdd={handleAdd} onView={handleView} />
-    </div>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_NEW_EHADS}>
+      <div className="container mx-auto px-4 py-8">
+        <NewEhadTable
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+          onView={handleView}
+        />
+      </div>
+    </PermissionWrapper>
   );
 }

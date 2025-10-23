@@ -9,6 +9,8 @@ import {
 import { AddressTableProps } from "../../../../types/Mehfil-Directory";
 import { usePagination } from "@/hooks/useTablePagination";
 import { useToast } from "@/hooks/useToast";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/types/permission";
 import {
   Search,
   Plus,
@@ -21,6 +23,7 @@ import {
 } from "lucide-react";
 
 export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
+  const { hasPermission } = usePermissions();
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
@@ -158,13 +161,15 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
                 Manage mehfil addresses and contact information
               </p>
             </div>
-            <button
-              onClick={onAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
-            >
-              <Plus size={16} />
-              Add New Address
-            </button>
+            {hasPermission(PERMISSIONS.CREATE_MEHFIL_DIRECTORY) && (
+              <button
+                onClick={onAdd}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
+              >
+                <Plus size={16} />
+                Add New Address
+              </button>
+            )}
           </div>
         </div>
 
@@ -324,20 +329,38 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => onEdit(address.id)}
-                                className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                                title="Edit"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() => confirmDelete(address)}
-                                className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {hasPermission(
+                                PERMISSIONS.EDIT_MEHFIL_DIRECTORY
+                              ) && (
+                                <button
+                                  onClick={() => onEdit(address.id)}
+                                  className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                                  title="Edit"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                              )}
+                              {hasPermission(
+                                PERMISSIONS.DELETE_MEHFIL_DIRECTORY
+                              ) && (
+                                <button
+                                  onClick={() => confirmDelete(address)}
+                                  className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                              {!hasPermission(
+                                PERMISSIONS.EDIT_MEHFIL_DIRECTORY
+                              ) &&
+                                !hasPermission(
+                                  PERMISSIONS.DELETE_MEHFIL_DIRECTORY
+                                ) && (
+                                  <span className="text-sm text-gray-400 italic">
+                                    No actions available
+                                  </span>
+                                )}
                             </div>
                           </td>
                         </tr>

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { TranslationKeys } from "@/app/constants/translationKeys";
 import { useFetchNaatSharifDataQuery } from "@/store/slicers/naatsharifApi";
 import LoadingSpinner from "@/components/ui/Loadingspinner";
+import Navigation from "../../../../components/Navigation";
 
 interface NaatSharifItem {
   id: string | number;
@@ -56,7 +57,7 @@ const NaatSharif = () => {
   };
 
   const handleCategoryChange = (newCategory: string) => {
-    console.log('newCategory',newCategory);
+    console.log("newCategory", newCategory);
     setActiveCategory(newCategory);
     setCurrentPage(1);
   };
@@ -78,9 +79,7 @@ const NaatSharif = () => {
 
   const renderContent = () => {
     if (isLoading) {
-      return (
-       <LoadingSpinner/>
-      );
+      return <LoadingSpinner />;
     }
 
     if (error) {
@@ -171,6 +170,7 @@ const NaatSharif = () => {
 
   return (
     <div ref={containerRef} className="p-5 flex flex-col items-center">
+      <Navigation />
       <h2 className="font-sans text-2xl text-gray-700 mb-10">
         {t("naatShareef")}
       </h2>

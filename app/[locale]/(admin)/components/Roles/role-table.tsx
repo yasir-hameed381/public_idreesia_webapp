@@ -47,27 +47,12 @@ const RolesTable: React.FC<RolesTableProps> = ({ onEdit, onAdd }) => {
   const { showSuccess, showError } = useToast();
   const { hasPermission, isSuperAdmin, user } = usePermissions();
 
-  // Debug logging for role permissions
-  console.log("🔍 Role Table Permission Debug:", {
-    isSuperAdmin,
-    hasCreateRoles: hasPermission(PERMISSIONS.CREATE_ROLES),
-    hasEditRoles: hasPermission(PERMISSIONS.EDIT_ROLES),
-    hasDeleteRoles: hasPermission(PERMISSIONS.DELETE_ROLES),
-    userRole: user?.role?.name,
-    userPermissions: user?.role?.permissions?.map((p) => p.name) || [],
-    createRolesPermission: PERMISSIONS.CREATE_ROLES,
-    editRolesPermission: PERMISSIONS.EDIT_ROLES,
-    deleteRolesPermission: PERMISSIONS.DELETE_ROLES,
-  });
-
   // Check if user has any role management permissions
   const hasAnyRolePermission =
     isSuperAdmin ||
     hasPermission(PERMISSIONS.CREATE_ROLES) ||
     hasPermission(PERMISSIONS.EDIT_ROLES) ||
     hasPermission(PERMISSIONS.DELETE_ROLES);
-
-  console.log("🔍 Has any role permission:", hasAnyRolePermission);
 
   // Use pagination hook
   const { pagination, handlePageChange, getFirstRowIndex } = usePagination({
@@ -86,7 +71,6 @@ const RolesTable: React.FC<RolesTableProps> = ({ onEdit, onAdd }) => {
         size: perPage,
         search: debouncedSearch || undefined,
       });
-      console.log("response", response.data);
 
       setRoles(
         (response.data || []).map((role) => ({

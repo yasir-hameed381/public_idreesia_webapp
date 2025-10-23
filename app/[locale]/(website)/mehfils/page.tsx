@@ -14,7 +14,8 @@ import {
 } from "../../../../store/slicers/mehfilApi";
 import { TranslationKeys } from "../../../constants/translationKeys";
 import Loadingspinner from "../../../../components/ui/Loadingspinner";
-import MefilHeader from "../../../assets/MefilHeading.png";
+import MefilHeader from "../../../assets/gallery-images/image_9.png";
+import Navigation from "../../../../components/Navigation";
 
 interface MehfilItem {
   id: string | number;
@@ -174,7 +175,12 @@ const Mehfils = () => {
       ref={containerRef}
       className="p-5 flex flex-col items-center bg-[#ffff]"
     >
-      <Image src={MefilHeader} alt="mehfil header" />
+      <Navigation />
+      <Image
+        src={MefilHeader}
+        alt="mehfil header"
+        style={{ maxWidth: "100%", height: "400px" }} // or any height you want
+      />
 
       <div className="w-full max-w-5xl mt-10">
         {/* Search Bar */}

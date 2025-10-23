@@ -216,19 +216,19 @@ export function AppSidebar({
       name: "Duty Types",
       href: "/duty-types",
       icon: <ClipboardList size={18} />,
-      permission: null, // Accessible to all authenticated users
+      permission: PERMISSIONS.VIEW_DUTY_TYPES,
     },
     {
       name: "Duty Roster",
       href: "/duty-roster",
       icon: <Calendar size={18} />,
-      permission: null, // Accessible to all authenticated users
+      permission: PERMISSIONS.VIEW_DUTY_ROSTER,
     },
     {
       name: "Coordinators",
       href: "/coordinators",
       icon: <UserCog size={18} />,
-      permission: null, // Accessible to all authenticated users
+      permission: PERMISSIONS.VIEW_COORDINATORS,
     },
     {
       name: "File Uploader",

@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import { useGetTaleematQuery } from "../../../../store/slicers//taleematApi";
 import { TranslationKeys } from "../../../constants/translationKeys";
 import LoadingSpinner from "@/components/ui/Loadingspinner";
+import Navigation from "../../../../components/Navigation";
 
 interface TaleematItem {
   id: string | number;
@@ -75,9 +76,7 @@ const Taleemat = () => {
 
   const renderContent = () => {
     if (isLoading) {
-      return (
-     <LoadingSpinner/>
-      );
+      return <LoadingSpinner />;
     }
 
     if (error) {
@@ -167,6 +166,7 @@ const Taleemat = () => {
 
   return (
     <div ref={containerRef} className="p-5 flex flex-col items-center">
+      <Navigation />
       <h2 className="font-sans text-2xl text-gray-700 mb-10">
         {t("taleemat")}
       </h2>

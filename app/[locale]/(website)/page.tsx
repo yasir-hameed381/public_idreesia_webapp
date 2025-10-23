@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { TranslationKeys } from "../../constants/translationKeys";
 import centerImage from "../../assets/centered-border.png";
-import heroImage from "../../assets/images/heroSection.png";
+import heroImage from "../../assets/gallery-images/image_8.png";
 
 import Image from "next/image";
 // import Ramzan2025Page from "./parhaiyan/Ramzan-2025/page";
@@ -23,7 +23,7 @@ export default function HomePage() {
           src={heroImage}
           alt="Hero Section"
           priority
-          className="w-full h-[700px] object-cover"
+          className="w-full object-cover"
         />
       </div>
 

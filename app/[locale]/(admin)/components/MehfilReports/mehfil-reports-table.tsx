@@ -8,6 +8,8 @@ import {
 import { useFetchZonesQuery } from "../../../../../store/slicers/zoneApi";
 import { usePagination } from "@/hooks/useTablePagination";
 import { useToast } from "@/hooks/useToast";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/types/permission";
 import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -30,6 +32,7 @@ interface MehfilReportsTableProps {
 }
 
 export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
+  const { hasPermission } = usePermissions();
   const [search, setSearch] = useState("");
   const [selectedZone, setSelectedZone] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
@@ -286,14 +289,16 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                 <Download size={16} />
                 Export
               </button>
-              {/* Add & View Report Button */}
-              <button
-                onClick={onAdd}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
-              >
-                <Plus size={18} />
-                Add & View Report
-              </button>
+              {/* Add & View Report Button - Only show if user has create permission */}
+              {hasPermission(PERMISSIONS.CREATE_MEHFIL_REPORTS) && (
+                <button
+                  onClick={onAdd}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
+                >
+                  <Plus size={18} />
+                  Add & View Report
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -316,7 +321,7 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <select
                   value={selectedZone}
@@ -331,7 +336,7 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                   ))}
                 </select>
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <select
                   value={selectedMehfil}
@@ -364,7 +369,7 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                   ))}
                 </select>
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <select
                   value={selectedYear}
@@ -379,7 +384,7 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                   ))}
                 </select>
               </div>
-              
+
               <div className="flex-shrink-0">
                 <select
                   value={pagination.per_page}
@@ -549,16 +554,20 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                                       <Eye size={16} />
                                       View
                                     </button>
-                                    <button
-                                      onClick={() => {
-                                        confirmDelete(report);
-                                        setOpenDropdown(null);
-                                      }}
-                                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                    >
-                                      <Trash2 size={16} />
-                                      Delete
-                                    </button>
+                                    {hasPermission(
+                                      PERMISSIONS.DELETE_MEHFIL_REPORTS
+                                    ) && (
+                                      <button
+                                        onClick={() => {
+                                          confirmDelete(report);
+                                          setOpenDropdown(null);
+                                        }}
+                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                      >
+                                        <Trash2 size={16} />
+                                        Delete
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               )}

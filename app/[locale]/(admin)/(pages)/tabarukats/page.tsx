@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TabarukatTable } from "../../components/Tabarukats/tabarukat-table";
 import { TabarukatForm } from "../../components/Tabarukats/tabarukat-form";
+import { PermissionWrapper } from "@/components/PermissionWrapper";
+import { PERMISSIONS } from "@/types/permission";
 
 export default function TabarukatsPage() {
   const router = useRouter();
@@ -54,13 +56,14 @@ export default function TabarukatsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <TabarukatTable
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-        onView={handleView}
-      />
-    </div>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_TABARUKATS}>
+      <div className="container mx-auto px-4 py-8">
+        <TabarukatTable
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+          onView={handleView}
+        />
+      </div>
+    </PermissionWrapper>
   );
 }
-

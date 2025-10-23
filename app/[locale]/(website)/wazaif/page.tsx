@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { TranslationKeys } from "@/app/constants/translationKeys";
 import { useGetWazaifQuery } from "@/store/slicers/wazaifApi";
 import LoadingSpinner from "@/components/ui/Loadingspinner";
+import Navigation from "../../../../components/Navigation";
 
 function WazaifList() {
   const pathname = usePathname();
@@ -25,9 +26,7 @@ function WazaifList() {
   };
 
   if (isLoading) {
-    return (
-      <LoadingSpinner/>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
@@ -43,31 +42,39 @@ function WazaifList() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 bg-[#fcf8f5]">
-      <h1 className="font-sans text-2xl text-gray-700 mb-6 text-center">
-        {t("wazaif")}
-      </h1>
+    <div>
+      <Navigation />
+      <div className="max-w-2xl mx-auto p-4 bg-[#fcf8f5] mt-8 rounded-lg">
+        <h1 className="font-sans text-2xl text-gray-700 mb-6 text-center">
+          {t("wazaif")}
+        </h1>
 
-      <div className="space-y-2">
-        {data?.data.map((item) => (
-          <Link
-            key={item.id}
-            href={`/wazaif/${item.id}`}
-            onClick={() => handleWazaifClick(item)}
-            className={`flex items-center p-4 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors duration-200 ${
-              locale === "ur" ? "flex-row-reverse" : ""
-            }`}
-          >
-            <Image src={readImage} alt="Header Image" width={45} height={45} />
-            <span
-              className={`text-gray-700 font-medium mr-[15px] ml-[15px] ${
-                locale === "ur" ? "text-right" : ""
+        <div className="space-y-2">
+          {data?.data.map((item) => (
+            <Link
+              key={item.id}
+              href={`/wazaif/${item.id}`}
+              onClick={() => handleWazaifClick(item)}
+              className={`flex items-center p-4 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors duration-200 ${
+                locale === "ur" ? "flex-row-reverse" : ""
               }`}
             >
-              {getLocalizedContent(item)}
-            </span>
-          </Link>
-        ))}
+              <Image
+                src={readImage}
+                alt="Header Image"
+                width={45}
+                height={45}
+              />
+              <span
+                className={`text-gray-700 font-medium mr-[15px] ml-[15px] ${
+                  locale === "ur" ? "text-right" : ""
+                }`}
+              >
+                {getLocalizedContent(item)}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

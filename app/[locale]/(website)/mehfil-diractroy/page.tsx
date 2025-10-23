@@ -1,13 +1,12 @@
-
 "use client";
 import { TranslationKeys } from "@/app/constants/translationKeys";
 import LoadingSpinner from "@/components/ui/Loadingspinner";
-import { useFetchZonesQuery} from "@/store/slicers/zoneApi";
+import { useFetchZonesQuery } from "@/store/slicers/zoneApi";
 import { useFetchAddressQuery } from "@/store/slicers/mehfildirectoryApi";
 import { useLocale, useTranslations } from "next-intl";
 import React, { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
-
+import Navigation from "../../../../components/Navigation";
 
 interface MehfilData {
   id: number;
@@ -25,7 +24,7 @@ interface MehfilData {
   mehfil_open: string;
   mehfil_number: string;
   title_en?: string;
-  [key: string]: any; 
+  [key: string]: any;
 }
 
 interface PaginationData {
@@ -38,7 +37,7 @@ interface PaginationData {
 const MehfilDirectory: React.FC = () => {
   const t = useTranslations(TranslationKeys.MEHFIL_DIRECTORY);
   const locale = useLocale();
-  
+
   // State management
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -47,46 +46,46 @@ const MehfilDirectory: React.FC = () => {
   const [showZoneDropdown, setShowZoneDropdown] = useState<boolean>(false);
   const zoneDropdownRef = useRef<HTMLDivElement>(null);
   const perPage = 8;
-const debouncedSearchTerm = useDebounce(searchTerm, 500); 
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Fetch zones data
-  const { 
-    data: zonesData, 
-    isLoading: isZonesLoading, 
-    error: zonesError 
-  } = useFetchZonesQuery({ 
-    page: 1, 
-    per_page: 100 
+  const {
+    data: zonesData,
+    isLoading: isZonesLoading,
+    error: zonesError,
+  } = useFetchZonesQuery({
+    page: 1,
+    per_page: 100,
   });
 
   // Fetch address data with server-side pagination and filtering
-  const { 
-    data: addressData, 
-    isLoading: isAddressLoading, 
+  const {
+    data: addressData,
+    isLoading: isAddressLoading,
     error: addressError,
-    refetch: refetchAddress
-  } = useFetchAddressQuery({ 
-     page: currentPage, 
-  size: perPage,
-  search: debouncedSearchTerm,
-  zoneId: selectedZone === "all" ? "" : selectedZone
+    refetch: refetchAddress,
+  } = useFetchAddressQuery({
+    page: currentPage,
+    size: perPage,
+    search: debouncedSearchTerm,
+    zoneId: selectedZone === "all" ? "" : selectedZone,
   });
 
   const ALL_ZONES = zonesData?.data || [];
   const mehfilData = addressData?.data || [];
- const pagination: PaginationData = addressData?.meta
-  ? {
-      totalItems: addressData.meta.total,
-      totalPages: addressData.meta.last_page,
-      currentPage: addressData.meta.current_page,
-      perPage: parseInt(addressData.meta.per_page),
-    }
-  : {
-      totalItems: 0,
-      totalPages: 0,
-      currentPage: 1,
-      perPage: perPage,
-    };
+  const pagination: PaginationData = addressData?.meta
+    ? {
+        totalItems: addressData.meta.total,
+        totalPages: addressData.meta.last_page,
+        currentPage: addressData.meta.current_page,
+        perPage: parseInt(addressData.meta.per_page),
+      }
+    : {
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: 1,
+        perPage: perPage,
+      };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -120,38 +119,38 @@ const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
-     if (searchTerm.trim()) {
-    refetchAddress(); 
-  }
+    if (searchTerm.trim()) {
+      refetchAddress();
+    }
   };
 
   // Handle zone selection
-const handleZoneSelect = (zoneTitle: string) => {
-  if (zoneTitle === "all") {
-    setSelectedZone("all");
-  } else {
-    const zone = ALL_ZONES.find(z => z.title_en === zoneTitle);
-    setSelectedZone(zone?.id || "all"); // Store the ID instead of title
-  }
-  setCurrentPage(1);
-  setShowZoneDropdown(false);
-  setZoneSearchTerm("");
-};
+  const handleZoneSelect = (zoneTitle: string) => {
+    if (zoneTitle === "all") {
+      setSelectedZone("all");
+    } else {
+      const zone = ALL_ZONES.find((z) => z.title_en === zoneTitle);
+      setSelectedZone(zone?.id || "all"); // Store the ID instead of title
+    }
+    setCurrentPage(1);
+    setShowZoneDropdown(false);
+    setZoneSearchTerm("");
+  };
   const toggleZoneDropdown = () => {
     setShowZoneDropdown(!showZoneDropdown);
     setZoneSearchTerm("");
   };
 
-  const getLocalizedText = (urText?: string, enText?: string) => 
-    locale === 'ur' ? urText || enText : enText || urText;
+  const getLocalizedText = (urText?: string, enText?: string) =>
+    locale === "ur" ? urText || enText : enText || urText;
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
     const totalPages = pagination?.totalPages || 0;
     const pages: (number | string)[] = [];
-    
+
     if (totalPages === 0) return pages;
-    
+
     pages.push(1);
 
     let start = Math.max(2, currentPage - 1);
@@ -178,8 +177,10 @@ const handleZoneSelect = (zoneTitle: string) => {
 
   const openDirections = (url: string | null, address?: string) => {
     if (!url) {
-      const mapsUrl = address 
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` 
+      const mapsUrl = address
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            address
+          )}`
         : `https://www.google.com/maps`;
       window.open(mapsUrl, "_blank");
     } else {
@@ -191,21 +192,28 @@ const handleZoneSelect = (zoneTitle: string) => {
   if (isZonesLoading || isAddressLoading) {
     return <LoadingSpinner />;
   }
- 
+
   // Show error message if there's an error
   if (zonesError || addressError) {
-    return <div className="text-center py-8 text-red-500">Error loading data</div>;
+    return (
+      <div className="text-center py-8 text-red-500">Error loading data</div>
+    );
   }
 
   return (
-    <div dir={locale === 'ur' ? 'rtl' : 'ltr'}>
+    <div dir={locale === "ur" ? "rtl" : "ltr"}>
+      <Navigation />
       <div className="bg-gray-50 min-h-screen py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-medium text-center text-gray-800 mb-8">
             {t("heading")}
           </h1>
 
-          <div className={`flex flex-col md:flex-row ${locale === 'ur' ? 'md:flex-row' : ''} gap-4 mb-8`}>
+          <div
+            className={`flex flex-col md:flex-row ${
+              locale === "ur" ? "md:flex-row" : ""
+            } gap-4 mb-8`}
+          >
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="w-full md:w-1/2">
               <div className="relative">
@@ -246,10 +254,9 @@ const handleZoneSelect = (zoneTitle: string) => {
                   {selectedZone === "all"
                     ? t("viewAllZones")
                     : getLocalizedText(
-                      ALL_ZONES.find(z => z.id === selectedZone)?.title_ur,
-                      ALL_ZONES.find(z => z.id === selectedZone)?.title_en
-                    )
-                  }
+                        ALL_ZONES.find((z) => z.id === selectedZone)?.title_ur,
+                        ALL_ZONES.find((z) => z.id === selectedZone)?.title_en
+                      )}
                 </span>
                 <svg
                   className={`w-4 h-4 transition-transform ${
@@ -295,15 +302,18 @@ const handleZoneSelect = (zoneTitle: string) => {
                     {filteredZones.map((zone) => (
                       <div
                         key={zone.id}
-                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${selectedZone === zone.id ? "bg-gray-100" : ""
-                          }`}
+                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                          selectedZone === zone.id ? "bg-gray-100" : ""
+                        }`}
                         onClick={() => handleZoneSelect(zone.title_en)}
                       >
                         {getLocalizedText(zone.title_ur, zone.title_en)}
                       </div>
                     ))}
                     {filteredZones.length === 0 && (
-                      <div className="px-4 py-2 text-gray-500">No zones found</div>
+                      <div className="px-4 py-2 text-gray-500">
+                        No zones found
+                      </div>
                     )}
                   </div>
                 </div>
@@ -321,7 +331,13 @@ const handleZoneSelect = (zoneTitle: string) => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3">
                     {/* Left Column - Name & Location */}
-                    <div className={`p-6 ${locale === 'ur' ? 'border-l p-6 flex flex-col justify-center items-center text-center' : 'border-r p-6 flex flex-col justify-center items-center text-center'} border-gray-200`}>
+                    <div
+                      className={`p-6 ${
+                        locale === "ur"
+                          ? "border-l p-6 flex flex-col justify-center items-center text-center"
+                          : "border-r p-6 flex flex-col justify-center items-center text-center"
+                      } border-gray-200`}
+                    >
                       <h3 className="text-lg font-semibold text-gray-900">
                         {t("mehfilNumber")} {mehfil.mehfil_number}
                       </h3>
@@ -329,7 +345,11 @@ const handleZoneSelect = (zoneTitle: string) => {
                     </div>
 
                     {/* Middle Column - Address & Time */}
-                    <div className={`p-6 ${locale === 'ur' ? 'border-l' : 'border-r'} border-gray-200`}>
+                    <div
+                      className={`p-6 ${
+                        locale === "ur" ? "border-l" : "border-r"
+                      } border-gray-200`}
+                    >
                       {getLocalizedText(mehfil.address_ur, mehfil.address_en)}
                       <p className="text-gray-700 font-medium text-sm mt-4 text-center">
                         {`${t("Time")}: ${mehfil.mehfil_open}`}
@@ -339,15 +359,24 @@ const handleZoneSelect = (zoneTitle: string) => {
                     {/* Right Column - Phone & Directions */}
                     <div className="p-6 flex flex-col items-center">
                       <div className="mb-2">
-                        <p className="text-gray-800">{mehfil.co_phone_number}</p>
+                        <p className="text-gray-800">
+                          {mehfil.co_phone_number}
+                        </p>
                         {mehfil.zimdar_bhai_phone_number && (
-                          <p className="text-gray-800">{mehfil.zimdar_bhai_phone_number}</p>
+                          <p className="text-gray-800">
+                            {mehfil.zimdar_bhai_phone_number}
+                          </p>
                         )}
                       </div>
                       <div className="mt-auto">
                         <button
                           className="bg-blue-100 text-blue-600 px-4 py-1 rounded-md text-sm hover:bg-blue-200 transition"
-                          onClick={() => openDirections(mehfil.google_location, mehfil.address_en)}
+                          onClick={() =>
+                            openDirections(
+                              mehfil.google_location,
+                              mehfil.address_en
+                            )
+                          }
                         >
                           {t("getDirections")}
                         </button>

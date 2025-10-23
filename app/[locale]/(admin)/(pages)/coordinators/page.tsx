@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Pencil, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { PermissionWrapper } from "@/components/PermissionWrapper";
+import { PERMISSIONS } from "@/types/permission";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/";
 
@@ -113,137 +115,139 @@ export default function CoordinatorsPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Users /> Mehfil Coordinators
-        </h1>
-        <Button
-          onClick={() => router.push("/coordinators/new")}
-          className="flex items-center gap-2"
-        >
-          <PlusCircle size={20} />
-          Add Coordinator
-        </Button>
-      </div>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_COORDINATORS}>
+      <div className="container mx-auto py-6 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Users /> Mehfil Coordinators
+          </h1>
+          <Button
+            onClick={() => router.push("/coordinators/new")}
+            className="flex items-center gap-2"
+          >
+            <PlusCircle size={20} />
+            Add Coordinator
+          </Button>
+        </div>
 
-      {/* Search */}
-      <div className="mb-4">
-        <Input
-          placeholder="Search coordinators..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
+        {/* Search */}
+        <div className="mb-4">
+          <Input
+            placeholder="Search coordinators..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
+        </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Mehfil Directory</TableHead>
-              <TableHead>User ID</TableHead>
-              <TableHead>Type</TableHead>
-              {DAY_LABELS.map((day) => (
-                <TableHead key={day} className="text-center min-w-[100px]">
-                  {day.substring(0, 3)}
-                </TableHead>
-              ))}
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading && (
+        {/* Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-8">
-                  Loading...
-                </TableCell>
+                <TableHead>ID</TableHead>
+                <TableHead>Mehfil Directory</TableHead>
+                <TableHead>User ID</TableHead>
+                <TableHead>Type</TableHead>
+                {DAY_LABELS.map((day) => (
+                  <TableHead key={day} className="text-center min-w-[100px]">
+                    {day.substring(0, 3)}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            )}
-            {!loading && coordinators.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={12} className="text-center py-8">
-                  No coordinators found
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading &&
-              coordinators.map((coordinator) => (
-                <TableRow key={coordinator.id}>
-                  <TableCell>{coordinator.id}</TableCell>
-                  <TableCell>{coordinator.mehfil_directory_id}</TableCell>
-                  <TableCell className="font-medium">
-                    {coordinator.user_id}
-                  </TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 rounded text-xs capitalize">
-                      {coordinator.coordinator_type}
-                    </span>
-                  </TableCell>
-                  {DAYS.map((day) => {
-                    const dutyTypeId = coordinator[
-                      `duty_type_id_${day}` as keyof MehfilCoordinator
-                    ] as number | undefined;
-                    return (
-                      <TableCell key={day} className="text-center text-xs">
-                        {dutyTypeId ? (
-                          <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded text-xs">
-                            {getDutyTypeName(dutyTypeId)}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/coordinators/${coordinator.id}`)
-                        }
-                      >
-                        <Pencil size={16} />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(coordinator.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center py-8">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-      </div>
+              )}
+              {!loading && coordinators.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center py-8">
+                    No coordinators found
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading &&
+                coordinators.map((coordinator) => (
+                  <TableRow key={coordinator.id}>
+                    <TableCell>{coordinator.id}</TableCell>
+                    <TableCell>{coordinator.mehfil_directory_id}</TableCell>
+                    <TableCell className="font-medium">
+                      {coordinator.user_id}
+                    </TableCell>
+                    <TableCell>
+                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 rounded text-xs capitalize">
+                        {coordinator.coordinator_type}
+                      </span>
+                    </TableCell>
+                    {DAYS.map((day) => {
+                      const dutyTypeId = coordinator[
+                        `duty_type_id_${day}` as keyof MehfilCoordinator
+                      ] as number | undefined;
+                      return (
+                        <TableCell key={day} className="text-center text-xs">
+                          {dutyTypeId ? (
+                            <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded text-xs">
+                              {getDutyTypeName(dutyTypeId)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/coordinators/${coordinator.id}`)
+                          }
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(coordinator.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
 
-      {/* Pagination */}
-      <div className="flex justify-center gap-2 mt-6">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </Button>
-        <span className="px-4 py-2">
-          Page {currentPage} of {totalPages}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-        >
-          Next
-        </Button>
+        {/* Pagination */}
+        <div className="flex justify-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="px-4 py-2">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+          >
+            Next
+          </Button>
+        </div>
       </div>
-    </div>
+    </PermissionWrapper>
   );
 }

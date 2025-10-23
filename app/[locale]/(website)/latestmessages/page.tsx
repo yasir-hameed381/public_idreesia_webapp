@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { TranslationKeys } from "@/app/constants/translationKeys";
 import { useGetMessagesQuery } from "@/store/slicers/messagesApi";
 import LoadingSpinner from "../../../../components/ui/Loadingspinner";
+import Navigation from "../../../../components/Navigation";
 const Messages = () => {
   const pathname = usePathname();
   const locale = pathname.split("/")[1] || "en";
@@ -48,6 +49,7 @@ const Messages = () => {
 
   return (
     <div ref={containerRef} className="p-5 flex flex-col items-center">
+      <Navigation />
       <h2 className="font-sans text-2xl text-gray-700 mb-4">
         {t("newMessages")}
       </h2>

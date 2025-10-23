@@ -2,6 +2,8 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { MehfilReportsTable } from "../../components/MehfilReports/mehfil-reports-table";
+import { PermissionWrapper } from "@/components/PermissionWrapper";
+import { PERMISSIONS } from "@/types/permission";
 
 export default function MehfilReportsPage() {
   const router = useRouter();
@@ -19,8 +21,10 @@ export default function MehfilReportsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <MehfilReportsTable onView={handleView} onAdd={handleAdd} />
-    </div>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_MEHFIL_REPORTS}>
+      <div className="container mx-auto px-4 py-8">
+        <MehfilReportsTable onView={handleView} onAdd={handleAdd} />
+      </div>
+    </PermissionWrapper>
   );
 }

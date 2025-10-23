@@ -3,7 +3,7 @@ import { useGetMessagesQuery } from "@/store/slicers/messagesApi";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import image from "../../app/assets/image.png";
+import image from "../../app/assets/gallery-images/image_1.png";
 import image2 from "../../app/assets/image2.png";
 import LoadingSpinner from "../ui/Loadingspinner";
 
@@ -55,7 +55,11 @@ export default function LatestMessage() {
         </div>
 
         <div className="w-1/2 flex flex-col justify-center items-start px-8">
-          <Image src={image2} alt="second image" />
+          <Image
+            src={image2}
+            alt="second image"
+            className="max-w-full h-auto rounded-md"
+          />
 
           <div className="flex flex-col items-center">
             {latestMessage.map((item) => {

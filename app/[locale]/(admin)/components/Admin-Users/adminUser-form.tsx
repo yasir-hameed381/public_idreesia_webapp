@@ -235,7 +235,7 @@ export function AdminUserForm({
         name: values.name,
         email: values.email,
         father_name: values.father_name,
-        phone_number: values.phone_number, // Map mobile_no to phone_number
+        phone_number: values.mobile_no, // Map mobile_no to phone_number for API
         id_card_number: values.id_card_number,
         address: values.address,
         birth_year: values.birth_year,

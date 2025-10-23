@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ParhaiyanTable } from "../../components/Parhaiyan/Parhaiyan-tabel";
 import { ParhaiyanForm } from "../../components/Parhaiyan/Parhaiyan-form";
 import { Parhaiyan } from "@/app/types/Parhaiyan";
+import { PermissionWrapper } from "@/components/PermissionWrapper";
+import { PERMISSIONS } from "@/types/permission";
 
 export default function ParhaiyanPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -35,22 +37,24 @@ export default function ParhaiyanPage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      {/* Parhaiyan Table Component */}
-      <ParhaiyanTable
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-        onView={handleView}
-      />
-
-      {/* Parhaiyan Form Component - Only render when open */}
-      {isFormOpen && (
-        <ParhaiyanForm
-          parhaiyan={editingParhaiyan}
-          open={isFormOpen}
-          onClose={handleFormClose}
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_PARHAIYAN}>
+      <div className="container mx-auto p-4">
+        {/* Parhaiyan Table Component */}
+        <ParhaiyanTable
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+          onView={handleView}
         />
-      )}
-    </div>
+
+        {/* Parhaiyan Form Component - Only render when open */}
+        {isFormOpen && (
+          <ParhaiyanForm
+            parhaiyan={editingParhaiyan}
+            open={isFormOpen}
+            onClose={handleFormClose}
+          />
+        )}
+      </div>
+    </PermissionWrapper>
   );
 }

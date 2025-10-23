@@ -1,11 +1,9 @@
-
-
-
-
 "use client";
 import { useState } from "react";
 import { NamazTable } from "../../components/Namaz/Namaz-tabel";
 import { Namazform } from "../../components/Namaz/Namaz-form";
+import { PermissionWrapper } from "@/components/PermissionWrapper";
+import { PERMISSIONS } from "@/types/permission";
 // import "primereact/resources/themes/lara-light-indigo/theme.css";
 // import "primereact/resources/primereact.min.css";
 // import "primeicons/primeicons.css";
@@ -22,9 +20,11 @@ export default function NamazPage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <NamazTable onAdd={handleAdd} />
-     <Namazform onClose={handleFormClose} open={isFormOpen}/>
-    </div>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_NAMAZ}>
+      <div className="container mx-auto p-4">
+        <NamazTable onAdd={handleAdd} />
+        <Namazform onClose={handleFormClose} open={isFormOpen} />
+      </div>
+    </PermissionWrapper>
   );
 }

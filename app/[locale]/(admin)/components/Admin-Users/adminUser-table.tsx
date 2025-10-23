@@ -34,7 +34,6 @@ export function AdminUserTable({
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAdminUser, setSelectedAdminUser] = useState<any>(null);
-  const [allData, setAllData] = useState<any[]>([]);
   const [data, setData] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -93,12 +92,8 @@ export function AdminUserTable({
         });
 
         console.log("API Response:", response);
-        setAllData(response.data);
+        setData(response.data);
         setMeta(response.meta);
-
-        // Apply client-side search filtering
-        const filteredData = getFilteredData(response.data, debouncedSearch);
-        setData(filteredData);
       } catch (err) {
         setError("Failed to load admin users");
         console.error("Error fetching admin users:", err);
@@ -114,26 +109,6 @@ export function AdminUserTable({
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
-
-  // Filter data when search changes
-  useEffect(() => {
-    if (allData.length > 0) {
-      const filteredData = getFilteredData(allData, debouncedSearch);
-      setData(filteredData);
-      console.log(
-        "Search applied:",
-        debouncedSearch,
-        "Filtered results:",
-        filteredData.length
-      );
-      console.log(
-        "All data count:",
-        allData.length,
-        "Filtered data count:",
-        filteredData.length
-      );
-    }
-  }, [debouncedSearch, allData]);
 
   const handleDelete = async () => {
     if (!selectedAdminUser) return;
@@ -154,12 +129,8 @@ export function AdminUserTable({
         size: perPage,
         search: debouncedSearch.trim(),
       });
-      setAllData(response.data);
+      setData(response.data);
       setMeta(response.meta);
-
-      // Re-apply search filtering
-      const filteredData = getFilteredData(response.data, debouncedSearch);
-      setData(filteredData);
     } catch {
       showError("Failed to delete admin user.");
     }
@@ -191,21 +162,6 @@ export function AdminUserTable({
   const handlePerPageChange = (newPerPage: number) => {
     setPerPage(newPerPage);
     setCurrentPage(1); // Reset to first page when changing per page
-  };
-
-  // Client-side search function as fallback
-  const getFilteredData = (allData: any[], searchTerm: string) => {
-    if (!searchTerm.trim()) return allData;
-
-    return allData.filter(
-      (user: any) =>
-        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.duty_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.user_type?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
   };
 
   const totalPages = Math.ceil((meta?.total || 0) / perPage);
