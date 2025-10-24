@@ -223,7 +223,7 @@ export function AdminUserTable({
               </div>
               {search.trim() && (
                 <div className="mt-2 text-sm text-gray-600">
-                  Searching for: "{search}" • Found {data.length} results
+                  Searching for: "{search}" • Found {meta?.total || 0} results
                 </div>
               )}
             </div>
