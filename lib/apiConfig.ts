@@ -32,3 +32,14 @@ export const getApiBaseUrl = (): string => {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 };
 
+/**
+ * API configuration object
+ */
+export const apiConfig = {
+  baseURL: getApiBaseUrl(),
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+};

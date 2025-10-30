@@ -6,6 +6,7 @@ import { store, persistor } from "../../../store/store";
 import { ThemeProvider, useTheme } from "@/context/useTheme";
 import { PermissionProvider } from "../../../context/PermissionContext";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
 
@@ -38,17 +39,26 @@ function PrimeThemeLoader() {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isKarkunPortal = pathname?.includes("karkun-portal");
+
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <ThemeProvider>
           <PermissionProvider>
             <PrimeThemeLoader />
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-grow">{children}</main>
-              <Footer />
-            </div>
+            {isKarkunPortal ? (
+              // Karkun portal uses its own layout
+              <>{children}</>
+            ) : (
+              // Website pages use Header and Footer
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-grow">{children}</main>
+                <Footer />
+              </div>
+            )}
           </PermissionProvider>
         </ThemeProvider>
       </PersistGate>

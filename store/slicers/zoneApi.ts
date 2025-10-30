@@ -85,9 +85,13 @@ export const zoneSlice = createApi({
       query: (id) => `zone/${id}`,
       providesTags: (result, error, id) => [{ type: 'zone', id }],
     }),
+
+    // Fetch zones accessible to the current user (filtered by backend based on permissions)
+    fetchUserZones: builder.query<ZoneResponse, void>({
+      query: () => 'zone/user-zones',
+      providesTags: ['zone'],
+    }),
   }),
-  
-    
 
 });
 
@@ -96,5 +100,6 @@ export const {
   useUpdateZoneMutation,
   useDeletezoneMutation, 
   useFetchZonesQuery,
-  useGetZoneByIdQuery
+  useGetZoneByIdQuery,
+  useFetchUserZonesQuery
 } = zoneSlice;

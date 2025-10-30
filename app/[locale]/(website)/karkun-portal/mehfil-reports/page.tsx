@@ -11,55 +11,10 @@ const MehfilReportsPage = () => {
     // Navigate to add report page
     router.push("/karkun-portal/mehfil-reports/submit");
   };
-  // Navigation Cards Component
-  const renderNavigationCards = () => (
-    <div className="mx-auto px-6 lg:px-8 py-6">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-green-700 font-medium justify-center">
-        <Link
-          href="/karkun-portal/dashboard"
-          className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-white text-black"
-        >
-          Dashboard
-        </Link>
-        <Link
-          href="/karkun-portal/karkunan"
-          className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-white text-black"
-        >
-          Karkunan
-        </Link>
-        <Link
-          href="/karkun-portal/mehfil-reports"
-          className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-green-600 text-white"
-        >
-          Reports
-        </Link>
-        <Link
-          href="/karkun-portal/new-ehad"
-          className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-white text-black"
-        >
-          New Ehad
-        </Link>
-        <Link
-          href="/karkun-portal/tabarukats"
-          className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-white text-black"
-        >
-          Tabarukat
-        </Link>
-        <Link
-          href="/karkun-portal/attendance"
-          className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-white text-black"
-        >
-          Karkunan Attendance
-        </Link>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
-        {renderNavigationCards()}
-
         <hr className="border-gray-300 mb-6" />
 
         {/* Zone Information Card */}

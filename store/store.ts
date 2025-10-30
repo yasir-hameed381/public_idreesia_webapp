@@ -26,6 +26,8 @@ import { mehfilDirectoryApi } from "./slicers/mehfildirectoryApi";
 import { zoneSlice } from "./slicers/zoneApi";
 import { karkunApi } from "./slicers/EhadKarkunApi";
 import {namazApi} from "./slicers/NamazApi"
+import { karkunanApi } from "./slicers/karkunanApi";
+import { newEhadApi } from "./slicers/newEhadApi";
 import { parhaiyanApi } from "./slicers/parhaiyanApi";
 import { mehfilReportsApi } from "./slicers/mehfilReportsApi";
 import { dashboardStatsApi } from "./slicers/dashboardStatsApi";
@@ -166,6 +168,8 @@ export const store = configureStore({
     [dashboardStatsApi.reducerPath]: dashboardStatsApi.reducer,
     [karkunJoinRequestsApi.reducerPath]: karkunJoinRequestsApi.reducer,
     [feedbackApi.reducerPath]: feedbackApi.reducer,
+    [karkunanApi.reducerPath]: karkunanApi.reducer,
+    [newEhadApi.reducerPath]: newEhadApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -202,6 +206,8 @@ export const store = configureStore({
           'dashboardStatsApi',
           'karkunJoinRequestsApi',
           'feedbackApi',
+          'karkunanApi',
+          'newEhadApi',
         ],
         warnAfter: 128,
       },
@@ -221,7 +227,9 @@ export const store = configureStore({
     .concat(mehfilReportsApi.middleware)
     .concat(dashboardStatsApi.middleware)
     .concat(karkunJoinRequestsApi.middleware)
-    .concat(feedbackApi.middleware),
+    .concat(feedbackApi.middleware)
+    .concat(karkunanApi.middleware)
+    .concat(newEhadApi.middleware),
   // Enable devTools only in development
   devTools: process.env.NODE_ENV !== 'production',
 });

@@ -28,9 +28,9 @@ class DutyTypeService {
   /**
    * Get all duty types with pagination
    */
-  async getAllDutyTypes(page = 1, size = 10, search = ''): Promise<DutyTypeListResponse> {
+  async getAllDutyTypes(page = 1, size = 10, search = '', zoneId?: number): Promise<DutyTypeListResponse> {
     const response = await axios.get(`${API_URL}/duty-types-data`, {
-      params: { page, size, search },
+      params: { page, size, search, zoneId },
     });
     return response.data;
   }
@@ -38,8 +38,18 @@ class DutyTypeService {
   /**
    * Get all active duty types
    */
-  async getActiveDutyTypes(): Promise<DutyType[]> {
-    const response = await axios.get(`${API_URL}/duty-types-data/active`);
+  async getActiveDutyTypes(zoneId?: number): Promise<DutyType[]> {
+    const response = await axios.get(`${API_URL}/duty-types-data/active`, {
+      params: { zoneId },
+    });
+    return response.data.data;
+  }
+
+  /**
+   * Get duty types by zone
+   */
+  async getDutyTypesByZone(zoneId: number): Promise<DutyType[]> {
+    const response = await axios.get(`${API_URL}/duty-types-data/zone/${zoneId}`);
     return response.data.data;
   }
 
