@@ -29,7 +29,7 @@ export const prepareAuthHeaders = (headers: Headers) => {
  * Get the API base URL from environment variables
  */
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 };
 
 /**

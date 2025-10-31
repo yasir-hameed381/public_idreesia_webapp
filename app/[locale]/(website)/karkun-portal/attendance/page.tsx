@@ -72,13 +72,12 @@ const DutyRosterPage = () => {
   };
 
   // Permissions
-  const canFilterZones = user?.is_all_region_admin || user?.is_region_admin;
+  const canFilterZones = user?.is_region_admin;
   const canFilterMehfils = canFilterZones || user?.is_zone_admin;
   const isReadOnly = selectedZoneId && !selectedMehfilId;
   const canManageRoster =
     !isReadOnly &&
     (userTypeFilter === "karkun" ||
-      user?.is_all_region_admin ||
       user?.is_region_admin ||
       user?.is_zone_admin);
 

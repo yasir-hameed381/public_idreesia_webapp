@@ -83,7 +83,7 @@ const CoordinatorListPage = () => {
   );
 
   // Permissions
-  const canFilterZones = user?.is_all_region_admin || user?.is_region_admin;
+  const canFilterZones = user?.is_region_admin;
 
   useEffect(() => {
     if (selectedMehfilId) {

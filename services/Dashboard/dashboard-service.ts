@@ -80,7 +80,7 @@ export interface OverallTotals {
 export class DashboardService {
   static async getDashboardStats(
     filters: DashboardFilters
-  ): Promise<DashboardStats> {
+  ): Promise<DashboardStats & { zones: any[]; mehfils: any[] }> {
     try {
       const params = new URLSearchParams();
       params.append("selected_month", filters.selectedMonth.toString());
@@ -94,14 +94,18 @@ export class DashboardService {
         params.append("selected_mehfil_id", filters.selectedMehfilId.toString());
       }
 
+      const url = `${apiConfig.baseURL}/dashboard/stats?${params.toString()}`;
+      console.log("🔗 Fetching dashboard stats from:", url);
+      console.log("🔗 API config baseURL:", apiConfig.baseURL);
+
       const response = await fetch(
-        `${apiConfig.baseURL}/api/dashboard/stats?${params.toString()}`,
+        url,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
           },
           credentials: "include",
         }
@@ -112,6 +116,13 @@ export class DashboardService {
       }
 
       const data = await response.json();
+      console.log("🔗 Dashboard stats API response:", {
+        hasZones: !!data.zones,
+        zonesCount: data.zones?.length || 0,
+        hasMehfils: !!data.mehfils,
+        mehfilsCount: data.mehfils?.length || 0,
+        dataKeys: Object.keys(data),
+      });
       return data;
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -122,13 +133,13 @@ export class DashboardService {
   static async getOverallTotals(): Promise<OverallTotals> {
     try {
       const response = await fetch(
-        `${apiConfig.baseURL}/api/dashboard/overall-totals`,
+        `${apiConfig.baseURL}/dashboard/overall-totals`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
           },
           credentials: "include",
         }
@@ -142,6 +153,64 @@ export class DashboardService {
       return data;
     } catch (error) {
       console.error("Error fetching overall totals:", error);
+      throw error;
+    }
+  }
+
+  static async getZonesForUser(): Promise<any[]> {
+    try {
+      const response = await fetch(
+        `${apiConfig.baseURL}/dashboard/zones`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error("Error fetching zones for user:", error);
+      throw error;
+    }
+  }
+
+  static async getMehfilsForZone(zoneId: number): Promise<any[]> {
+    try {
+      const url = `${apiConfig.baseURL}/dashboard/mehfils/${zoneId}`;
+      console.log("🔗 Fetching mehfils from:", url);
+      
+      const response = await fetch(
+        url,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("🔗 Mehfils response:", result);
+      return result.data || [];
+    } catch (error) {
+      console.error("Error fetching mehfils for zone:", error);
       throw error;
     }
   }

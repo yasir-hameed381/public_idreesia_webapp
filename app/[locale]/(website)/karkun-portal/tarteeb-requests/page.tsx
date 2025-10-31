@@ -6,6 +6,7 @@ import TarteebRequestService, {
   TarteebRequest,
 } from "@/services/TarteebRequests";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Zone {
   id: number;
@@ -46,7 +47,7 @@ const TarteebRequestsPage = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Permissions
-  const canFilterZones = user?.is_all_region_admin || user?.is_region_admin;
+  const canFilterZones = user?.is_region_admin;
 
   useEffect(() => {
     loadRequests();

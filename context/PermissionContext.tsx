@@ -17,6 +17,7 @@ interface PermissionContextType {
   isSuperAdmin: boolean;
   isMehfilAdmin: boolean;
   isZoneAdmin: boolean;
+  isRegionAdmin: boolean;
   isAdmin: boolean;
   getUserPermissions: () => string[];
 }
@@ -48,6 +49,7 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
         is_super_admin: userWithPermissions.is_super_admin,
         is_mehfil_admin: userWithPermissions.is_mehfil_admin,
         is_zone_admin: userWithPermissions.is_zone_admin,
+        is_region_admin: userWithPermissions.is_region_admin,
       });
     } else {
       console.log("🔐 PermissionContext initialized - No user logged in");
@@ -162,10 +164,12 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
       isSuperAdmin: userWithPermissions?.is_super_admin || false,
       isMehfilAdmin: userWithPermissions?.is_mehfil_admin || false,
       isZoneAdmin: userWithPermissions?.is_zone_admin || false,
+      isRegionAdmin: userWithPermissions?.is_region_admin || false,
       isAdmin: !!(
         userWithPermissions?.is_super_admin ||
         userWithPermissions?.is_mehfil_admin ||
-        userWithPermissions?.is_zone_admin
+        userWithPermissions?.is_zone_admin ||
+        userWithPermissions?.is_region_admin
       ),
       getUserPermissions,
     };

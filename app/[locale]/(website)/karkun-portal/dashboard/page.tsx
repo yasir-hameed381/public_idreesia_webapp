@@ -1,5 +1,24 @@
 "use client";
 
+/**
+ * Karkun Dashboard with Role-Based Filtering
+ * 
+ * This dashboard implements role-based zone and mehfil filtering similar to the Laravel application.
+ * 
+ * Role-Based Access Control:
+ * - Super Admin / All Region Admin: Can see all zones and switch between them
+ * - Region Admin: Can only see zones in their region
+ * - Zone Admin: Can only see their own zone (pre-selected and locked)
+ * - Mehfil Admin: Can only see their zone and mehfil (both pre-selected and locked)
+ * 
+ * Key Features:
+ * 1. Zones and mehfils are filtered on the backend based on user permissions
+ * 2. Zone/Mehfil admins have their zone/mehfil pre-selected automatically
+ * 3. Cascading filters: changing zone resets mehfil selection
+ * 4. Stats are calculated based on selected filters
+ * 5. Different sections visible based on role (Region Stats, Zone Stats, etc.)
+ */
+
 import React, { useEffect, useState } from "react";
 
 import Link from "next/link";
@@ -12,16 +31,6 @@ import {
   DashboardFilters,
   OverallTotals,
 } from "@/services/Dashboard/dashboard-service";
-
-import { useFetchMehfilsDataQuery } from "@/store/slicers/mehfilApi";
-
-import { useFetchKarkunansQuery } from "@/store/slicers/karkunanApi";
-
-import { useFetchKarkunsQuery } from "@/store/slicers/EhadKarkunApi";
-
-import { useFetchZonesQuery } from "@/store/slicers/zoneApi";
-
-import { useFetchNewEhadsQuery } from "@/store/slicers/newEhadApi";
 
 interface Zone {
   id: number;
@@ -52,7 +61,9 @@ interface DashboardState extends DashboardStatsType {
 }
 
 const KarkunDashboardPage: React.FC = () => {
+  // const { user,user.zone_id } = useAuth();
   const { user } = useAuth();
+  console.log(user?.zone_id)
 
   const currentDate = new Date();
 
@@ -70,13 +81,10 @@ const KarkunDashboardPage: React.FC = () => {
     currentMonth > 1 ? currentYear : currentYear - 1
   );
 
-  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(
-    user?.zone_id || null
-  );
+  // Initialize zone and mehfil based on user role
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
 
-  const [selectedMehfilId, setSelectedMehfilId] = useState<number | null>(
-    user?.mehfil_directory_id || null
-  );
+  const [selectedMehfilId, setSelectedMehfilId] = useState<number | null>(null);
 
   const [stats, setStats] = useState<DashboardState>({
     loading: true,
@@ -124,50 +132,6 @@ const KarkunDashboardPage: React.FC = () => {
 
   const [loadingTotals, setLoadingTotals] = useState(true);
 
-  // Fetch mehfils data using RTK Query
-
-  const { data: mehfilsData, isLoading: isLoadingMehfils } =
-    useFetchMehfilsDataQuery({
-      page: 1,
-
-      size: 1, // We only need the total count, not the actual data
-    });
-
-  // Fetch karkuns data using RTK Query
-
-  const { data: karkunsData, isLoading: isLoadingKarkuns } =
-    useFetchKarkunansQuery({
-      page: 1,
-
-      size: 1, // We only need the total count, not the actual data
-    });
-
-  // Fetch Ehad Karkuns data using RTK Query
-
-  const { data: ehadKarkunsData, isLoading: isLoadingEhadKarkuns } =
-    useFetchKarkunsQuery({
-      page: 1,
-
-      size: 1, // We only need the total count, not the actual data
-    });
-
-  // Fetch Zones data using RTK Query
-
-  const { data: zonesData, isLoading: isLoadingZones } = useFetchZonesQuery({
-    page: 1,
-
-    per_page: 1, // We only need the total count, not the actual data
-  });
-
-  // Fetch New Ehads data using RTK Query
-
-  const { data: newEhadsData, isLoading: isLoadingNewEhads } =
-    useFetchNewEhadsQuery({
-      page: 1,
-
-      per_page: 1, // We only need the total count, not the actual data
-    });
-
   // Months mapping
 
   const months: Record<number, string> = {
@@ -196,6 +160,25 @@ const KarkunDashboardPage: React.FC = () => {
     12: "December",
   };
 
+  // Initialize zone/mehfil selection based on user role (only once on mount)
+  useEffect(() => {
+    if (user) {
+      // Zone admin or mehfil admin - pre-select their zone
+      if (user.is_zone_admin || user.is_mehfil_admin) {
+        console.log("Setting selectedZoneId to:", user.zone_id);
+        console.log("Setting users:", user);
+        setSelectedZoneId(user.zone_id || null);
+        console.log("SelectedZoneId:", selectedZoneId);
+      } else {
+        console.log("User is not zone/mehfil admin, zone_id:", user.zone_id);
+      }
+      // Mehfil admin - pre-select their mehfil
+      if (user.is_mehfil_admin) {
+        setSelectedMehfilId(user.mehfil_directory_id || null);
+      }
+    }
+  }, [user]);
+
   // Load overall totals (only once on mount)
 
   useEffect(() => {
@@ -217,7 +200,6 @@ const KarkunDashboardPage: React.FC = () => {
   }, []);
 
   // Load dashboard stats
-
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -225,26 +207,35 @@ const KarkunDashboardPage: React.FC = () => {
 
         const filters: DashboardFilters = {
           selectedMonth,
-
           selectedYear,
-
           selectedZoneId,
-
           selectedMehfilId,
         };
 
         const dashboardData = await DashboardService.getDashboardStats(filters);
 
+        console.log("📊 Dashboard data received:", {
+          totalZones: dashboardData.zones?.length || 0,
+          totalMehfils: dashboardData.mehfils?.length || 0,
+          zones: dashboardData.zones,
+          mehfils: dashboardData.mehfils,
+          totalKarkuns: dashboardData.totalKarkuns,
+        });
+
         setStats((prev) => ({
           ...prev,
-
           ...dashboardData,
-
+          zones: dashboardData.zones || prev.zones,
+          mehfils: prev.mehfils?.length > 0 ? prev.mehfils : dashboardData.mehfils,
           loading: false,
         }));
+        
+        console.log("🔍 Stats after setting:", {
+          zonesCount: dashboardData.zones?.length || 0,
+          mehfilsCount: dashboardData.mehfils?.length || 0,
+        });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
-
         setStats((prev) => ({ ...prev, loading: false }));
       }
     };
@@ -252,15 +243,52 @@ const KarkunDashboardPage: React.FC = () => {
     fetchDashboardData();
   }, [selectedMonth, selectedYear, selectedZoneId, selectedMehfilId]);
 
-  // Check if user can filter zones
+  // Load mehfils when zone changes
+  useEffect(() => {
+    console.log("🔄 Mehfils useEffect triggered, selectedZoneId:", selectedZoneId);
+    
+    const loadMehfils = async () => {
+      if (selectedZoneId) {
+        try {
+          console.log(`📋 Calling getMehfilsForZone for zone ${selectedZoneId}`);
+          const mehfils = await DashboardService.getMehfilsForZone(selectedZoneId);
+          console.log(`📋 Loaded ${mehfils.length} mehfils for zone ${selectedZoneId}:`, mehfils);
+          setStats((prev) => ({
+            ...prev,
+            mehfils,
+          }));
+        } catch (error) {
+          console.error("Error loading mehfils:", error);
+        }
+      } else {
+        console.log("⚠️ No selectedZoneId, clearing mehfils");
+        // Clear mehfils when no zone is selected
+        setStats((prev) => ({
+          ...prev,
+          mehfils: [],
+        }));
+      }
+    };
 
+    loadMehfils();
+  }, [selectedZoneId]);
+
+  // Check if user can filter zones (Region admins can change zones)
   const canFilterZones: boolean = Boolean(
-    user?.is_all_region_admin || user?.is_region_admin
+    user?.is_super_admin || user?.is_region_admin
   );
 
+  // Check if user can filter mehfils (Region and Zone admins can change mehfils)
   const canFilterMehfils: boolean = Boolean(
     canFilterZones || user?.is_zone_admin
   );
+
+  // Handle zone change - reset mehfil selection and update stats
+  const handleZoneChange = (newZoneId: string) => {
+    const zoneId = newZoneId ? Number(newZoneId) : null;
+    setSelectedZoneId(zoneId);
+    setSelectedMehfilId(null); // Reset mehfil when zone changes
+  };
 
   // Get selected zone name
 
@@ -269,12 +297,19 @@ const KarkunDashboardPage: React.FC = () => {
       return user?.zone?.title_en || "Loading...";
     }
 
+    console.log("🔍 Getting selected zone name - stats.zones:", stats.mehfils);
+
     const zone = stats.zones.find((z) => z.id === selectedZoneId);
+
+    console.log("🔍 Selected zone details:", zone);
 
     return zone
       ? `${zone.title_en} - ${zone.city_en}, ${zone.country_en}`
       : "All Zones";
   };
+
+  // Debug: log stats.zones before render
+  console.log("🔍 Render - stats.zones:", stats.zones, "length:", stats.zones?.length || 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -323,30 +358,29 @@ const KarkunDashboardPage: React.FC = () => {
                 Zone
               </label>
 
-              <select
-                value={selectedZoneId || ""}
-                onChange={(e) => {
-                  setSelectedZoneId(
-                    e.target.value ? Number(e.target.value) : null
-                  );
+              {(() => {
+                console.log("🔍 Inside dropdown render - stats.zones:", stats.zones);
+                return (
+                  <select
+                    value={selectedZoneId || ""}
+                    onChange={(e) => handleZoneChange(e.target.value)}
+                    disabled={!canFilterZones}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 ${
+                      !canFilterZones
+                        ? "opacity-50 cursor-not-allowed bg-gray-50"
+                        : ""
+                    }`}
+                  >
+                    <option value={stats.zones.length > 0 ? stats.zones[0].title_en : ""}>{stats.zones.length > 0 ? stats.zones[0].title_en : "All zones"}</option>
 
-                  setSelectedMehfilId(null);
-                }}
-                disabled={!canFilterZones}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 ${
-                  !canFilterZones
-                    ? "opacity-50 cursor-not-allowed bg-gray-50"
-                    : ""
-                }`}
-              >
-                <option value="">All Zones</option>
-
-                {stats.zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.title_en} - {zone.city_en}
-                  </option>
-                ))}
-              </select>
+                    {stats.zones.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.title_en} - {zone.city_en}
+                      </option>
+                    ))}
+                  </select>
+                );
+              })()}
             </div>
 
             {/* Mehfil Dropdown */}
@@ -370,7 +404,7 @@ const KarkunDashboardPage: React.FC = () => {
                     : ""
                 }`}
               >
-                <option value="">All Mehfils</option>
+                <option value={stats.mehfils.length > 0 ? stats.mehfils[0].id : ""}>{"All Mehfils"}</option>
 
                 {stats.mehfils.map((mehfil) => (
                   <option key={mehfil.id} value={mehfil.id}>
@@ -456,11 +490,11 @@ const KarkunDashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isLoadingKarkuns ? (
+                {loadingTotals ? (
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 ) : (
                   <p className="text-3xl font-bold text-gray-900">
-                    {karkunsData?.meta?.total || 0}
+                    {overallTotals?.totalKarkunans || 0}
                   </p>
                 )}
               </div>
@@ -484,11 +518,11 @@ const KarkunDashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isLoadingEhadKarkuns ? (
+                {loadingTotals ? (
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                 ) : (
                   <p className="text-3xl font-bold text-gray-900">
-                    {ehadKarkunsData?.meta?.total || 0}
+                    {overallTotals?.totalEhadKarkuns || 0}
                   </p>
                 )}
               </div>
@@ -516,11 +550,11 @@ const KarkunDashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isLoadingMehfils ? (
+                {loadingTotals ? (
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                 ) : (
                   <p className="text-3xl font-bold text-gray-900">
-                    {mehfilsData?.meta?.total || 0}
+                    {overallTotals?.totalMehfils || 0}
                   </p>
                 )}
               </div>
@@ -548,11 +582,11 @@ const KarkunDashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isLoadingZones ? (
+                {loadingTotals ? (
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
                 ) : (
                   <p className="text-3xl font-bold text-gray-900">
-                    {zonesData?.meta?.total || 0}
+                    {overallTotals?.totalZones || 0}
                   </p>
                 )}
               </div>
@@ -591,11 +625,11 @@ const KarkunDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {isLoadingNewEhads ? (
+              {stats.loading ? (
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
               ) : (
                 <p className="text-3xl font-bold text-gray-900">
-                  {newEhadsData?.meta?.total || 0}
+                  {stats.totalNewEhads || 0}
                 </p>
               )}
             </div>
@@ -702,7 +736,7 @@ const KarkunDashboardPage: React.FC = () => {
 
         {/* Region Stats Table - Show when region admin and no zone selected */}
 
-        {(!user?.is_all_region_admin || user?.is_region_admin) &&
+        {(user?.is_super_admin || user?.is_region_admin) &&
           !selectedZoneId &&
           stats.zoneReportStats.length > 0 && (
             <div className="mb-8">
@@ -821,7 +855,7 @@ const KarkunDashboardPage: React.FC = () => {
           )}
 
         {/* Zone Stats - Show when zone is selected */}
-
+{/* 
         {selectedZoneId && !selectedMehfilId && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -970,7 +1004,7 @@ const KarkunDashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Zone Stats - Show when zone is selected but no mehfil */}
 

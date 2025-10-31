@@ -26,8 +26,12 @@ export default function KarkunPortalLayout({
 }) {
   const [isVisible, setIsVisible] = React.useState(false);
   const { user, logout } = useAuth();
-  const { hasPermission, isZoneAdmin, isMehfilAdmin, isSuperAdmin } =
+  const { hasPermission, isZoneAdmin, isMehfilAdmin, isSuperAdmin, isRegionAdmin } =
     usePermissions();
+
+    console.log("isZoneAdmin:", isZoneAdmin);
+    console.log("isMehfilAdmin:", isMehfilAdmin);
+    console.log("isRegionAdmin:", isRegionAdmin);
   const pathname = usePathname();
 
   const menuToggler = () => setIsVisible((prevState) => !prevState);
