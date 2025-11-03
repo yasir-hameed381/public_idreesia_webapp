@@ -40,8 +40,8 @@ export const KarkunNavigation = () => {
       icon: "💰",
     },
     {
-      href: "/karkun-portal/attendance",
-      label: "Attendance",
+      href: "/karkun-portal/dutyRoster",
+      label: "Duty Roster",
       icon: "📅",
     },
   ];

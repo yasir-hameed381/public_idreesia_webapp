@@ -8,16 +8,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
 import { FaUserCircle } from "react-icons/fa";
-import { FiLogOut, FiUser } from "react-icons/fi";
+import { FiChevronDown, FiLogOut, FiUser } from "react-icons/fi";
 import { IoIosArrowDown } from "react-icons/io";
 import { HiLocationMarker } from "react-icons/hi";
-import headerImage from "@/app/assets/Karkun-header-img.png";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import headerImage from "@/app/assets/banner-slides/002.webp";
 import { t } from "i18next";
-import MobileAppShowcase from "@/components/MainPageCards/MobileAppShowCase";
-import LatestMessage from "@/components/MainPageCards/LatestMessage";
-import MehfilAddressCard from "@/components/Mehfil-Address";
-import centerImage from "../../../assets/centered-border.png";
+import image1 from "@/app/assets/banner-slides/002.webp";
+import image2 from "@/app/assets/banner-slides/003.webp";
+import image3 from "@/app/assets/banner-slides/004.webp";
+import image4 from "@/app/assets/banner-slides/005.webp";
+import image5 from "@/app/assets/banner-slides/006.webp";
 import Footer from "@/components/Footer";
+
+// Banner slide images
+const bannerSlides = [image1, image2, image3, image4, image5];
 
 export default function KarkunPortalLayout({
   children,
@@ -25,19 +30,46 @@ export default function KarkunPortalLayout({
   children: React.ReactNode;
 }) {
   const [isVisible, setIsVisible] = React.useState(false);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
   const { user, logout } = useAuth();
-  const { hasPermission, isZoneAdmin, isMehfilAdmin, isSuperAdmin, isRegionAdmin } =
-    usePermissions();
+  const {
+    hasPermission,
+    isZoneAdmin,
+    isMehfilAdmin,
+    isSuperAdmin,
+    isRegionAdmin,
+  } = usePermissions();
 
-    console.log("isZoneAdmin:", isZoneAdmin);
-    console.log("isMehfilAdmin:", isMehfilAdmin);
-    console.log("isRegionAdmin:", isRegionAdmin);
+  console.log("isZoneAdmin:", isZoneAdmin);
+  console.log("isMehfilAdmin:", isMehfilAdmin);
+  console.log("isRegionAdmin:", isRegionAdmin);
   const pathname = usePathname();
 
   const menuToggler = () => setIsVisible((prevState) => !prevState);
 
   const handleLogout = () => {
     logout();
+  };
+
+  // Auto-play slider
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Navigate to next slide
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
+  };
+
+  // Navigate to previous slide
+  const prevSlide = () => {
+    setCurrentSlide(
+      (prev) => (prev - 1 + bannerSlides.length) % bannerSlides.length
+    );
   };
 
   // Navigation tabs with permissions
@@ -88,7 +120,7 @@ export default function KarkunPortalLayout({
       ),
     },
     {
-      href: "/karkun-portal/attendance",
+      href: "/karkun-portal/dutyRoster",
       label: "Duty Roster",
       permission: PERMISSIONS.VIEW_DUTY_ROSTER,
       icon: (
@@ -126,171 +158,248 @@ export default function KarkunPortalLayout({
   });
 
   const isActiveTab = (href: string) => {
-    if (href === "/karkun-portal/dashboard") {
-      return pathname === href || pathname === "/karkun-portal";
+    if (!pathname) return false;
+
+    // Remove locale from pathname if present (e.g., /en/karkun-portal -> /karkun-portal)
+    // Locale is typically 2 letters: en, ur, ar, etc.
+    let normalizedPathname = pathname.toLowerCase();
+    const localeMatch = normalizedPathname.match(/^\/[a-z]{2}(\/|$)/);
+    if (localeMatch) {
+      normalizedPathname = normalizedPathname.substring(3); // Remove /en, /ur, etc.
     }
-    return pathname?.startsWith(href);
+
+    // Ensure pathname starts with /
+    if (!normalizedPathname.startsWith("/")) {
+      normalizedPathname = "/" + normalizedPathname;
+    }
+
+    const normalizedHref = href.toLowerCase();
+
+    // Debug logging
+    console.log("🔍 Active Tab Check:", {
+      originalPathname: pathname,
+      normalizedPathname,
+      href: normalizedHref,
+      locale: localeMatch?.[0],
+    });
+
+    // Special case for dashboard - exact match or root karkun-portal path
+    if (normalizedHref === "/karkun-portal/dashboard") {
+      const isActive =
+        normalizedPathname === normalizedHref ||
+        normalizedPathname === "/karkun-portal" ||
+        normalizedPathname === "/karkun-portal/";
+      console.log("✅ Dashboard active?", isActive);
+      return isActive;
+    }
+
+    // For other routes, check if pathname starts with href
+    // This will match /karkun-portal/dutyRoster, /karkun-portal/dutyRoster/new, /karkun-portal/dutyRoster/123
+    const isActive = normalizedPathname.startsWith(normalizedHref);
+    console.log(`✅ ${href} active?`, isActive);
+    return isActive;
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      {/* Islamic Header Image */}
+      {/* Islamic Header Banner Slider */}
       <header className="relative">
-        <div className="relative w-full h-60 md:h-30">
-          <Image
-            src={headerImage}
-            alt="Karkun Portal Header"
-            fill
-            className="object-cover"
-            priority
-          />
+        <div className="relative w-full h-60 md:h-65 overflow-hidden">
+          {/* Slider Images */}
+          {bannerSlides.map((slide, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentSlide ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <Image
+                src={slide}
+                alt={`Banner Slide ${index + 1}`}
+                fill
+                className="object-cover"
+                priority={index === 0}
+              />
+            </div>
+          ))}
+
           {/* Overlay gradient for better text visibility */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"></div>
 
-          {/* User Info Overlay - Top Right */}
-          <div className="absolute top-4 right-4 z-10">
-            <div className="relative">
+          {/* Slide Indicators */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {bannerSlides.map((_, index) => (
               <button
-                onClick={menuToggler}
-                className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm hover:bg-white px-4 py-2 rounded-lg transition-all duration-200 shadow-lg border border-green-200"
-              >
-                <div className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
-                  {user?.name
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2) || "U"}
-                </div>
-                <span className="hidden md:block font-medium text-gray-800">
-                  {user?.name || "User"}
-                </span>
-                <IoIosArrowDown
-                  className={`text-gray-600 transition-transform ${
-                    isVisible ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {isVisible && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-200">
-                  {/* User Info */}
-                  <div className="px-4 py-3 border-b border-gray-200">
-                    <div className="font-semibold text-gray-800">
-                      {user?.name || "User"}
-                    </div>
-                    <div className="text-sm text-gray-500">{user?.email}</div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {isSuperAdmin && (
-                        <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
-                          Super Admin
-                        </span>
-                      )}
-                      {isZoneAdmin && (
-                        <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                          Zone Admin
-                        </span>
-                      )}
-                      {isMehfilAdmin && (
-                        <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                          Mehfil Admin
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Zone Information - Show if user has zone access */}
-                  {user?.zone &&
-                    (isZoneAdmin ||
-                      isMehfilAdmin ||
-                      hasPermission(PERMISSIONS.VIEW_ZONES)) && (
-                      <div className="px-4 py-3 border-b border-gray-200 bg-green-50">
-                        <div className="flex items-start gap-2">
-                          <HiLocationMarker className="text-green-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-gray-600 mb-1">
-                              Zone
-                            </div>
-                            <div className="font-semibold text-gray-900 text-sm">
-                              {user.zone.title_en}
-                            </div>
-                            {user.zone.city_en && (
-                              <div className="text-xs text-gray-600 mt-1">
-                                {user.zone.city_en}
-                                {user.zone.country_en &&
-                                  `, ${user.zone.country_en}`}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Menu Items */}
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsVisible(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-green-50 transition-colors"
-                  >
-                    <FiUser className="text-lg" />
-                    <span>Profile</span>
-                  </Link>
-
-                  <Link
-                    href="/"
-                    onClick={() => setIsVisible(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-green-50 transition-colors"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                      />
-                    </svg>
-                    <span>Home</span>
-                  </Link>
-
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsVisible(false);
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <FiLogOut className="text-lg" />
-                    <span>Log Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentSlide
+                    ? "bg-white w-8"
+                    : "bg-white/50 hover:bg-white/75"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <nav className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-start space-x-1 overflow-x-auto">
-              {visibleTabs.map((tab) => (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
-                    isActiveTab(tab.href)
-                      ? "border-green-600 text-green-700 bg-green-50"
-                      : "border-transparent text-gray-600 hover:text-green-600 hover:bg-gray-50"
-                  }`}
+            <div className="flex items-center justify-between">
+              {/* LEFT: Tabs */}
+              <div className="flex items-center space-x-1 overflow-x-auto">
+                {visibleTabs.map((tab) => {
+                  const isActive = isActiveTab(tab.href);
+                  return (
+                    <Link
+                      key={tab.href}
+                      href={tab.href}
+                      className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all duration-200 border-b-2 relative ${
+                        isActive
+                          ? "border-green-600 text-green-700 bg-green-50 font-bold"
+                          : "border-transparent text-gray-600 hover:text-green-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div
+                        className={
+                          isActive ? "text-green-700" : "text-gray-500"
+                        }
+                      >
+                        {tab.icon}
+                      </div>
+                      <span>{tab.label}</span>
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600"></div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* RIGHT: User Info */}
+              <div className="relative">
+                {/* User button */}
+                <button
+                  onClick={() => setIsVisible(!isVisible)}
+                  className="flex items-center gap-2 focus:outline-none text-gray-700 hover:text-green-700"
                 >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </Link>
-              ))}
+                  <img
+                    src={user?.avatar || "/default-avatar.png"}
+                    alt="User Avatar"
+                    className="w-8 h-8 rounded-full border border-gray-300"
+                  />
+                  <span className="hidden sm:inline text-sm font-medium">
+                    {user?.name || "User"}
+                  </span>
+
+                  {/* ▼ Arrow Down */}
+                  <FiChevronDown
+                    className={`text-gray-500 transition-transform duration-200 ${
+                      isVisible ? "rotate-0 text-green-600" : "-rotate-90"
+                    }`}
+                  />
+                </button>
+
+                {/* Dropdown */}
+                {isVisible && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-200">
+                    {/* User Info */}
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <div className="font-semibold text-gray-800">
+                        {user?.name || "User"}
+                      </div>
+                      <div className="text-sm text-gray-500">{user?.email}</div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {isSuperAdmin && (
+                          <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                            Super Admin
+                          </span>
+                        )}
+                        {isZoneAdmin && (
+                          <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                            Zone Admin
+                          </span>
+                        )}
+                        {isMehfilAdmin && (
+                          <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            Mehfil Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Zone Info */}
+                    {user?.zone &&
+                      (isZoneAdmin ||
+                        isMehfilAdmin ||
+                        hasPermission(PERMISSIONS.VIEW_ZONES)) && (
+                        <div className="px-4 py-3 border-b border-gray-200 bg-green-50">
+                          <div className="flex items-start gap-2">
+                            <HiLocationMarker className="text-green-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-600 mb-1">
+                                Zone
+                              </div>
+                              <div className="font-semibold text-gray-900 text-sm">
+                                {user.zone.title_en}
+                              </div>
+                              {user.zone.city_en && (
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {user.zone.city_en}
+                                  {user.zone.country_en &&
+                                    `, ${user.zone.country_en}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Menu Items */}
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsVisible(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-green-50 transition-colors"
+                    >
+                      <FiUser className="text-lg" />
+                      <span>Profile</span>
+                    </Link>
+
+                    <Link
+                      href="/"
+                      onClick={() => setIsVisible(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-green-50 transition-colors"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                        />
+                      </svg>
+                      <span>Home</span>
+                    </Link>
+
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsVisible(false);
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <FiLogOut className="text-lg" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </nav>
@@ -300,19 +409,6 @@ export default function KarkunPortalLayout({
       <main>{children}</main>
 
       {/* Footer */}
-      {/* <footer className="bg-gradient-to-r from-green-700 via-green-600 to-green-700 text-white mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="text-center">
-            <p className="text-sm">
-              © {new Date().getFullYear()} Idreesia Karkun Portal. All rights
-              reserved.
-            </p>
-            <p className="text-xs mt-2 text-green-100">
-              بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
-            </p>
-          </div>
-        </div>
-      </footer> */}
       <Footer />
     </div>
   );

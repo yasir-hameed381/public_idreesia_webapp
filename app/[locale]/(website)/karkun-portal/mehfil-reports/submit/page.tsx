@@ -76,10 +76,10 @@ const MehfilReportFormPage = () => {
           Tabarukat
         </Link>
         <Link
-          href="/karkun-portal/attendance"
+          href="/karkun-portal/dutyRoster"
           className="px-8 py-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-all duration-200 hover:bg-green-50 bg-white text-black"
         >
-          Karkunan Attendance
+          Karkunan Duty Roster
         </Link>
       </div>
     </div>

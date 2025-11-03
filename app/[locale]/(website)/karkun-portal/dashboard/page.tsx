@@ -2,15 +2,15 @@
 
 /**
  * Karkun Dashboard with Role-Based Filtering
- * 
+ *
  * This dashboard implements role-based zone and mehfil filtering similar to the Laravel application.
- * 
+ *
  * Role-Based Access Control:
  * - Super Admin / All Region Admin: Can see all zones and switch between them
  * - Region Admin: Can only see zones in their region
  * - Zone Admin: Can only see their own zone (pre-selected and locked)
  * - Mehfil Admin: Can only see their zone and mehfil (both pre-selected and locked)
- * 
+ *
  * Key Features:
  * 1. Zones and mehfils are filtered on the backend based on user permissions
  * 2. Zone/Mehfil admins have their zone/mehfil pre-selected automatically
@@ -63,7 +63,7 @@ interface DashboardState extends DashboardStatsType {
 const KarkunDashboardPage: React.FC = () => {
   // const { user,user.zone_id } = useAuth();
   const { user } = useAuth();
-  console.log(user?.zone_id)
+  console.log(user?.zone_id);
 
   const currentDate = new Date();
 
@@ -226,10 +226,11 @@ const KarkunDashboardPage: React.FC = () => {
           ...prev,
           ...dashboardData,
           zones: dashboardData.zones || prev.zones,
-          mehfils: prev.mehfils?.length > 0 ? prev.mehfils : dashboardData.mehfils,
+          mehfils:
+            prev.mehfils?.length > 0 ? prev.mehfils : dashboardData.mehfils,
           loading: false,
         }));
-        
+
         console.log("🔍 Stats after setting:", {
           zonesCount: dashboardData.zones?.length || 0,
           mehfilsCount: dashboardData.mehfils?.length || 0,
@@ -245,14 +246,24 @@ const KarkunDashboardPage: React.FC = () => {
 
   // Load mehfils when zone changes
   useEffect(() => {
-    console.log("🔄 Mehfils useEffect triggered, selectedZoneId:", selectedZoneId);
-    
+    console.log(
+      "🔄 Mehfils useEffect triggered, selectedZoneId:",
+      selectedZoneId
+    );
+
     const loadMehfils = async () => {
       if (selectedZoneId) {
         try {
-          console.log(`📋 Calling getMehfilsForZone for zone ${selectedZoneId}`);
-          const mehfils = await DashboardService.getMehfilsForZone(selectedZoneId);
-          console.log(`📋 Loaded ${mehfils.length} mehfils for zone ${selectedZoneId}:`, mehfils);
+          console.log(
+            `📋 Calling getMehfilsForZone for zone ${selectedZoneId}`
+          );
+          const mehfils = await DashboardService.getMehfilsForZone(
+            selectedZoneId
+          );
+          console.log(
+            `📋 Loaded ${mehfils.length} mehfils for zone ${selectedZoneId}:`,
+            mehfils
+          );
           setStats((prev) => ({
             ...prev,
             mehfils,
@@ -309,7 +320,12 @@ const KarkunDashboardPage: React.FC = () => {
   };
 
   // Debug: log stats.zones before render
-  console.log("🔍 Render - stats.zones:", stats.zones, "length:", stats.zones?.length || 0);
+  console.log(
+    "🔍 Render - stats.zones:",
+    stats.zones,
+    "length:",
+    stats.zones?.length || 0
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -328,23 +344,33 @@ const KarkunDashboardPage: React.FC = () => {
             Welcome to Karkun Portal
           </p>
 
-          {/* User Zone Context */}
+          {/* User Zone Context - Display Selected Zone Dynamically */}
 
-          {user?.zone && (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <p className="text-sm font-medium text-gray-600 mb-1">Zone</p>
+          {(() => {
+            // Find the selected zone from stats.zones
+            const selectedZone = stats.zones.find(
+              (z) => z.id === selectedZoneId
+            );
 
-              <p className="font-semibold text-gray-900">
-                {user.zone.title_en}
-              </p>
+            // If a zone is selected, show it; otherwise show user's zone
+            const displayZone = selectedZone || user?.zone;
 
-              {user.zone.city_en && (
-                <p className="text-sm text-gray-600">
-                  {user.zone.city_en}, {user.zone.country_en}
+            return displayZone ? (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <p className="text-sm font-medium text-gray-600 mb-1">Zone</p>
+
+                <p className="font-semibold text-gray-900">
+                  {displayZone.title_en}
                 </p>
-              )}
-            </div>
-          )}
+
+                {displayZone.city_en && (
+                  <p className="text-sm text-gray-600">
+                    {displayZone.city_en}, {displayZone.country_en}
+                  </p>
+                )}
+              </div>
+            ) : null;
+          })()}
         </div>
 
         {/* Filter Dropdowns */}
@@ -359,7 +385,10 @@ const KarkunDashboardPage: React.FC = () => {
               </label>
 
               {(() => {
-                console.log("🔍 Inside dropdown render - stats.zones:", stats.zones);
+                console.log(
+                  "🔍 Inside dropdown render - stats.zones:",
+                  stats.zones
+                );
                 return (
                   <select
                     value={selectedZoneId || ""}
@@ -371,7 +400,15 @@ const KarkunDashboardPage: React.FC = () => {
                         : ""
                     }`}
                   >
-                    <option value={stats.zones.length > 0 ? stats.zones[0].title_en : ""}>{stats.zones.length > 0 ? stats.zones[0].title_en : "All zones"}</option>
+                    <option
+                      value={
+                        stats.zones.length > 0 ? stats.zones[0].title_en : ""
+                      }
+                    >
+                      {stats.zones.length > 0
+                        ? stats.zones[0].title_en
+                        : "All zones"}
+                    </option>
 
                     {stats.zones.map((zone) => (
                       <option key={zone.id} value={zone.id}>
@@ -404,7 +441,11 @@ const KarkunDashboardPage: React.FC = () => {
                     : ""
                 }`}
               >
-                <option value={stats.mehfils.length > 0 ? stats.mehfils[0].id : ""}>{"All Mehfils"}</option>
+                <option
+                  value={stats.mehfils.length > 0 ? stats.mehfils[0].id : ""}
+                >
+                  {"All Mehfils"}
+                </option>
 
                 {stats.mehfils.map((mehfil) => (
                   <option key={mehfil.id} value={mehfil.id}>
@@ -463,275 +504,137 @@ const KarkunDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Overall Statistics Cards */}
+          {/* Overall Statistics Cards - Only for Admins */}
 
-          <div className="mt-8 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Overall Statistics
-            </h3>
+          {user?.is_super_admin && (
+            <div className="mt-8 mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Overall Statistics
+              </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Total Karkuns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Total Karkuns */}
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Total Karkuns
-                  </h3>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-600">
+                      Total Karkuns
+                    </h3>
 
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                    </svg>
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                      </svg>
+                    </div>
                   </div>
+
+                  {loadingTotals ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-gray-900">
+                      {overallTotals?.totalKarkunans || 0}
+                    </p>
+                  )}
                 </div>
 
-                {loadingTotals ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {overallTotals?.totalKarkunans || 0}
-                  </p>
-                )}
-              </div>
+                {/* Ehad Karkuns */}
 
-              {/* Ehad Karkuns */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-600">
+                      Ehad Karkuns
+                    </h3>
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Ehad Karkuns
-                  </h3>
-
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-green-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                    </svg>
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-green-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                      </svg>
+                    </div>
                   </div>
+
+                  {loadingTotals ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-gray-900">
+                      {overallTotals?.totalEhadKarkuns || 0}
+                    </p>
+                  )}
                 </div>
 
-                {loadingTotals ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {overallTotals?.totalEhadKarkuns || 0}
-                  </p>
-                )}
-              </div>
+                {/* Total Mehfils */}
 
-              {/* Total Mehfils */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-600">
+                      Total Mehfils
+                    </h3>
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Total Mehfils
-                  </h3>
-
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-purple-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-purple-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
                   </div>
+
+                  {loadingTotals ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-gray-900">
+                      {overallTotals?.totalMehfils || 0}
+                    </p>
+                  )}
                 </div>
 
-                {loadingTotals ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {overallTotals?.totalMehfils || 0}
-                  </p>
-                )}
-              </div>
+                {/* Total Zones */}
 
-              {/* Total Zones */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-600">
+                      Total Zones
+                    </h3>
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Total Zones
-                  </h3>
-
-                  <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-cyan-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-cyan-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                </div>
 
-                {loadingTotals ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {overallTotals?.totalZones || 0}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Report Summary Section Header */}
-
-          <h3 className="text-lg font-semibold text-gray-800 mt-8 mb-4">
-            Report Summary - {months[selectedMonth]} {selectedYear}
-          </h3>
-
-          {/* Monthly Report Statistics */}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* New Ehads */}
-
-            {/* Total New Ehads */}
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-600">New Ehads</h3>
-
-                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-orange-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  {loadingTotals ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                  ) : (
+                    <p className="text-3xl font-bold text-gray-900">
+                      {overallTotals?.totalZones || 0}
+                    </p>
+                  )}
                 </div>
               </div>
-
-              {stats.loading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-              ) : (
-                <p className="text-3xl font-bold text-gray-900">
-                  {stats.totalNewEhads || 0}
-                </p>
-              )}
             </div>
-
-            {/* Reports Submitted */}
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-600">
-                  Reports Submitted
-                </h3>
-
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-green-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {stats.loading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-              ) : (
-                <p className="text-3xl font-bold text-gray-900">
-                  {stats.mehfilsWithReports || 0}
-                </p>
-              )}
-            </div>
-
-            {/* Reports Pending */}
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-600">
-                  Reports Pending
-                </h3>
-
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-red-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {stats.loading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-              ) : (
-                <p className="text-3xl font-bold text-gray-900">
-                  {stats.mehfilsWithoutReports || 0}
-                </p>
-              )}
-            </div>
-
-            {/* Total Tabarukats */}
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-600">
-                  Total Tabarukats
-                </h3>
-
-                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-yellow-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z"
-                      clipRule="evenodd"
-                    />
-
-                    <path d="M9 11H3v5a2 2 0 002 2h4v-7zM11 18h4a2 2 0 002-2v-5h-6v7z" />
-                  </svg>
-                </div>
-              </div>
-
-              {stats.loading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
-              ) : (
-                <p className="text-3xl font-bold text-gray-900">
-                  {stats.totalTabarukats || 0}
-                </p>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Region Stats Table - Show when region admin and no zone selected */}
@@ -853,161 +756,7 @@ const KarkunDashboardPage: React.FC = () => {
               </div>
             </div>
           )}
-
-        {/* Zone Stats - Show when zone is selected */}
-{/* 
-        {selectedZoneId && !selectedMehfilId && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Zone Stats - {getSelectedZoneName()}
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Total Mehfils
-                  </h3>
-
-                  <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-cyan-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-                {stats.loading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stats.totalMehfils}
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Total Karkuns
-                  </h3>
-
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                    </svg>
-                  </div>
-                </div>
-
-                {stats.loading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stats.totalKarkuns}
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border border-green-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-gray-600 text-sm font-medium mb-2">
-                      Ehad Karkuns
-                    </h3>
-
-                    {stats.loading ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                    ) : (
-                      <p className="text-4xl font-bold text-green-700">
-                        {stats.ehadKarkuns}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="bg-green-200 p-3 rounded-lg">
-                    <svg
-                      className="w-8 h-8 text-green-700"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-md p-6 border border-orange-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-gray-600 text-sm font-medium mb-2">
-                      Tabarukats
-                    </h3>
-
-                    {stats.loading ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                    ) : (
-                      <p className="text-4xl font-bold text-orange-700">
-                        {stats.totalTabarukats}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="bg-orange-200 p-3 rounded-lg">
-                    <svg
-                      className="w-8 h-8 text-orange-700"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border border-purple-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-gray-600 text-sm font-medium mb-2">
-                      New Ehads ({months[selectedMonth]} {selectedYear})
-                    </h3>
-
-                    {stats.loading ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                    ) : (
-                      <p className="text-4xl font-bold text-purple-700">
-                        {stats.totalNewEhads}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="bg-purple-200 p-3 rounded-lg">
-                    <svg
-                      className="w-8 h-8 text-purple-700"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )} */}
-
-        {/* Zone Stats - Show when zone is selected but no mehfil */}
-
+        {/* Zone Stats Cards - Show when a zone is selected but no mehfil */}
         {selectedZoneId && !selectedMehfilId && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
