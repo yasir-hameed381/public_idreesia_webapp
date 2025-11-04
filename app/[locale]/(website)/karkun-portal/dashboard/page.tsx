@@ -1,27 +1,5 @@
 "use client";
-
-/**
- * Karkun Dashboard with Role-Based Filtering
- *
- * This dashboard implements role-based zone and mehfil filtering similar to the Laravel application.
- *
- * Role-Based Access Control:
- * - Super Admin / All Region Admin: Can see all zones and switch between them
- * - Region Admin: Can only see zones in their region
- * - Zone Admin: Can only see their own zone (pre-selected and locked)
- * - Mehfil Admin: Can only see their zone and mehfil (both pre-selected and locked)
- *
- * Key Features:
- * 1. Zones and mehfils are filtered on the backend based on user permissions
- * 2. Zone/Mehfil admins have their zone/mehfil pre-selected automatically
- * 3. Cascading filters: changing zone resets mehfil selection
- * 4. Stats are calculated based on selected filters
- * 5. Different sections visible based on role (Region Stats, Zone Stats, etc.)
- */
-
 import React, { useEffect, useState } from "react";
-
-import Link from "next/link";
 
 import { useAuth } from "@/hooks/useAuth";
 
@@ -405,9 +383,10 @@ const KarkunDashboardPage: React.FC = () => {
                         stats.zones.length > 0 ? stats.zones[0].title_en : ""
                       }
                     >
-                      {stats.zones.length > 0
+                      {/* {stats.zones.length > 0
                         ? stats.zones[0].title_en
-                        : "All zones"}
+                        : "All zones"} */}
+                      {"All zones"}
                     </option>
 
                     {stats.zones.map((zone) => (

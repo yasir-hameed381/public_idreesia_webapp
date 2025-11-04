@@ -177,6 +177,23 @@ export default function DutyRosterPage() {
             />
             <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
           </div>
+          {/* User Zone Context */}
+          {user?.zone && (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+              <p className="text-sm font-medium text-gray-600 mb-1">
+                Your Zone
+              </p>
+              <p className="font-semibold text-gray-900">
+                {user.zone.title_en}
+              </p>
+              {user.zone.city_en && (
+                <p className="text-sm text-gray-600">
+                  {user.zone.city_en}
+                  {user.zone.country_en && `, ${user.zone.country_en}`}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Table with Weekly View */}

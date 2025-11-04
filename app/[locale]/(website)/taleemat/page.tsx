@@ -1,4 +1,3 @@
-// Taleemat.tsx
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -111,7 +110,7 @@ const Taleemat = () => {
 
     return (
       <>
-        <div className="flex flex-col w-full border-[1px] border-[#e3e3e3] rounded-lg min-h-[200px] bg-white p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-5xl mx-auto">
           {taleematItems.map((item: any) => (
             <div
               key={item.id}
@@ -132,7 +131,7 @@ const Taleemat = () => {
                   />
                   <div className="flex flex-col">
                     <h2
-                      className={`text-base font-medium text-gray-700 ${
+                      className={`text-base font-bold text-gray-700 ${
                         locale === "ur" ? "font-urdu text-right" : ""
                       }`}
                     >

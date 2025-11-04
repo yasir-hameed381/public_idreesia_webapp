@@ -3,8 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { TabarukatTable } from "@/app/[locale]/(admin)/components/Tabarukats/tabarukat-table";
+import { useAuth } from "@/hooks/useAuth";
 
 const TabarukatsPage = () => {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
@@ -27,11 +29,23 @@ const TabarukatsPage = () => {
                 </span>
               </div>
             </div>
-            <div className="bg-green-50 px-4 py-2 rounded border border-green-200">
-              <p className="text-sm text-gray-600">Zone</p>
-              <p className="font-semibold text-green-800">Multan Zone</p>
-              <p className="text-sm text-gray-600">Multan, Pakistan</p>
-            </div>
+            {/* User Zone Context */}
+            {user?.zone && (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+                <p className="text-sm font-medium text-gray-600 mb-1">
+                  Your Zone
+                </p>
+                <p className="font-semibold text-gray-900">
+                  {user.zone.title_en}
+                </p>
+                {user.zone.city_en && (
+                  <p className="text-sm text-gray-600">
+                    {user.zone.city_en}
+                    {user.zone.country_en && `, ${user.zone.country_en}`}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

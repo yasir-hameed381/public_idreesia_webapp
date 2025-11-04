@@ -65,7 +65,6 @@ const Header = () => {
           <div className="flex justify-between items-center px-4 py-2 bg-green-700">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <span className="text-sm">Language:</span>
                 <select
                   value={locale}
                   onChange={onLanguageChange}

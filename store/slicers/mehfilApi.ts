@@ -5,6 +5,8 @@ interface Mehfil {
   id: string;
   title_en: string;
   title_ur: string;
+  description_en: string;
+  description_ur: string;
   date: string;
   time?: string;
   is_published: boolean;

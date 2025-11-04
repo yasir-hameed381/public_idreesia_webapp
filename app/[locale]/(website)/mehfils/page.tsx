@@ -128,16 +128,14 @@ const Mehfils = () => {
                 className="flex gap-[15px] py-[15px] px-[10px] items-center justify-between cursor-pointer"
               >
                 <div className="flex-1">
-                  <h2
-                    className={`text-base font-medium text-gray-700 ${
-                      locale === "ur" ? "font-urdu text-right" : ""
-                    }`}
-                  >
-                    {item.id}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {formatDate(item.date)} {item.time && `• ${item.time}`}
-                  </p>
+                  <div className="px-[10px] pb-2">
+                    <h6 className="font-bold text-base text-[#424242]">
+                      {getTitle(item)}
+                    </h6>
+                    <p className="font-xs line-clamp-3">
+                      {item.description_en ?? "No Description Available"}
+                    </p>
+                  </div>
                 </div>
                 <div className="w-[45px] h-[45px] bg-[#026419] rounded-full flex items-center justify-center">
                   <Image
@@ -148,11 +146,6 @@ const Mehfils = () => {
                     className="object-cover"
                   />
                 </div>
-              </div>
-              <div className="px-[10px] pb-2">
-                <p className="font-medium text-base text-[#424242]">
-                  {getTitle(item)}
-                </p>
               </div>
             </div>
           ))}
@@ -184,45 +177,11 @@ const Mehfils = () => {
 
       <div className="w-full max-w-5xl mt-10">
         {/* Search Bar */}
-        <div className="relative mb-4">
-          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-            <SearchIcon className="w-7 h-7 text-white p-1 bg-[#026419] rounded-full" />
-          </div>
-          <input
-            type="text"
-            className="w-full px-5 py-[10px] rounded-3xl border focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder={searchPlaceholder("title")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                handleSearch();
-              }
-            }}
-          />
-        </div>
 
         {/* Date Filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {locale === "ur" ? "شروع کی تاریخ" : "Start Date"}
-            </label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={dateFilter.startDate}
-              onChange={(e) =>
-                setDateFilter((prev) => ({
-                  ...prev,
-                  startDate: e.target.value,
-                }))
-              }
-            />
-          </div>
-
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg mx-auto items-center justify-center">
+          <div className="flex-1 max-w-md">
+            {/* <label className="block text-sm font-medium text-gray-700 mb-2">
               {locale === "ur" ? "اختتام کی تاریخ" : "End Date"}
             </label>
             <input
@@ -232,10 +191,45 @@ const Mehfils = () => {
               onChange={(e) =>
                 setDateFilter((prev) => ({ ...prev, endDate: e.target.value }))
               }
-            />
+            /> */}
+            <div className="relative">
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <SearchIcon className="w-7 h-7 text-white p-1 bg-[#026419] rounded-full" />
+              </div>
+              <input
+                type="text"
+                className="w-full px-5 py-[10px] rounded-3xl border focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                placeholder={searchPlaceholder("title")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex-1 max-w-md">
+            {/* <label className="block text-sm font-medium text-gray-700 mb-2">
+              {locale === "ur" ? "شروع کی تاریخ" : "Start Date"}
+            </label> */}
+            <div className="relative">
+              <input
+                type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter((prev) => ({
+                    ...prev,
+                    startDate: e.target.value,
+                  }))
+                }
+              />
+            </div>
           </div>
 
-          <div className="flex items-end gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleDateFilter}
               className="px-4 py-2 bg-[#026419] text-white rounded-md hover:bg-green-700 transition-colors"

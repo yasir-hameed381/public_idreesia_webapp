@@ -310,7 +310,7 @@ export default function KarkunPortalLayout({
                         {user?.name || "User"}
                       </div>
                       <div className="text-sm text-gray-500">{user?.email}</div>
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      {/* <div className="flex flex-wrap gap-1 mt-2">
                         {isSuperAdmin && (
                           <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
                             Super Admin
@@ -326,7 +326,7 @@ export default function KarkunPortalLayout({
                             Mehfil Admin
                           </span>
                         )}
-                      </div>
+                      </div> */}
                     </div>
 
                     {/* Zone Info */}
