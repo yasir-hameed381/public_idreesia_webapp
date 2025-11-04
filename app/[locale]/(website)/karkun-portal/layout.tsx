@@ -285,7 +285,7 @@ export default function KarkunPortalLayout({
                   className="flex items-center gap-2 focus:outline-none text-gray-700 hover:text-green-700"
                 >
                   <img
-                    src={user?.avatar || "/default-avatar.png"}
+                    src="/default-avatar.png"
                     alt="User Avatar"
                     className="w-8 h-8 rounded-full border border-gray-300"
                   />

@@ -80,11 +80,7 @@ export default function EditDutyRosterPage() {
 
   const fetchInitialData = async () => {
     try {
-      await Promise.all([
-        fetchZones(),
-        fetchUsers(),
-        fetchDutyRoster(),
-      ]);
+      await Promise.all([fetchZones(), fetchUsers(), fetchDutyRoster()]);
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -206,9 +202,7 @@ export default function EditDutyRosterPage() {
             <ArrowLeft size={20} />
             <span className="font-medium">Back</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Edit Duty Roster
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Edit Duty Roster</h1>
           <p className="text-gray-600 mt-2">
             Update weekly duty assignments for karkun
           </p>
@@ -311,7 +305,8 @@ export default function EditDutyRosterPage() {
                       <option value="none">None</option>
                       {mehfils.map((mehfil) => (
                         <option key={mehfil.id} value={mehfil.id.toString()}>
-                          {mehfil.mehfil_number && `#${mehfil.mehfil_number} - `}
+                          {mehfil.mehfil_number &&
+                            `#${mehfil.mehfil_number} - `}
                           {mehfil.name_en}
                           {mehfil.city_en && ` - ${mehfil.city_en}`}
                         </option>
@@ -352,7 +347,7 @@ export default function EditDutyRosterPage() {
                       >
                         <option value="none">None</option>
                         {dutyTypes.map((dt) => (
-                          <option key={dt.id} value={dt.id.toString()}>
+                          <option key={dt.id} value={dt.id?.toString() || ""}>
                             {dt.name}
                           </option>
                         ))}
@@ -392,4 +387,3 @@ export default function EditDutyRosterPage() {
     </div>
   );
 }
-
