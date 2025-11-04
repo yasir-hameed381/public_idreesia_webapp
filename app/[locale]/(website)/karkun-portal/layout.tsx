@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
-import { PERMISSIONS } from "@/types/permission";
 import { FaUserCircle } from "react-icons/fa";
 import { FiChevronDown, FiLogOut, FiUser } from "react-icons/fi";
 import { IoIosArrowDown } from "react-icons/io";
@@ -32,17 +31,9 @@ export default function KarkunPortalLayout({
   const [isVisible, setIsVisible] = React.useState(false);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const { user, logout } = useAuth();
-  const {
-    hasPermission,
-    isZoneAdmin,
-    isMehfilAdmin,
-    isSuperAdmin,
-    isRegionAdmin,
-  } = usePermissions();
+  const { isZoneAdmin, isMehfilAdmin, isSuperAdmin, isRegionAdmin } =
+    usePermissions();
 
-  console.log("isZoneAdmin:", isZoneAdmin);
-  console.log("isMehfilAdmin:", isMehfilAdmin);
-  console.log("isRegionAdmin:", isRegionAdmin);
   const pathname = usePathname();
 
   const menuToggler = () => setIsVisible((prevState) => !prevState);
@@ -51,34 +42,11 @@ export default function KarkunPortalLayout({
     logout();
   };
 
-  // Auto-play slider
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
-    }, 5000); // Change slide every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Navigate to next slide
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
-  };
-
-  // Navigate to previous slide
-  const prevSlide = () => {
-    setCurrentSlide(
-      (prev) => (prev - 1 + bannerSlides.length) % bannerSlides.length
-    );
-  };
-
-  // Navigation tabs with permissions
+  // Navigation tabs - same for all users (matching Laravel implementation)
   const navigationTabs = [
     {
       href: "/karkun-portal/dashboard",
       label: "Dashboard",
-      permission: PERMISSIONS.VIEW_DASHBOARD,
-      showToAll: true, // Dashboard should be visible to all logged in users
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -88,7 +56,6 @@ export default function KarkunPortalLayout({
     {
       href: "/karkun-portal/karkunan",
       label: "Karkunan",
-      permission: PERMISSIONS.VIEW_KARKUNAN,
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
@@ -98,7 +65,6 @@ export default function KarkunPortalLayout({
     {
       href: "/karkun-portal/mehfil-reports",
       label: "Reports",
-      permission: PERMISSIONS.VIEW_MEHFIL_REPORTS,
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -112,7 +78,6 @@ export default function KarkunPortalLayout({
     {
       href: "/karkun-portal/new-ehad",
       label: "New Ehad",
-      permission: PERMISSIONS.VIEW_NEW_EHADS,
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -120,23 +85,8 @@ export default function KarkunPortalLayout({
       ),
     },
     {
-      href: "/karkun-portal/dutyRoster",
-      label: "Duty Roster",
-      permission: PERMISSIONS.VIEW_DUTY_ROSTER,
-      icon: (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fillRule="evenodd"
-            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-            clipRule="evenodd"
-          />
-        </svg>
-      ),
-    },
-    {
       href: "/karkun-portal/tabarukats",
       label: "Tabarukat",
-      permission: PERMISSIONS.VIEW_TABARUKATS,
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -148,14 +98,49 @@ export default function KarkunPortalLayout({
         </svg>
       ),
     },
+    {
+      href: "/karkun-portal/attendance",
+      label: "Duty Roster",
+      icon: (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ),
+    },
   ];
 
-  // Filter tabs based on permissions
-  const visibleTabs = navigationTabs.filter((tab) => {
-    // Show tab if it's marked as showToAll or user has permission
-    if (tab.showToAll) return true;
-    return hasPermission(tab.permission);
-  });
+  // Add Tarteeb tab conditionally based on region_id (matching Laravel implementation)
+  // Allowed region IDs: [1, 6] (from Laravel config)
+  const allowedRegionIds = [1, 6];
+  const userRegionId = (user as any)?.region_id || (user as any)?.zone?.region_id;
+  
+  if (userRegionId && allowedRegionIds.includes(userRegionId)) {
+    navigationTabs.push({
+      href: "/karkun-portal/tarteeb-requests",
+      label: "Tarteeb",
+      icon: (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"
+            clipRule="evenodd"
+          />
+          <path
+            fillRule="evenodd"
+            d="M4 5a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ),
+    });
+  }
+
+  // Show all tabs to all users (no permission filtering)
+  const visibleTabs = navigationTabs;
 
   const isActiveTab = (href: string) => {
     if (!pathname) return false;
@@ -329,32 +314,29 @@ export default function KarkunPortalLayout({
                       </div> */}
                     </div>
 
-                    {/* Zone Info */}
-                    {user?.zone &&
-                      (isZoneAdmin ||
-                        isMehfilAdmin ||
-                        hasPermission(PERMISSIONS.VIEW_ZONES)) && (
-                        <div className="px-4 py-3 border-b border-gray-200 bg-green-50">
-                          <div className="flex items-start gap-2">
-                            <HiLocationMarker className="text-green-600 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-gray-600 mb-1">
-                                Zone
-                              </div>
-                              <div className="font-semibold text-gray-900 text-sm">
-                                {user.zone.title_en}
-                              </div>
-                              {user.zone.city_en && (
-                                <div className="text-xs text-gray-600 mt-1">
-                                  {user.zone.city_en}
-                                  {user.zone.country_en &&
-                                    `, ${user.zone.country_en}`}
-                                </div>
-                              )}
+                  {/* Zone Information - Show if user has zone */}
+                  {user?.zone && (
+                      <div className="px-4 py-3 border-b border-gray-200 bg-green-50">
+                        <div className="flex items-start gap-2">
+                          <HiLocationMarker className="text-green-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-gray-600 mb-1">
+                              Zone
                             </div>
+                            <div className="font-semibold text-gray-900 text-sm">
+                              {user.zone.title_en}
+                            </div>
+                            {user.zone.city_en && (
+                              <div className="text-xs text-gray-600 mt-1">
+                                {user.zone.city_en}
+                                {user.zone.country_en &&
+                                  `, ${user.zone.country_en}`}
+                              </div>
+                            )}
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )}
 
                     {/* Menu Items */}
                     <Link

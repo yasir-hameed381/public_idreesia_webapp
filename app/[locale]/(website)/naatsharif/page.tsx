@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import Pagination from "@mui/material/Pagination";
 import Image from "next/image";
 import playImage from "../../../assets/play.png";
@@ -114,28 +113,17 @@ const NaatSharif = () => {
 
     return (
       <>
-        <div className="flex flex-col w-full border-[1px] border-[#e3e3e3] rounded-lg min-h-[200px] bg-white p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-5xl mx-auto">
           {naatSharifItems.map((item: any) => (
             <div
               key={item.id}
-              className="w-full border border-[#e3e3e3] text-base rounded-[5px] bg-white mb-5 hover:bg-[#f6f6f6] hover:text-[#424242] transition"
+              className="border border-[#E3E3E3] text-base rounded-[20px] bg-[#FCF8F5] hover:bg-[#f6f6f6] hover:text-[#424242] transition"
             >
-              {/* <Link
-                href={{
-                  pathname: `/naatsharif/${item.id}`,
-                  query: { data: JSON.stringify(item) }, 
-                }}
-              > */}
-
-              <a onClick={() => handleNavigation(item)}></a>
-              <div className="flex gap-[15px] py-[15px] px-[10px] items-center">
-                <Image
-                  src={playImage}
-                  alt="Header Image"
-                  width={45}
-                  height={45}
-                />
-                <div className="flex flex-col">
+              <div
+                onClick={() => handleNavigation(item)}
+                className="flex gap-[15px] py-[15px] px-[10px] items-center justify-between cursor-pointer"
+              >
+                <div className="flex-1">
                   <h2
                     className={`text-base font-medium text-gray-700 ${
                       locale === "ur" ? "font-urdu text-right" : ""
@@ -143,7 +131,7 @@ const NaatSharif = () => {
                   >
                     {getTitle(item)}
                   </h2>
-                  <p className="font-medium text-base text-[#53905b]">
+                  <p className="text-sm text-gray-500 mt-1">
                     {new Date(item.created_at).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
@@ -151,19 +139,30 @@ const NaatSharif = () => {
                     })}
                   </p>
                 </div>
+                <div className="w-[45px] h-[45px] bg-[#026419] rounded-full flex items-center justify-center">
+                  <Image
+                    src={playImage}
+                    alt="Play"
+                    width={45}
+                    height={45}
+                    className="object-cover"
+                  />
+                </div>
               </div>
             </div>
           ))}
         </div>
-        <Pagination
-          count={
-            data?.meta.total ? Math.ceil(data.meta.total / itemsPerPage) : 5
-          }
-          page={currentPage}
-          onChange={handlePageChange}
-          color="primary"
-          size="large"
-        />
+        <div className="flex justify-center mt-6">
+          <Pagination
+            count={
+              data?.meta.total ? Math.ceil(data.meta.total / itemsPerPage) : 5
+            }
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+          />
+        </div>
       </>
     );
   };

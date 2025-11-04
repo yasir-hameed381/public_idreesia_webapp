@@ -10,11 +10,14 @@ export const wazaifApi = createApi({
   }),
   tagTypes: ['Wazaif'],
   endpoints: (builder) => ({
-    getWazaif: builder.query<WazaifResponse, { page: number; size: number; search?: string }>({
-      query: ({ page, size, search }) => {
-        let url = `/wazaifs-data?page=${page}&size=${size}`;
+    getWazaif: builder.query<WazaifResponse, { page: number; size: number; search?: string; category?: string }>({
+      query: ({ page, size, search, category }) => {
+        let url = `wazaifs-data?page=${page}&size=${size}`;
         if (search && search.trim() !== '') {
           url += `&search=${encodeURIComponent(search)}`;
+        }
+        if (category && category !== 'all') {
+          url += `&category=${encodeURIComponent(category)}`;
         }
         return url;
       },
