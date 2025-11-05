@@ -104,16 +104,44 @@ export default function Footer() {
 
                 <ul className="inline-flex  gap-2">
                   <li>
-                    <Image src={whatsapp} alt="whatsapp" />
+                    <a
+                      href="https://whatsapp.com/channel/0029VaRKx4ALY6d5ll4WaU0P"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block hover:opacity-80 transition-opacity"
+                    >
+                      <Image src={whatsapp} alt="WhatsApp" />
+                    </a>
                   </li>
                   <li>
-                    <Image src={playStore} alt="playstore" />
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.idreesia"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block hover:opacity-80 transition-opacity"
+                    >
+                      <Image src={playStore} alt="Play Store" />
+                    </a>
                   </li>
                   <li>
-                    <Image src={appStore} alt="app store" />
+                    <a
+                      href="https://apps.apple.com/pk/app/idreesia/id1498357159"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block hover:opacity-80 transition-opacity"
+                    >
+                      <Image src={appStore} alt="App Store" />
+                    </a>
                   </li>
                   <li>
-                    <Image src={YouTube} alt="YouTube" />
+                    <a
+                      href="https://www.youtube.com/@idreesia381"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block hover:opacity-80 transition-opacity"
+                    >
+                      <Image src={YouTube} alt="YouTube" />
+                    </a>
                   </li>
                 </ul>
               </div>

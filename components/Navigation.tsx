@@ -61,7 +61,7 @@ const navItems: NavItem[] = [
   },
   {
     key: NavigationKeys.mehfilAddress,
-    href: "/mehfil-diractroy",
+    href: "/mehfil-directory",
     borderColor: "border-green-500",
     hoverColor: "hover:shadow-lg hover:gray-200",
     activeColor: "bg-green-700 text-white",

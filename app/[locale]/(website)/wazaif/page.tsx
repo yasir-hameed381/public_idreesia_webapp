@@ -3,8 +3,7 @@
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
-import Pagination from "@mui/material/Pagination";
-import { SearchIcon, FileText } from "lucide-react";
+import { SearchIcon, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { TranslationKeys } from "@/app/constants/translationKeys";
 import { useGetWazaifQuery } from "@/store/slicers/wazaifApi";
@@ -40,10 +39,7 @@ const WazaifList = () => {
     setCurrentPage(1);
   };
 
-  const handlePageChange = (
-    _event: React.ChangeEvent<unknown>,
-    page: number
-  ) => {
+  const handlePageChange = (page: number) => {
     setCurrentPage(page);
     containerRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -51,9 +47,59 @@ const WazaifList = () => {
     });
   };
 
+  const renderPaginationNumbers = () => {
+    const totalPages = Math.ceil((data?.meta?.total || 0) / itemsPerPage);
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 10;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      if (currentPage <= 5) {
+        for (let i = 2; i <= Math.min(maxVisiblePages, totalPages - 1); i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 4) {
+        pages.push("...");
+        for (let i = totalPages - maxVisiblePages + 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push("...");
+        for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
   const handleWazaifClick = (item: any) => {
-    localStorage.setItem("wazaifDetail", JSON.stringify(item));
-    router.push(`/wazaif/${item.slug || item.id}`);
+    try {
+      // Store the complete item data
+      localStorage.setItem("wazaifDetail", JSON.stringify(item));
+
+      // Navigate using slug if available, otherwise use id
+      const navigationId = item.slug || item.id;
+      console.log("Navigating to wazaif:", {
+        id: item.id,
+        slug: item.slug,
+        navigationId,
+      });
+
+      router.push(`/wazaif/${navigationId}`);
+    } catch (error) {
+      console.error("Error storing wazaif data:", error);
+    }
   };
 
   const getTitle = (item: any) => {
@@ -61,9 +107,10 @@ const WazaifList = () => {
   };
 
   const getDescription = (item: any) => {
-    const desc = locale === "ur" 
-      ? item.description || item.description_en || ""
-      : item.description_en || item.description || "";
+    const desc =
+      locale === "ur"
+        ? item.description || item.description_en || ""
+        : item.description_en || item.description || "";
     if (!desc) return "";
     return desc.length > 100 ? desc.substring(0, 100) + "..." : desc;
   };
@@ -71,7 +118,10 @@ const WazaifList = () => {
   const getCategoryLabel = (category: string) => {
     const categoryMap: Record<string, { en: string; ur: string }> = {
       bunyadi: { en: "Bunyadi Wazaif", ur: "بنیادی وظائف" },
-      notice_board_taleem: { en: "Notice Board Taleem", ur: "نوٹس بورڈ تعلیمات" },
+      notice_board_taleem: {
+        en: "Notice Board Taleem",
+        ur: "نوٹس بورڈ تعلیمات",
+      },
       parhaiyan: { en: "Parhaiyan", ur: "پڑھائیں" },
       wazaif: { en: "Wazaif", ur: "وظائف" },
     };
@@ -92,9 +142,7 @@ const WazaifList = () => {
       return (
         <div className="text-center text-red-700 py-12">
           <p>
-            {locale === "ur"
-              ? "ڈیٹا لوڈ کرنے میں خرابی"
-              : "Error loading data"}
+            {locale === "ur" ? "ڈیٹا لوڈ کرنے میں خرابی" : "Error loading data"}
           </p>
         </div>
       );
@@ -105,11 +153,7 @@ const WazaifList = () => {
     if (wazaifItems.length === 0 && searchQuery) {
       return (
         <div className="text-center text-red-700 py-12">
-          <p>
-            {locale === "ur"
-              ? "کوئی نتیجہ نہیں ملا"
-              : "No results found"}
-          </p>
+          <p>{locale === "ur" ? "کوئی نتیجہ نہیں ملا" : "No results found"}</p>
         </div>
       );
     }
@@ -117,12 +161,17 @@ const WazaifList = () => {
     if (wazaifItems.length === 0) {
       return (
         <div className="text-center text-gray-500 py-12">
-          <p>
-            {locale === "ur" ? "کوئی وظائف نہیں ملے" : "No wazaifs found"}
-          </p>
+          <p>{locale === "ur" ? "کوئی وظائف نہیں ملے" : "No wazaifs found"}</p>
         </div>
       );
     }
+
+    const totalPages = Math.ceil((data?.meta?.total || 0) / itemsPerPage);
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(
+      currentPage * itemsPerPage,
+      data?.meta?.total || 0
+    );
 
     return (
       <>
@@ -134,7 +183,7 @@ const WazaifList = () => {
               onClick={() => handleWazaifClick(item)}
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 self-center">
+                <div className="shrink-0 self-center">
                   <FileText className="w-12 h-12 text-zinc-600" />
                 </div>
                 <div className="flex-1 space-y-2">
@@ -180,16 +229,56 @@ const WazaifList = () => {
           ))}
         </div>
 
-        {/* Pagination */}
+        {/* Custom Pagination */}
         {data?.meta && data.meta.total > itemsPerPage && (
-          <div className="mt-8 flex justify-center">
-            <Pagination
-              count={Math.ceil(data.meta.total / itemsPerPage)}
-              page={currentPage}
-              onChange={handlePageChange}
-              color="primary"
-              size="large"
-            />
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-8 gap-4 px-4 py-6">
+            <div className="text-gray-600 text-base font-normal">
+              Showing <span className="font-medium">{startItem}</span> to{" "}
+              <span className="font-medium">{endItem}</span> of{" "}
+              <span className="font-medium">{data?.meta?.total || 0}</span>{" "}
+              results
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+
+              {renderPaginationNumbers().map((page, index) => (
+                <React.Fragment key={index}>
+                  {page === "..." ? (
+                    <span className="px-2 py-2 text-gray-400 font-medium">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handlePageChange(page as number)}
+                      className={`min-w-[40px] h-[40px] px-3 py-2 rounded-md border font-medium transition-all ${
+                        currentPage === page
+                          ? "bg-[#026419] text-white border-[#026419] shadow-sm"
+                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )}
+                </React.Fragment>
+              ))}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                aria-label="Next page"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
           </div>
         )}
       </>
@@ -197,14 +286,11 @@ const WazaifList = () => {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="bg-[#fcf8f5] min-h-screen py-12"
-    >
+    <div ref={containerRef} className="bg-[#fcf8f5] min-h-screen py-12">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <Navigation />
-          
+
           <h2 className="text-3xl text-center mb-8 text-gray-900">
             {t("wazaif")}
           </h2>

@@ -6,6 +6,7 @@ import { ArrowLeft, HardDriveDownload, Mic, Calendar, Tag } from "lucide-react";
 import { useGetNaatSharifByIdQuery } from "@/store/slicers/naatsharifApi";
 import AudioPlayer from "@/components/AudioPlayer";
 import LoadingSpinner from "@/components/ui/Loadingspinner";
+import Navigation from "@/components/Navigation";
 
 const NaatSharifDetails = () => {
   const router = useRouter();
@@ -24,7 +25,7 @@ const NaatSharifDetails = () => {
         return;
       }
     }
-    
+
     // Fallback to localStorage if params not available
     const naatSharifData = localStorage.getItem("naatSharifData");
     if (naatSharifData) {
@@ -48,13 +49,14 @@ const NaatSharifDetails = () => {
   });
 
   // Handle API response structure - it might be wrapped in data property
-  const naatSharif = apiResponse && typeof apiResponse === 'object' && 'data' in apiResponse 
-    ? (apiResponse as any).data 
-    : apiResponse;
+  const naatSharif =
+    apiResponse && typeof apiResponse === "object" && "data" in apiResponse
+      ? (apiResponse as any).data
+      : apiResponse;
 
   // Fallback to localStorage if API fails or no data
   const [localStorageData, setLocalStorageData] = useState<any>(null);
-  
+
   useEffect(() => {
     if (!naatSharif && !isLoading && naatId) {
       // Try to get from localStorage as fallback
@@ -135,7 +137,10 @@ const NaatSharifDetails = () => {
               <p>Naat Sharif not found.</p>
               {error && (
                 <p className="text-sm mt-2">
-                  Error: {error && 'status' in error ? `${error.status}` : 'Unknown error'}
+                  Error:{" "}
+                  {error && "status" in error
+                    ? `${error.status}`
+                    : "Unknown error"}
                 </p>
               )}
             </div>
@@ -150,97 +155,104 @@ const NaatSharifDetails = () => {
   }
 
   return (
-    <div className="bg-[#fcf8f5] min-h-screen py-12">
-      <div className="container mx-auto px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Back Button */}
-          <div className="mb-6">
-            <button
-              onClick={() => router.back()}
-              className="inline-flex items-center gap-2 text-[#028f4f] hover:text-green-700 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
-          </div>
-
-          {/* Main Content Card */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-zinc-200">
-            {/* Title */}
-            <h1
-              className={`text-2xl font-semibold mb-4 text-gray-900 ${
-                locale === "ur" ? "font-urdu text-right" : ""
-              }`}
-            >
-              {getTitle()}
-            </h1>
-
-            {/* Metadata with Icons */}
-            <div className="flex flex-wrap gap-4 mb-6 text-sm text-zinc-500">
-              {finalNaatData.track && (
-                <div className="flex items-center gap-2">
-                  <Mic className="w-4 h-4" />
-                  <span>{finalNaatData.track}</span>
-                </div>
-              )}
-
-              {finalNaatData.created_at && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span dir="ltr">{formatDate(finalNaatData.created_at)}</span>
-                </div>
-              )}
-
-              {finalNaatData.category && (
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4" />
-                  <span>{finalNaatData.category}</span>
-                </div>
-              )}
-
-              {finalNaatData.tags && Array.isArray(finalNaatData.tags) && finalNaatData.tags.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4" />
-                  <span>{finalNaatData.tags.join(", ")}</span>
-                </div>
-              )}
+    <>
+      <Navigation />
+      <div className="bg-[#fcf8f5] min-h-screen py-12">
+        <div className="container mx-auto px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto">
+            {/* Back Button */}
+            <div className="mb-6">
+              <button
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-2 text-[#028f4f] hover:text-green-700 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
+              </button>
             </div>
 
-            {/* Custom Audio Player */}
-            {finalNaatData.filepath && (
-              <div className="mb-8">
-                <AudioPlayer src={finalNaatData.filepath} />
-              </div>
-            )}
-
-            {/* Description Box */}
-            {getDescription() && (
-              <div
-                className={`prose prose-sm mb-4 break-words text-gray-700 border border-red-200 rounded-lg p-4 bg-red-50 ${
+            {/* Main Content Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-zinc-200">
+              {/* Title */}
+              <h1
+                className={`text-2xl font-semibold mb-4 text-gray-900 ${
                   locale === "ur" ? "font-urdu text-right" : ""
                 }`}
               >
-                <p className="whitespace-pre-line">{getDescription()}</p>
-              </div>
-            )}
+                {getTitle()}
+              </h1>
 
-            {/* Download Button */}
-            {finalNaatData.filepath && (
-              <div className="pt-6 border-t border-zinc-200 mt-4">
-                <a
-                  href={finalNaatData.filepath}
-                  download
-                  className="inline-flex items-center gap-2 text-white bg-[#028f4f] hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors"
-                >
-                  <HardDriveDownload className="w-4 h-4" />
-                  <span>Download Now</span>
-                </a>
+              {/* Metadata with Icons */}
+              <div className="flex flex-wrap gap-4 mb-6 text-sm text-zinc-500">
+                {finalNaatData.track && (
+                  <div className="flex items-center gap-2">
+                    <Mic className="w-4 h-4" />
+                    <span>{finalNaatData.track}</span>
+                  </div>
+                )}
+
+                {finalNaatData.created_at && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span dir="ltr">
+                      {formatDate(finalNaatData.created_at)}
+                    </span>
+                  </div>
+                )}
+
+                {finalNaatData.category && (
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
+                    <span>{finalNaatData.category}</span>
+                  </div>
+                )}
+
+                {finalNaatData.tags &&
+                  Array.isArray(finalNaatData.tags) &&
+                  finalNaatData.tags.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4" />
+                      <span>{finalNaatData.tags.join(", ")}</span>
+                    </div>
+                  )}
               </div>
-            )}
+
+              {/* Custom Audio Player */}
+              {finalNaatData.filepath && (
+                <div className="mb-8">
+                  <AudioPlayer src={finalNaatData.filepath} />
+                </div>
+              )}
+
+              {/* Description Box */}
+              {getDescription() && (
+                <div
+                  className={`prose prose-sm mb-4 break-words text-gray-700 border border-red-200 rounded-lg p-4 bg-red-50 ${
+                    locale === "ur" ? "font-urdu text-right" : ""
+                  }`}
+                >
+                  <p className="whitespace-pre-line">{getDescription()}</p>
+                </div>
+              )}
+
+              {/* Download Button */}
+              {finalNaatData.filepath && (
+                <div className="pt-6 border-t border-zinc-200 mt-4">
+                  <a
+                    href={finalNaatData.filepath}
+                    download
+                    className="inline-flex items-center gap-2 text-white bg-[#028f4f] hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors"
+                  >
+                    <HardDriveDownload className="w-4 h-4" />
+                    <span>Download Now</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

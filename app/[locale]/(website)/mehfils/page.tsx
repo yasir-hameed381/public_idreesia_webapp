@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import Pagination from "@mui/material/Pagination";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import playImage from "../../../assets/Polygon 1.png";
 import {
@@ -73,15 +72,53 @@ const Mehfils = () => {
     router.push(`/mehfils/${item.id}`);
   };
 
-  const handlePageChange = (
-    _event: React.ChangeEvent<unknown>,
-    page: number
-  ) => {
+  const handlePageChange = (page: number) => {
     setCurrentPage(page);
     containerRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  };
+
+  const renderPaginationNumbers = () => {
+    const totalPages = Math.ceil((data?.meta?.total || 0) / itemsPerPage);
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 10;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      if (currentPage <= 5) {
+        // Near the beginning
+        for (let i = 2; i <= Math.min(maxVisiblePages, totalPages - 1); i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 4) {
+        // Near the end
+        pages.push("...");
+        for (let i = totalPages - maxVisiblePages + 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // In the middle
+        pages.push("...");
+        for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
   };
 
   const getTitle = (item: any) => {
@@ -114,6 +151,13 @@ const Mehfils = () => {
         </div>
       );
     }
+
+    const totalPages = Math.ceil((data?.meta?.total || 0) / itemsPerPage);
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(
+      currentPage * itemsPerPage,
+      data?.meta?.total || 0
+    );
 
     return (
       <>
@@ -150,14 +194,61 @@ const Mehfils = () => {
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-6">
-          <Pagination
-            count={Math.ceil((data?.meta?.total || 0) / itemsPerPage)}
-            page={currentPage}
-            onChange={handlePageChange}
-            color="primary"
-            size="large"
-          />
+
+        {/* Custom Pagination */}
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-8 gap-4 px-4 py-6">
+          {/* Results Info */}
+          <div className="text-gray-600 text-base font-normal">
+            Showing <span className="font-medium">{startItem}</span> to{" "}
+            <span className="font-medium">{endItem}</span> of{" "}
+            <span className="font-medium">{data?.meta?.total || 0}</span>{" "}
+            results
+          </div>
+
+          {/* Pagination Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
+            {/* Previous Button */}
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+
+            {/* Page Numbers */}
+            {renderPaginationNumbers().map((page, index) => (
+              <React.Fragment key={index}>
+                {page === "..." ? (
+                  <span className="px-2 py-2 text-gray-400 font-medium">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handlePageChange(page as number)}
+                    className={`min-w-[40px] h-[40px] px-3 py-2 rounded-md border font-medium transition-all ${
+                      currentPage === page
+                        ? "bg-[#026419] text-white border-[#026419] shadow-sm"
+                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )}
+              </React.Fragment>
+            ))}
+
+            {/* Next Button */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
         </div>
       </>
     );

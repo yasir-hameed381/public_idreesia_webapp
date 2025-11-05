@@ -6,6 +6,7 @@ import { HardDriveDownload, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import AudioPlayer from "@/components/AudioPlayer";
 
 const MehfilDetails = () => {
   const { id } = useParams();
@@ -33,58 +34,54 @@ const MehfilDetails = () => {
   return (
     <>
       <Navigation />
-      <div className="text-center mx-auto max-w-lg p-4">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 mb-4 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-medium">Back</span>
-        </button>
-
-        <div className="bg-white shadow-lg rounded-lg p-6 border border-green-100">
-          <h1
-            className={`mb-4 font-sans text-2xl ${
-              locale === "ur" ? "font-urdu text-right" : ""
-            }`}
-          >
-            {getTitle()}
-          </h1>
-          <div className="border-b border-green-700 my-4"></div>
-          {mehfil.filepath && (
-            <div className="mb-4">
-              <audio controls src={mehfil.filepath} className="mt-2 w-full" />
-            </div>
-          )}
-          <p className="mb-4">
-            <span className="font-bold text-gray-700">Type:</span>{" "}
-            <span className="text-gray-600">{mehfil.type}</span>
-          </p>
-          {mehfil.created_at && (
-            <p className="mb-4">
-              <span className="font-bold text-gray-700">Date:</span>{" "}
-              <span className="text-gray-600">{mehfil.created_at}</span>
-            </p>
-          )}
-          {mehfil.description_en && (
-            <p className="mb-4">
-              <span className="font-bold text-gray-700">Description:</span>{" "}
-              <span className="text-gray-600">{mehfil.description_en}</span>
-            </p>
-          )}
-          {mehfil.filepath && (
-            <div className="mb-4 flex flex-row items-center justify-center text-[#028f4f]">
-              <HardDriveDownload />
-              <a
-                href={mehfil.filepath}
-                download
-                className="text-bold inline-block text-[#028f4f] px-4 py-2 rounded transition-colors"
+      <div className="bg-[#fcf8f5] min-h-screen py-12">
+        <div className="text-center mx-auto max-w-2xl p-4">
+          <div className="max-w-3xl mx-auto">
+            {/* Back Button */}
+            <div className="flex justify-start mb-6 focus:ring-4 focus:ring-green-300">
+              <button
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-2 text-[#028f4f] hover:text-green-700 transition-colors"
               >
-                Download Now
-              </a>
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
+              </button>
             </div>
-          )}
+
+            <div className="bg-white shadow-lg rounded-lg p-6 border border-green-100">
+              <h1
+                className={`mb-4 font-sans text-2xl ${
+                  locale === "ur" ? "font-urdu text-right" : ""
+                }`}
+              >
+                {getTitle()}
+              </h1>
+              <div className="border-b border-green-700 my-4"></div>
+              {mehfil.filepath && (
+                <div className="mb-4">
+                  <AudioPlayer src={mehfil.filepath} className="mt-2 w-full" />
+                </div>
+              )}
+              {mehfil.description_en && (
+                <p className="mb-4">
+                  <span className="font-bold text-gray-700">Description:</span>{" "}
+                  <span className="text-gray-600">{mehfil.description_en}</span>
+                </p>
+              )}
+              {mehfil.filepath && (
+                <div className="pt-6 border-t border-zinc-200 mt-4">
+                  <a
+                    href={mehfil.filepath}
+                    download
+                    className="inline-flex items-center gap-2 text-white bg-[#028f4f] hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors"
+                  >
+                    <HardDriveDownload className="w-4 h-4" />
+                    <span>Download Now</span>
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </>

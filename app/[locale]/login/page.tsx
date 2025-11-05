@@ -3,7 +3,7 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
-import { TextField, Button, Alert, CircularProgress } from "@mui/material";
+import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import REGEX_PATTERNS from "../../constants/REGX";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,6 +13,8 @@ import { loginUser } from "@/store/slicers/authThunks";
 import { clearError } from "@/store/slicers/authSlice";
 import { RootState, AppDispatch } from "@/store/store";
 import { authService } from "@/services/auth-service";
+import UrduIdreesiaLogo from "../../assets/logo1.png";
+import Image from "next/image";
 
 const schema = yup
   .object({
@@ -62,6 +64,7 @@ export default function LoginForm() {
     limited: boolean;
     secondsRemaining?: number;
   } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Handle navigation after authentication
   useEffect(() => {
@@ -69,7 +72,7 @@ export default function LoginForm() {
       // Redirect based on user role
       if (authService.isUserAdmin(user)) {
         console.log("✅ Login successful, redirecting to dashboard");
-        router.replace("/dashboard");
+        router.replace("/");
       } else {
         console.log("✅ Login successful, redirecting to home");
         router.replace("/");
@@ -135,72 +138,136 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex flex-col bg-[#e9ecef] h-screen w-screen items-center justify-center p-5">
-      <span className="text-3xl font-normal text-green-700 mb-3 text-center">
-        Silsila Idreesia
-      </span>
-      <div className="bg-white p-7 w-[320px] sm:w-[450px] rounded-lg shadow-lg">
-        <h3 className="text-center mb-4 text-xl font-semibold">{t("login")}</h3>
-
-        {/* Error Alert */}
-        {error && (
-          <Alert severity="error" className="mb-4">
-            {error === "Invalid email or password"
-              ? t("invalidCredentials")
-              : error}
-          </Alert>
-        )}
-
-        {/* Rate Limit Alert */}
-        {rateLimitInfo?.limited && (
-          <Alert severity="warning" className="mb-4">
-            {`Too many login attempts. Please try again in ${rateLimitInfo.secondsRemaining} seconds.`}
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="mb-2">
-            <Controller
-              name="email"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t("email")}
-                  placeholder="e.g. abc@gmail.com"
-                  variant="outlined"
-                  margin="normal"
-                  error={!!error}
-                  helperText={error ? error?.message : ""}
-                  disabled={isLoggingIn}
-                />
-              )}
-            />
-          </div>
-          <div>
-            <Controller
-              name="password"
-              control={control}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t("password")}
-                  type="password"
-                  placeholder="Enter your password"
-                  variant="outlined"
-                  margin="normal"
-                  error={!!error}
-                  helperText={error ? error.message : ""}
-                  disabled={isLoggingIn}
-                />
-              )}
-            />
-            <br />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center mb-4">
+          <Image width={100} height={50} src={UrduIdreesiaLogo} alt="Logo" />
+        </div>
+        {/* Login Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-10">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-2xl font-semibold text-gray-900 mb-2">
+              Log in to your account
+            </h1>
+            <p className="text-gray-500 text-sm sm:text-base">
+              Enter your email and password below to log in
+            </p>
           </div>
 
-          <div className="flex items-center justify-between mt-4">
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-800">
+                {error === "Invalid email or password"
+                  ? t("invalidCredentials")
+                  : error}
+              </p>
+            </div>
+          )}
+
+          {/* Rate Limit Alert */}
+          {rateLimitInfo?.limited && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-yellow-800">
+                Too many login attempts. Please try again in{" "}
+                {rateLimitInfo.secondsRemaining} seconds.
+              </p>
+            </div>
+          )}
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Email Field */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-900 mb-2"
+              >
+                Email address
+              </label>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <input
+                      {...field}
+                      id="email"
+                      type="email"
+                      placeholder="email@example.com"
+                      disabled={isLoggingIn}
+                      className={`w-full px-4 py-3 rounded-lg border ${
+                        error
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                      } focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed`}
+                    />
+                    {error && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {error.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-900 mb-2"
+              >
+                Password
+              </label>
+              <Controller
+                name="password"
+                control={control}
+                render={({ field, fieldState: { error } }) => (
+                  <div>
+                    <div className="relative">
+                      <input
+                        {...field}
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        disabled={isLoggingIn}
+                        className={`w-full px-4 py-3 pr-12 rounded-lg border ${
+                          error
+                            ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                            : "border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                        } focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoggingIn}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+                    {error && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {error.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* Remember Me Checkbox */}
             <div className="flex items-center">
               <Controller
                 name="remember"
@@ -209,38 +276,43 @@ export default function LoginForm() {
                   <div className="flex items-center">
                     <input
                       type="checkbox"
+                      id="remember"
                       checked={value}
                       onChange={onChange}
                       onBlur={onBlur}
                       name={name}
                       ref={ref}
                       disabled={isLoggingIn}
-                      className="mr-2"
+                      className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed"
                     />
-                    <label className="text-sm text-gray-600">
-                      {t("rememberMe")}
+                    <label
+                      htmlFor="remember"
+                      className="ml-2 text-sm text-gray-700 select-none"
+                    >
+                      Remember me
                     </label>
                   </div>
                 )}
               />
             </div>
-            <div>
-              <Button
-                type="submit"
-                variant="contained"
-                className="bg-[#007bff] text-white hover:bg-[#0056b3] !normal-case"
-                disabled={isLoggingIn || rateLimitInfo?.limited}
-                startIcon={
-                  isLoggingIn ? (
-                    <CircularProgress size={20} color="inherit" />
-                  ) : null
-                }
-              >
-                {isLoggingIn ? "Signing In..." : t("signIn")}
-              </Button>
-            </div>
-          </div>
-        </form>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoggingIn || rateLimitInfo?.limited}
+              className="w-full bg-gray-900 text-white font-medium py-3 px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                "Log in"
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import Navigation from "@/components/Navigation";
 import IslamicCards from "@/components/IslamicCards";
 import MobileAppShowcase from "@/components/MainPageCards/MobileAppShowCase";
 import LatestMessage from "@/components/MainPageCards/LatestMessage";
+import SearchInterface from "@/components/SearchInterface";
 export default function HomePage() {
   const t = useTranslations(TranslationKeys.HOME_PAGE);
   const dashboard_t = useTranslations(TranslationKeys.DASHBOARD_CARDS);
@@ -18,31 +19,33 @@ export default function HomePage() {
   return (
     <>
       <Navigation />
+      <SearchInterface />
+
+      {/* Hero Section */}
       <div className="w-full">
         <Image
           src={heroImage}
           alt="Hero Section"
           priority
-          className="w-full object-cover"
+          className="w-full h-auto object-cover"
         />
       </div>
 
-      <div className="container mx-auto py-12">
-        <div className="text-center max-w-4xl mx-auto px-6">
+      {/* Main Content */}
+      <div className="container mx-auto py-8 md:py-12 px-4">
+        <div className="text-center max-w-4xl mx-auto">
           <h2
-            className="mb-6 text-center"
+            className="mb-4 md:mb-6 text-2xl md:text-3xl lg:text-4xl"
             style={{
               color: "#026419",
               fontFamily: "Poppins",
               fontWeight: 700,
-              fontSize: "34px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
+              lineHeight: "120%",
             }}
           >
             How The Idreesia Journey Began
           </h2>
-          <p className="text-lg leading-relaxed text-gray-700">
+          <p className="text-base md:text-lg leading-relaxed text-gray-700 px-4">
             Silsila Muhammadia Ameenia Idreesia began in Pakistan when
             Al-Mohtaram Al-Mukarram Al-Sayyedi Al-Hafiz Al-Shaikh Muhammad Amin
             bin Abdur Rahman arrived in Pakistan from Madinah Munawwarah. The
@@ -55,38 +58,35 @@ export default function HomePage() {
             Mohtaram Shaikh Sahab as a guidance for all until the day of
             judgement.
           </p>
-          <div className="flex justify-center mt-8">
-            <Image src={centerImage} alt="Centered Border" />
+          <div className="flex justify-center mt-6 md:mt-8">
+            <Image
+              src={centerImage}
+              alt="Centered Border"
+              className="w-auto h-auto"
+            />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto">
-        {/* <MainPageCards /> */}
-        {/* <section className="text-center flex flex-col gap-2 items-center justify-center">
-          <p className="text-16 font-sans max-w-[60%] text-red-500 font-bold">
-            {dashboard_t("coming-soon.title")}
-          </p>
-        </section> */}
-
+      {/* Ramzan Card Section */}
+      <div className="container mx-auto px-4">
         <RamzanCard />
 
-        <div className="container mx-auto py-12">
-          <div className="text-center max-w-4xl mx-auto px-6">
+        {/* Spiritual Treasures Section */}
+        <div className="py-8 md:py-12">
+          <div className="text-center max-w-4xl mx-auto">
             <h2
-              className="mb-6 text-center"
+              className="mb-4 md:mb-6 text-2xl md:text-3xl lg:text-4xl"
               style={{
                 color: "#026419",
                 fontFamily: "Poppins",
                 fontWeight: 700,
-                fontSize: "34px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
+                lineHeight: "120%",
               }}
             >
               Discover the Spiritual Treasures of Idreesia
             </h2>
-            <p className="text-lg leading-relaxed text-gray-700">
+            <p className="text-base md:text-lg leading-relaxed text-gray-700 px-4">
               Immerse yourself in the sacred atmosphere of Idreesia, where
               Mehfils illuminate hearts, Taleemat offer timeless guidance, Naats
               echo with love for the Prophet ﷺ, and Wazaif provide spiritual
@@ -99,39 +99,39 @@ export default function HomePage() {
 
         <IslamicCards />
 
-        <section className="text-center flex flex-col gap-5 items-center my-[60px] justify-center">
-          <h1
+        {/* Additional Section */}
+        <section className="text-center flex flex-col gap-5 items-center my-12 md:my-16 justify-center px-4">
+          <h2
+            className="mb-4 text-2xl md:text-3xl lg:text-4xl font-medium"
             style={{
               color: "#026419",
               fontFamily: "Poppins",
               fontWeight: 700,
-              fontSize: "34px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
+              lineHeight: "120%",
             }}
-            className=" mb-5  font-medium"
           >
             {t("desc2.title")}
-          </h1>
-          <p className="text-lg lg:max-w-[60%] leading-relaxed text-gray-700">
+          </h2>
+          <p className="text-base md:text-lg max-w-full lg:max-w-[60%] leading-relaxed text-gray-700">
             {t("desc2.content")}
           </p>
-          <Image src={centerImage} alt="centerImage" />
+          <div className="mt-4">
+            <Image
+              src={centerImage}
+              alt="centerImage"
+              className="w-auto h-auto"
+            />
+          </div>
         </section>
-        <div className="mt-[100px]">
+
+        {/* Mobile App Showcase */}
+        <div className="mt-16 md:mt-24 mb-12">
           <MobileAppShowcase />
         </div>
+
+        {/* Latest Message & Mehfil Address */}
         <LatestMessage />
         <MehfilAddressCard />
-        {/* </section> */}
-        {/* <section className="text-center flex flex-col gap-2 items-center justify-center">
-          <p className="text-16 font-sans max-w-[60%] text-black">
-            {t("desc1")}
-          </p>
-          <Image src={centerImage} alt="centerImage" />
-        </section> */}
-        {/* 
-        <MainPageNavigationSearch /> */}
       </div>
     </>
   );

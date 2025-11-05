@@ -5,6 +5,7 @@ import { HardDriveDownload, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import AudioPlayer from "@/components/AudioPlayer";
 
 const TaleematDetails = () => {
   const searchParams = useSearchParams();
@@ -31,15 +32,17 @@ const TaleematDetails = () => {
   return (
     <>
       <Navigation />
-      <div className="text-center mx-auto max-w-lg p-4">
+      <div className="text-center mx-auto max-w-2xl p-4">
         {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 mb-4 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-medium">Back</span>
-        </button>
+        <div className="flex justify-start mb-6 focus:ring-4 focus:ring-green-300">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-[#028f4f] hover:text-green-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+        </div>
 
         <div className="bg-white shadow-lg rounded-lg p-6 border border-green-100">
           <h1
@@ -52,28 +55,28 @@ const TaleematDetails = () => {
           <div className="border-b border-green-700 my-4"></div>
           {taleemat.filepath && (
             <div className="mb-4">
-              <audio controls src={taleemat?.filepath} className="mt-2 w-full">
-                Your browser does not support the audio element.
-              </audio>
+              <AudioPlayer src={taleemat.filepath} className="mt-2 w-full" />
             </div>
           )}
           {taleemat.description_en && (
             <p className="mb-4">
               <span className="font-bold text-gray-700">
-                {t("description")}:
+                {t("description_en")}:
               </span>{" "}
-              <span className="text-gray-600">{taleemat.description_en}</span>
+              <span className="text-gray-600">
+                {taleemat.description_en ?? "No description available"}
+              </span>
             </p>
           )}
           {taleemat.filepath && (
-            <div className="mb-4 flex flex-row items-center justify-center bg-[#048149] text-[#dadcdb]">
-              <HardDriveDownload />
+            <div className="pt-6 border-t border-zinc-200 mt-4">
               <a
                 href={taleemat?.filepath}
                 download
-                className="text-bold inline-block text-[#dadcdb] px-4 py-2 rounded transition-colors"
+                className="inline-flex items-center gap-2 text-white bg-[#028f4f] hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors"
               >
-                {t("Download Now")}
+                <HardDriveDownload className="w-4 h-4" />
+                <span>Download Now</span>
               </a>
             </div>
           )}
