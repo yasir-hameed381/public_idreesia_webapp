@@ -46,7 +46,10 @@ const createAdminUserSchema = (isEdit: boolean = false) =>
     country: yup.string().required("Country is required"),
     role_id: isEdit
       ? yup.string().optional()
-      : yup.string().required("Role is required"),
+      : yup.string().optional(),
+    role_ids: isEdit
+      ? yup.array().of(yup.string()).optional()
+      : yup.array().of(yup.string()).min(1, "At least one role is required"),
     password: isEdit
       ? yup.string().optional()
       : yup.string().required("Password is required"),
@@ -84,10 +87,15 @@ interface AdminUserFormData {
   city: string;
   country: string;
   role_id?: string;
+  role_ids?: string[];
   role?: {
     id: number;
     name: string;
   };
+  roles?: {
+    id: number;
+    name: string;
+  }[];
   password?: string;
   confirmPassword?: string;
   duty_type?: string;
@@ -167,11 +175,22 @@ export function AdminUserForm({
   // Reset form when editing user changes
   useEffect(() => {
     if (editingUser) {
+      // Extract role IDs from roles array or single role
+      const roleIds = editingUser.role_ids 
+        ? editingUser.role_ids.map(id => id.toString())
+        : editingUser.roles && editingUser.roles.length > 0
+          ? editingUser.roles.map(r => r.id.toString())
+          : editingUser.role_id?.toString() 
+            ? [editingUser.role_id.toString()]
+            : editingUser.role?.id?.toString()
+              ? [editingUser.role.id.toString()]
+              : [];
+
       form.setFieldsValue({
         ...editingUser,
         mobile_no: editingUser.phone_number || editingUser.mobile_no,
-        role_id:
-          editingUser.role_id?.toString() || editingUser.role?.id?.toString(),
+        role_id: editingUser.role_id?.toString() || editingUser.role?.id?.toString(),
+        role_ids: roleIds,
       });
     } else {
       form.resetFields();
@@ -213,7 +232,10 @@ export function AdminUserForm({
       ehad_year: values.ehad_year,
       ...(editingUser
         ? {}
-        : { role_id: values.role_id, password: values.password }),
+        : { 
+            role_ids: values.role_ids && values.role_ids.length > 0 ? values.role_ids : undefined,
+            password: values.password 
+          }),
     };
 
     console.log("🔍 Required fields validation:", requiredFields);
@@ -250,6 +272,11 @@ export function AdminUserForm({
         user_type: values.user_type,
         zone_id: values.zone_id ? parseInt(values.zone_id) : null,
         role_id: values.role_id ? parseInt(values.role_id) : null,
+        role_ids: values.role_ids && values.role_ids.length > 0 
+          ? values.role_ids.map(id => parseInt(id.toString()))
+          : values.role_id 
+            ? [parseInt(values.role_id)]
+            : [],
         is_zone_admin: values.is_zone_admin || false,
         is_mehfil_admin: values.is_mehfil_admin || false,
         is_super_admin: values.is_super_admin || false,
@@ -410,17 +437,34 @@ export function AdminUserForm({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="role_id"
-              label="Role"
-              rules={[{ required: !editingUser, message: "Role is required" }]}
+              name="role_ids"
+              label="Roles"
+              rules={[
+                { 
+                  required: !editingUser, 
+                  message: "At least one role is required" 
+                },
+                {
+                  type: 'array',
+                  min: 1,
+                  message: 'Please select at least one role'
+                }
+              ]}
             >
               <Select
-                placeholder="Select role"
+                mode="multiple"
+                placeholder="Select roles (multiple)"
                 loading={isLoadingRoles}
                 notFoundContent={
                   isLoadingRoles ? "Loading roles..." : "No roles found"
                 }
-                allowClear={!!editingUser}
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               >
                 {roles.map((role: Role) => (
                   <Option key={role.id} value={role.id.toString()}>

@@ -99,7 +99,7 @@ export default function KarkunPortalLayout({
       ),
     },
     {
-      href: "/karkun-portal/attendance",
+      href: "/karkun-portal/dutyRoster",
       label: "Duty Roster",
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

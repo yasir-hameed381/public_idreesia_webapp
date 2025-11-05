@@ -40,12 +40,30 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
 
     // Log when permission context is initialized
     if (userWithPermissions) {
+      // Combine permissions from all roles if user has multiple roles
+      const allPermissions = new Set<string>();
+      if (userWithPermissions.roles && userWithPermissions.roles.length > 0) {
+        userWithPermissions.roles.forEach((role) => {
+          if (role.permissions) {
+            role.permissions.forEach((perm) => allPermissions.add(perm.name));
+          }
+        });
+      } else if (userWithPermissions.role?.permissions) {
+        userWithPermissions.role.permissions.forEach((perm) =>
+          allPermissions.add(perm.name)
+        );
+      }
+
       console.log("🔐 PermissionContext initialized for user:", {
         name: userWithPermissions.name,
         email: userWithPermissions.email,
         role: userWithPermissions.role?.name || "No role",
-        permissions:
-          userWithPermissions.role?.permissions?.map((p) => p.name) || [],
+        roles:
+          userWithPermissions.roles?.map((r) => r.name) || [
+            userWithPermissions.role?.name || "No role",
+          ],
+        permissions: Array.from(allPermissions),
+        totalRoles: userWithPermissions.roles?.length || (userWithPermissions.role ? 1 : 0),
         is_super_admin: userWithPermissions.is_super_admin,
         is_mehfil_admin: userWithPermissions.is_mehfil_admin,
         is_zone_admin: userWithPermissions.is_zone_admin,
@@ -56,10 +74,31 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
     }
 
     const getUserPermissions = (): string[] => {
-      if (!userWithPermissions?.role?.permissions) {
+      if (!userWithPermissions) {
         return [];
       }
-      return userWithPermissions.role.permissions.map((p) => p.name);
+
+      // Combine permissions from all roles (like Laravel)
+      const allPermissions = new Set<string>();
+
+      // Check if user has multiple roles
+      if (userWithPermissions.roles && userWithPermissions.roles.length > 0) {
+        // User has multiple roles - combine permissions from all
+        userWithPermissions.roles.forEach((role) => {
+          if (role.permissions && Array.isArray(role.permissions)) {
+            role.permissions.forEach((perm) => {
+              allPermissions.add(perm.name);
+            });
+          }
+        });
+      } else if (userWithPermissions.role?.permissions) {
+        // Single role - use its permissions
+        userWithPermissions.role.permissions.forEach((perm) => {
+          allPermissions.add(perm.name);
+        });
+      }
+
+      return Array.from(allPermissions);
     };
 
     const hasPermission = (
@@ -89,10 +128,12 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
         }`
       );
       console.log(
-        `👤 User permissions (${userPermissions.length}):`,
+        `👤 User permissions (${userPermissions.length} total from ${userWithPermissions.roles?.length || (userWithPermissions.role ? 1 : 0)} role(s)):`,
         userPermissions
       );
-      console.log(`👤 User role:`, userWithPermissions.role?.name);
+      console.log(`👤 User role(s):`, 
+        userWithPermissions.roles?.map(r => r.name).join(', ') || userWithPermissions.role?.name || 'No role'
+      );
       console.log(`👤 Is super admin:`, userWithPermissions.is_super_admin);
 
       if (Array.isArray(permission)) {

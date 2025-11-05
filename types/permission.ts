@@ -28,6 +28,8 @@ export interface UserWithPermissions {
     country_en: string;
   };
   role: Role | null;
+  // Array of all roles (for users with multiple roles)
+  roles?: Role[];
 }
 
 // Common permission names

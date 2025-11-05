@@ -31,6 +31,13 @@ export default function AdminUserPage() {
         }
 
         // Transform API data to match form structure
+        // Extract roles from the roles array (backend returns roles as an array)
+        const roleIds = userData.roles && Array.isArray(userData.roles) && userData.roles.length > 0
+          ? userData.roles.map((role: any) => role.id.toString())
+          : userData.role_id 
+            ? [userData.role_id.toString()]
+            : [];
+
         const transformedData = {
           id: userData.id,
           name: userData.name || "",
@@ -49,7 +56,9 @@ export default function AdminUserPage() {
           address: userData.address || "",
           city: userData.city || "",
           country: userData.country || "",
-          role_id: userData.role_id?.toString() || "",
+          role_id: userData.role_id?.toString() || (roleIds.length > 0 ? roleIds[0] : ""),
+          role_ids: roleIds,
+          roles: userData.roles || [],
           duty_type: userData.duty_type || "",
           duty_days: userData.duty_days || [],
           is_zone_admin: userData.is_zone_admin || false,
