@@ -141,6 +141,12 @@ export function AppSidebar({
       permission: PERMISSIONS.VIEW_ZONES,
     },
     {
+      name: "Regions",
+      href: "/regions",
+      icon: <MapPinned size={18} />,
+      permission: PERMISSIONS.VIEW_REGIONS,
+    },
+    {
       name: "Ehad Karkun Directory",
       href: "/ehadKarkun",
       icon: <Contact size={18} />,
@@ -150,7 +156,7 @@ export function AppSidebar({
       name: "Karkuns",
       href: "/karkunan",
       icon: <Contact size={18} />,
-      permission: PERMISSIONS.VIEW_KARKUNAN,
+      permission: PERMISSIONS.VIEW_KARKUNS,
     },
     {
       name: "Karkun Join Requests",
@@ -192,7 +198,7 @@ export function AppSidebar({
       name: "Namaz",
       href: "/Namaz",
       icon: <ClockCircleFilled />,
-      permission: PERMISSIONS.VIEW_NAMAZ,
+      permission: PERMISSIONS.VIEW_NAMAZ_TIMINGS,
     },
     {
       name: "Wazaifs",

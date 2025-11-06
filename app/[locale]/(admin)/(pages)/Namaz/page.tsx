@@ -20,7 +20,7 @@ export default function NamazPage() {
   };
 
   return (
-    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_NAMAZ}>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_NAMAZ_TIMINGS}>
       <div className="container mx-auto p-4">
         <NamazTable onAdd={handleAdd} />
         <Namazform onClose={handleFormClose} open={isFormOpen} />

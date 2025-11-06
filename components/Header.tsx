@@ -154,9 +154,11 @@ const Header = () => {
                           </NavigationLink>
 
                           {/* Conditionally Show Home OR Karkun Portal */}
+                          {/* Matching Laravel KarkunMiddleware: isMehfilAdmin || isZoneAdmin || isRegionAdmin || isAllRegionAdmin */}
                           {(user?.is_mehfil_admin ||
                             user?.is_zone_admin ||
-                            user?.is_super_admin) &&
+                            user?.is_region_admin ||
+                            user?.is_all_region_admin) &&
                             (isKarkunPortal ? (
                               <NavigationLink
                                 href="/"
@@ -240,9 +242,11 @@ const Header = () => {
                   </NavigationLink>
 
                   {/* Conditionally Show Home OR Karkun Portal */}
+                  {/* Matching Laravel KarkunMiddleware: isMehfilAdmin || isZoneAdmin || isRegionAdmin || isAllRegionAdmin */}
                   {(user?.is_mehfil_admin ||
                     user?.is_zone_admin ||
-                    user?.is_super_admin) &&
+                    user?.is_region_admin ||
+                    user?.is_all_region_admin) &&
                     (isKarkunPortal ? (
                       <NavigationLink
                         href="/"

@@ -88,6 +88,12 @@ export const PERMISSIONS = {
   EDIT_ZONES: "edit zones",
   DELETE_ZONES: "delete zones",
 
+  // Regions
+  VIEW_REGIONS: "view regions",
+  CREATE_REGIONS: "create regions",
+  EDIT_REGIONS: "edit regions",
+  DELETE_REGIONS: "delete regions",
+
   // Wazaifs
   VIEW_WAZAIFS: "view wazaifs",
   CREATE_WAZAIFS: "create wazaifs",
@@ -105,6 +111,12 @@ export const PERMISSIONS = {
   CREATE_KARKUNAN: "create karkunan",
   EDIT_KARKUNAN: "edit karkunan",
   DELETE_KARKUNAN: "delete karkunan",
+
+  // Karkuns (matching Laravel permission name)
+  VIEW_KARKUNS: "view karkuns",
+  CREATE_KARKUNS: "create karkuns",
+  EDIT_KARKUNS: "edit karkuns",
+  DELETE_KARKUNS: "delete karkuns",
 
   // Mehfil Directory
   VIEW_MEHFIL_DIRECTORY: "view mehfil directory",
@@ -130,6 +142,8 @@ export const PERMISSIONS = {
 
   // Namaz
   VIEW_NAMAZ: "view namaz",
+  VIEW_NAMAZ_TIMINGS: "view namaz timings",
+  EDIT_NAMAZ_TIMINGS: "edit namaz timings",
 
   // Messages
   VIEW_MESSAGES: "view messages",
@@ -148,12 +162,6 @@ export const PERMISSIONS = {
   CREATE_CONTENT: "create-content",
   EDIT_CONTENT: "edit-content",
   DELETE_CONTENT: "delete-content",
-
-  // Karkun management
-  VIEW_KARKUNS: "view-karkuns",
-  CREATE_KARKUNS: "create-karkuns",
-  EDIT_KARKUNS: "edit-karkuns",
-  DELETE_KARKUNS: "delete-karkuns",
 
   // Reports
   VIEW_REPORTS: "view-reports",
@@ -237,6 +245,12 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.CREATE_ZONES,
     PERMISSIONS.EDIT_ZONES,
     PERMISSIONS.DELETE_ZONES,
+  ],
+  REGION_MANAGEMENT: [
+    PERMISSIONS.VIEW_REGIONS,
+    PERMISSIONS.CREATE_REGIONS,
+    PERMISSIONS.EDIT_REGIONS,
+    PERMISSIONS.DELETE_REGIONS,
   ],
   REPORTS: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.GENERATE_REPORTS],
   SETTINGS: [PERMISSIONS.VIEW_SETTINGS, PERMISSIONS.EDIT_SETTINGS],

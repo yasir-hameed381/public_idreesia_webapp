@@ -24,7 +24,7 @@ export default function KarkunanPage() {
   };
 
   return (
-    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_KARKUNAN}>
+    <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_KARKUNS}>
       <div className="container mx-auto px-4 py-8">
         <KarkunanTable onEdit={handleEdit} onAdd={handleAdd} />
       </div>

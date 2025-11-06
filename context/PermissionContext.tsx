@@ -18,6 +18,7 @@ interface PermissionContextType {
   isMehfilAdmin: boolean;
   isZoneAdmin: boolean;
   isRegionAdmin: boolean;
+  isAllRegionAdmin: boolean;
   isAdmin: boolean;
   getUserPermissions: () => string[];
 }
@@ -190,11 +191,13 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
       isMehfilAdmin: userWithPermissions?.is_mehfil_admin || false,
       isZoneAdmin: userWithPermissions?.is_zone_admin || false,
       isRegionAdmin: userWithPermissions?.is_region_admin || false,
+      isAllRegionAdmin: userWithPermissions?.is_all_region_admin || false,
       isAdmin: !!(
         userWithPermissions?.is_super_admin ||
         userWithPermissions?.is_mehfil_admin ||
         userWithPermissions?.is_zone_admin ||
-        userWithPermissions?.is_region_admin
+        userWithPermissions?.is_region_admin ||
+        userWithPermissions?.is_all_region_admin
       ),
       getUserPermissions,
     };

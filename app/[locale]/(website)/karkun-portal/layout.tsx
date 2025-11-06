@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
@@ -31,10 +31,67 @@ export default function KarkunPortalLayout({
   const [isVisible, setIsVisible] = React.useState(false);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const { user, logout } = useAuth();
-  const { isZoneAdmin, isMehfilAdmin, isSuperAdmin, isRegionAdmin } =
+  const { isZoneAdmin, isMehfilAdmin, isSuperAdmin, isRegionAdmin, isAllRegionAdmin } =
     usePermissions();
+  const router = useRouter();
 
   const pathname = usePathname();
+
+  // Check access to karkun portal (matching Laravel KarkunMiddleware)
+  // Users can access if they are: isMehfilAdmin OR isZoneAdmin OR isRegionAdmin OR isAllRegionAdmin
+  React.useEffect(() => {
+    if (!user) {
+      // User not logged in, redirect to login
+      const locale = pathname.split('/')[1] || 'en';
+      router.push(`/${locale}/login`);
+      return;
+    }
+
+    const hasAccess = isMehfilAdmin || isZoneAdmin || isRegionAdmin || isAllRegionAdmin;
+    
+    if (!hasAccess) {
+      // User doesn't have required admin flags, redirect to home or show access denied
+      const locale = pathname.split('/')[1] || 'en';
+      router.push(`/${locale}`);
+    }
+  }, [user, isMehfilAdmin, isZoneAdmin, isRegionAdmin, isAllRegionAdmin, pathname, router]);
+
+  // If user doesn't have access, show access denied message
+  const hasAccess = isMehfilAdmin || isZoneAdmin || isRegionAdmin || isAllRegionAdmin;
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="text-red-600 text-6xl mb-4">🚫</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You do not have permission to access this area.
+          </p>
+          <button
+            onClick={() => {
+              const locale = pathname.split('/')[1] || 'en';
+              router.push(`/${locale}`);
+            }}
+            className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const menuToggler = () => setIsVisible((prevState) => !prevState);
 

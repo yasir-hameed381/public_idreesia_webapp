@@ -21,7 +21,7 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { PermissionGuard } from "@/context/PermissionContext";
+import { PermissionGuard, usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
 import { useGetDashboardStatsQuery } from "@/store/slicers/dashboardStatsApi";
 import { useFetchZonesQuery } from "@/store/slicers/zoneApi";
@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [timePeriod, setTimePeriod] = useState("Last 7 Days");
   const { logout } = useAuth();
+  const { hasPermission } = usePermissions();
   const params = useParams();
   const locale = params.locale as string;
 
@@ -229,14 +230,15 @@ export default function DashboardPage() {
     },
   ];
 
-  // Quick Access Links
-  const quickAccessLinks = [
+  // Quick Access Links with permissions (matching Laravel home.blade.php)
+  const allQuickAccessLinks = [
     {
       icon: Globe,
       label: "Regions",
-      href: `/${locale}/zone`,
+      href: `/${locale}/regions`,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
+      permission: PERMISSIONS.VIEW_REGIONS,
     },
     {
       icon: MapPin,
@@ -244,6 +246,7 @@ export default function DashboardPage() {
       href: `/${locale}/zone`,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
+      permission: PERMISSIONS.VIEW_ZONES,
     },
     {
       icon: Building,
@@ -251,6 +254,7 @@ export default function DashboardPage() {
       href: `/${locale}/mehfildirectary`,
       color: "text-green-600",
       bgColor: "bg-green-50",
+      permission: PERMISSIONS.VIEW_MEHFIL_DIRECTORY,
     },
     {
       icon: FileText,
@@ -258,6 +262,7 @@ export default function DashboardPage() {
       href: `/${locale}/mehfil-reports`,
       color: "text-teal-600",
       bgColor: "bg-teal-50",
+      permission: PERMISSIONS.VIEW_MEHFIL_REPORTS,
     },
     {
       icon: Users,
@@ -265,6 +270,7 @@ export default function DashboardPage() {
       href: `/${locale}/karkunan`,
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
+      permission: PERMISSIONS.VIEW_KARKUNS,
     },
     {
       icon: UserCheck,
@@ -272,6 +278,7 @@ export default function DashboardPage() {
       href: `/${locale}/new-ehads`,
       color: "text-cyan-600",
       bgColor: "bg-cyan-50",
+      permission: PERMISSIONS.VIEW_NEW_EHADS,
     },
     {
       icon: Bell,
@@ -279,6 +286,7 @@ export default function DashboardPage() {
       href: `/${locale}/messages`,
       color: "text-red-600",
       bgColor: "bg-red-50",
+      permission: PERMISSIONS.VIEW_MESSAGES,
     },
     {
       icon: GraduationCap,
@@ -286,6 +294,7 @@ export default function DashboardPage() {
       href: `/${locale}/Parhaiyan`,
       color: "text-amber-600",
       bgColor: "bg-amber-50",
+      permission: PERMISSIONS.VIEW_PARHAIYAN,
     },
     {
       icon: Clock,
@@ -293,6 +302,7 @@ export default function DashboardPage() {
       href: `/${locale}/Namaz`,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
+      permission: PERMISSIONS.VIEW_NAMAZ_TIMINGS,
     },
     {
       icon: Music,
@@ -300,6 +310,7 @@ export default function DashboardPage() {
       href: `/${locale}/naat-Shareef`,
       color: "text-pink-600",
       bgColor: "bg-pink-50",
+      permission: PERMISSIONS.VIEW_NAATS,
     },
     {
       icon: Mic,
@@ -307,6 +318,7 @@ export default function DashboardPage() {
       href: `/${locale}/taleemats`,
       color: "text-violet-600",
       bgColor: "bg-violet-50",
+      permission: PERMISSIONS.VIEW_TALEEMAT,
     },
     {
       icon: BookOpen,
@@ -314,8 +326,14 @@ export default function DashboardPage() {
       href: `/${locale}/wazaifs`,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
+      permission: PERMISSIONS.VIEW_WAZAIFS,
     },
   ];
+
+  // Filter quick access links based on permissions (matching Laravel @can directives)
+  const quickAccessLinks = allQuickAccessLinks.filter((link) =>
+    hasPermission(link.permission)
+  );
 
   return (
     <PermissionGuard
@@ -383,22 +401,28 @@ export default function DashboardPage() {
               <LinkIcon className="h-6 w-6 text-gray-700" />
               <h2 className="text-2xl font-bold text-gray-800">Quick Access</h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {quickAccessLinks.map((link, index) => (
-                <Link
-                  key={index}
-                  href={link.href}
-                  className={`${link.bgColor} rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center text-center group cursor-pointer`}
-                >
-                  <link.icon
-                    className={`h-10 w-10 ${link.color} mb-3 group-hover:scale-110 transition-transform`}
-                  />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                    {link.label}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            {quickAccessLinks.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {quickAccessLinks.map((link, index) => (
+                  <Link
+                    key={index}
+                    href={link.href}
+                    className={`${link.bgColor} rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center text-center group cursor-pointer`}
+                  >
+                    <link.icon
+                      className={`h-10 w-10 ${link.color} mb-3 group-hover:scale-110 transition-transform`}
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                      {link.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No quick access links available based on your permissions.</p>
+              </div>
+            )}
           </div>
 
           {/* Need Help Section */}
