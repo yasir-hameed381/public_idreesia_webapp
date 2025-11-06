@@ -19,8 +19,10 @@ export interface UserWithPermissions {
   is_mehfil_admin: boolean;
   is_zone_admin: boolean;
   is_region_admin?: boolean;
+  is_all_region_admin?: boolean;
   zone_id?: number;
   mehfil_directory_id?: number;
+  region_id?: number;
   zone?: {
     id: number;
     title_en: string;

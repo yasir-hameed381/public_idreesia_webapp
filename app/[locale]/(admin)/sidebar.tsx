@@ -59,7 +59,7 @@ export function AppSidebar({
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const { logout, user } = useAuth();
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { hasPermission } = usePermissions();
 
   // Use external collapsed state if provided, otherwise use internal state
   const isCollapsed =
@@ -321,16 +321,11 @@ export function AppSidebar({
   };
 
   // Filter navigation items based on user permissions
+  // In Laravel, super_admin users still need roles with permissions
   const navigation = navigationItems.filter((item) => {
     // If no permission required, always show
     if (item.permission === null) {
       console.log(`✅ Showing ${item.name} - No permission required`);
-      return true;
-    }
-
-    // Super admin has access to everything
-    if (isSuperAdmin) {
-      console.log(`✅ Showing ${item.name} - Super admin access`);
       return true;
     }
 

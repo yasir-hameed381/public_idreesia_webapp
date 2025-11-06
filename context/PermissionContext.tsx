@@ -109,16 +109,8 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
         return false;
       }
 
-      // Super admin has all permissions
-      if (userWithPermissions.is_super_admin) {
-        console.log(
-          `🔑 Super admin access granted for permission: ${
-            Array.isArray(permission) ? permission.join(", ") : permission
-          }`
-        );
-        return true;
-      }
-
+      // In Laravel, super_admin users still need roles with permissions
+      // They don't automatically get all permissions
       const userPermissions = getUserPermissions();
 
       // Debug logging
@@ -177,16 +169,8 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
     const hasAllPermissions = (permissions: PermissionName[]): boolean => {
       if (!userWithPermissions) return false;
 
-      // Super admin has all permissions
-      if (userWithPermissions.is_super_admin) {
-        console.log(
-          `🔑 Super admin access granted for all permissions: ${permissions.join(
-            ", "
-          )}`
-        );
-        return true;
-      }
-
+      // In Laravel, super_admin users still need roles with permissions
+      // They don't automatically get all permissions
       const userPermissions = getUserPermissions();
       const hasAll = permissions.every((p) => userPermissions.includes(p));
       console.log(

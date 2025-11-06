@@ -41,7 +41,7 @@ export function AdminUserTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const { showError, showSuccess } = useToast();
-  const { hasPermission, isSuperAdmin, user } = usePermissions();
+  const { hasPermission, user } = usePermissions();
 
   const router = useRouter();
 
@@ -51,16 +51,13 @@ export function AdminUserTable({
   console.log("users=========", user?.role);
   const Role = user?.role;
 
-  // Permission checks
-  const canEditUsers = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_USERS);
-  const canDeleteUsers =
-    isSuperAdmin || hasPermission(PERMISSIONS.DELETE_USERS);
-  const canCreateUsers =
-    isSuperAdmin || hasPermission(PERMISSIONS.CREATE_USERS);
+  // Permission checks - In Laravel, super_admin users still need roles with permissions
+  const canEditUsers = hasPermission(PERMISSIONS.EDIT_USERS);
+  const canDeleteUsers = hasPermission(PERMISSIONS.DELETE_USERS);
+  const canCreateUsers = hasPermission(PERMISSIONS.CREATE_USERS);
 
   // Debug logging for admin user permissions
   console.log("🔍 Admin User Table Permission Debug:", {
-    isSuperAdmin,
     hasEditUsers: hasPermission(PERMISSIONS.EDIT_USERS),
     hasDeleteUsers: hasPermission(PERMISSIONS.DELETE_USERS),
     hasCreateUsers: hasPermission(PERMISSIONS.CREATE_USERS),
@@ -141,6 +138,11 @@ export function AdminUserTable({
       showError("You don't have permission to delete users");
       return;
     }
+    // Prevent deleting super_admin users (matching Laravel UserPolicy)
+    if (adminUser.is_super_admin) {
+      showError("Super admin users cannot be deleted");
+      return;
+    }
     setSelectedAdminUser(adminUser);
     setShowDeleteDialog(true);
   };
@@ -148,6 +150,11 @@ export function AdminUserTable({
   const handleEdit = (adminUser: any) => {
     if (!canEditUsers) {
       showError("You don't have permission to edit users");
+      return;
+    }
+    // Prevent editing super_admin users (matching Laravel UserPolicy)
+    if (adminUser.is_super_admin) {
+      showError("Super admin users cannot be edited");
       return;
     }
     if (onEdit) {
@@ -449,7 +456,7 @@ export function AdminUserTable({
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              {canEditUsers && (
+                              {canEditUsers && !adminUser.is_super_admin && (
                                 <button
                                   onClick={() =>
                                     router.push(`/admin-users/${adminUser.id}`)
@@ -460,7 +467,7 @@ export function AdminUserTable({
                                   <Edit size={16} />
                                 </button>
                               )}
-                              {canDeleteUsers && (
+                              {canDeleteUsers && !adminUser.is_super_admin && (
                                 <button
                                   onClick={() => confirmDelete(adminUser)}
                                   className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
@@ -468,6 +475,11 @@ export function AdminUserTable({
                                 >
                                   <Trash2 size={16} />
                                 </button>
+                              )}
+                              {adminUser.is_super_admin && (
+                                <span className="text-xs text-gray-500 italic">
+                                  Protected
+                                </span>
                               )}
                             </div>
                           </td>

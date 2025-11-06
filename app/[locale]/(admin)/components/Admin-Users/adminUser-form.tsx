@@ -68,6 +68,7 @@ const createAdminUserSchema = (isEdit: boolean = false) =>
     is_mehfil_admin: yup.boolean().optional(),
     is_super_admin: yup.boolean().optional(),
     is_region_admin: yup.boolean().optional(),
+    is_all_region_admin: yup.boolean().optional(),
   });
 
 interface AdminUserFormData {
@@ -104,6 +105,7 @@ interface AdminUserFormData {
   is_mehfil_admin?: boolean;
   is_super_admin?: boolean;
   is_region_admin?: boolean;
+  is_all_region_admin?: boolean;
 }
 
 interface AdminUserFormProps {
@@ -121,7 +123,7 @@ export function AdminUserForm({
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
   const [form] = Form.useForm();
-  const { hasPermission, isSuperAdmin, user } = usePermissions();
+  const { hasPermission, user } = usePermissions();
 
   const { data: zonesData } = useFetchZonesQuery({ per_page: 1000 });
   const { data: mehfilData } = useFetchAddressQuery({
@@ -153,18 +155,15 @@ export function AdminUserForm({
     fetchRolesData();
   }, []);
 
-  // Permission checks
-  const canCreateUsers =
-    isSuperAdmin || hasPermission(PERMISSIONS.CREATE_USERS);
-  const canEditUsers = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_USERS);
+  // Permission checks - In Laravel, super_admin users still need roles with permissions
+  const canCreateUsers = hasPermission(PERMISSIONS.CREATE_USERS);
+  const canEditUsers = hasPermission(PERMISSIONS.EDIT_USERS);
   const canAssignRoles =
-    isSuperAdmin ||
     hasPermission(PERMISSIONS.ASSIGN_PERMISSIONS) ||
     user?.is_zone_admin; // Allow Zone Admins to assign roles
 
   // Debug logging for admin permissions
   console.log("🔐 Admin Permissions Check:", {
-    isSuperAdmin,
     hasAssignPermissions: hasPermission(PERMISSIONS.ASSIGN_PERMISSIONS),
     isZoneAdmin: user?.is_zone_admin,
     canAssignRoles,
@@ -175,6 +174,15 @@ export function AdminUserForm({
   // Reset form when editing user changes
   useEffect(() => {
     if (editingUser) {
+      // Prevent editing super_admin users (matching Laravel UserPolicy)
+      if (editingUser.is_super_admin) {
+        showError("Super admin users cannot be edited");
+        if (onCancel) {
+          onCancel();
+        }
+        return;
+      }
+
       // Extract role IDs from roles array or single role
       const roleIds = editingUser.role_ids 
         ? editingUser.role_ids.map(id => id.toString())
@@ -195,7 +203,7 @@ export function AdminUserForm({
     } else {
       form.resetFields();
     }
-  }, [editingUser, form]);
+  }, [editingUser, form, showError, onCancel]);
 
   const handleSubmit = async (values: AdminUserFormData) => {
     console.log("🚀 Form submission started");
@@ -214,6 +222,12 @@ export function AdminUserForm({
 
     if (!canEditUsers && editingUser) {
       showError("You don't have permission to edit users");
+      return;
+    }
+
+    // Prevent editing super_admin users (matching Laravel UserPolicy)
+    if (editingUser && editingUser.is_super_admin) {
+      showError("Super admin users cannot be edited");
       return;
     }
 
@@ -281,6 +295,7 @@ export function AdminUserForm({
         is_mehfil_admin: values.is_mehfil_admin || false,
         is_super_admin: values.is_super_admin || false,
         is_region_admin: values.is_region_admin || false,
+        is_all_region_admin: values.is_all_region_admin || false,
         ...(values.password && { password: values.password }),
       };
 
@@ -325,6 +340,7 @@ export function AdminUserForm({
           is_mehfil_admin: false,
           is_super_admin: false,
           is_region_admin: false,
+          is_all_region_admin: false,
         }}
       >
         <Row gutter={16}>
@@ -602,6 +618,11 @@ export function AdminUserForm({
               <Col span={6}>
                 <Form.Item name="is_region_admin" valuePropName="checked">
                   <Checkbox>Region Admin</Checkbox>
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="is_all_region_admin" valuePropName="checked">
+                  <Checkbox>All Region Admin</Checkbox>
                 </Form.Item>
               </Col>
               <Col span={6}>

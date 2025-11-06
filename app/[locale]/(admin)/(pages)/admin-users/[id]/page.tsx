@@ -38,6 +38,13 @@ export default function AdminUserPage() {
             ? [userData.role_id.toString()]
             : [];
 
+        // Prevent editing super_admin users (matching Laravel UserPolicy)
+        if (userData.is_super_admin) {
+          showError("Super admin users cannot be edited");
+          router.push("/admin-users");
+          return;
+        }
+
         const transformedData = {
           id: userData.id,
           name: userData.name || "",
@@ -63,6 +70,8 @@ export default function AdminUserPage() {
           duty_days: userData.duty_days || [],
           is_zone_admin: userData.is_zone_admin || false,
           is_mehfil_admin: userData.is_mehfil_admin || false,
+          is_region_admin: userData.is_region_admin || false,
+          is_all_region_admin: userData.is_all_region_admin || false,
           is_super_admin: userData.is_super_admin || false,
           avatar: userData.avatar || "",
           password: "", // Don't populate password for security

@@ -139,18 +139,15 @@ const KarkunDashboardPage: React.FC = () => {
   };
 
   // Initialize zone/mehfil selection based on user role (only once on mount)
+  // Matching Laravel Dashboard.php mount() method
   useEffect(() => {
     if (user) {
-      // Zone admin or mehfil admin - pre-select their zone
+      // Zone admin or mehfil admin - pre-select their zone (matching Laravel)
       if (user.is_zone_admin || user.is_mehfil_admin) {
         console.log("Setting selectedZoneId to:", user.zone_id);
-        console.log("Setting users:", user);
         setSelectedZoneId(user.zone_id || null);
-        console.log("SelectedZoneId:", selectedZoneId);
-      } else {
-        console.log("User is not zone/mehfil admin, zone_id:", user.zone_id);
       }
-      // Mehfil admin - pre-select their mehfil
+      // Mehfil admin - pre-select their mehfil (matching Laravel)
       if (user.is_mehfil_admin) {
         setSelectedMehfilId(user.mehfil_directory_id || null);
       }
@@ -198,19 +195,29 @@ const KarkunDashboardPage: React.FC = () => {
           zones: dashboardData.zones,
           mehfils: dashboardData.mehfils,
           totalKarkuns: dashboardData.totalKarkuns,
+          userZoneId: user?.zone_id,
+          userIsZoneAdmin: user?.is_zone_admin,
+          userIsMehfilAdmin: user?.is_mehfil_admin,
         });
+
+        // Always use zones from API response if available
+        // The backend should always return zones based on user permissions
+        const zonesToSet = dashboardData.zones && dashboardData.zones.length > 0 
+          ? dashboardData.zones 
+          : (dashboardData.zones || []); // Use empty array if zones is undefined/null
 
         setStats((prev) => ({
           ...prev,
           ...dashboardData,
-          zones: dashboardData.zones || prev.zones,
+          zones: zonesToSet,
           mehfils:
             prev.mehfils?.length > 0 ? prev.mehfils : dashboardData.mehfils,
           loading: false,
         }));
 
         console.log("🔍 Stats after setting:", {
-          zonesCount: dashboardData.zones?.length || 0,
+          zonesCount: zonesToSet.length,
+          zones: zonesToSet,
           mehfilsCount: dashboardData.mehfils?.length || 0,
         });
       } catch (error) {
@@ -262,9 +269,10 @@ const KarkunDashboardPage: React.FC = () => {
     loadMehfils();
   }, [selectedZoneId]);
 
-  // Check if user can filter zones (Region admins can change zones)
+  // Check if user can filter zones (matching Laravel: is_all_region_admin or is_region_admin)
+  // Laravel blade: :disabled="!($authUser->is_all_region_admin || $authUser->is_region_admin)"
   const canFilterZones: boolean = Boolean(
-    user?.is_super_admin || user?.is_region_admin
+    (user as any)?.is_all_region_admin || user?.is_region_admin
   );
 
   // Check if user can filter mehfils (Region and Zone admins can change mehfils)
@@ -273,10 +281,11 @@ const KarkunDashboardPage: React.FC = () => {
   );
 
   // Handle zone change - reset mehfil selection and update stats
+  // Matching Laravel Dashboard.php updatedSelectedZoneId() method
   const handleZoneChange = (newZoneId: string) => {
     const zoneId = newZoneId ? Number(newZoneId) : null;
     setSelectedZoneId(zoneId);
-    setSelectedMehfilId(null); // Reset mehfil when zone changes
+    setSelectedMehfilId(null); // Reset mehfil when zone changes (matching Laravel)
   };
 
   // Get selected zone name
@@ -378,16 +387,10 @@ const KarkunDashboardPage: React.FC = () => {
                         : ""
                     }`}
                   >
-                    <option
-                      value={
-                        stats.zones.length > 0 ? stats.zones[0].title_en : ""
-                      }
-                    >
-                      {/* {stats.zones.length > 0
-                        ? stats.zones[0].title_en
-                        : "All zones"} */}
-                      {"All zones"}
-                    </option>
+                    {/* Show "All zones" option only for users who can filter (region admins) */}
+                    {canFilterZones && (
+                      <option value="">All zones</option>
+                    )}
 
                     {stats.zones.map((zone) => (
                       <option key={zone.id} value={zone.id}>

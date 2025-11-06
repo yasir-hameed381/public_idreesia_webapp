@@ -21,16 +21,14 @@ export const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
   redirectTo = "/dashboard",
   showAccessDenied = false,
 }) => {
-  const { hasPermission, isSuperAdmin, user } = usePermissions();
+  const { hasPermission, user } = usePermissions();
   const router = useRouter();
 
   useEffect(() => {
     // If no permission required, allow access
     if (!requiredPermission) return;
 
-    // Super admin has access to everything
-    if (isSuperAdmin) return;
-
+    // In Laravel, super_admin users still need roles with permissions
     // Check if user has required permission
     if (!hasPermission(requiredPermission)) {
       if (showAccessDenied) {
@@ -44,7 +42,6 @@ export const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
   }, [
     requiredPermission,
     hasPermission,
-    isSuperAdmin,
     router,
     redirectTo,
     showAccessDenied,
@@ -55,11 +52,7 @@ export const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
     return <>{children}</>;
   }
 
-  // Super admin has access to everything
-  if (isSuperAdmin) {
-    return <>{children}</>;
-  }
-
+  // In Laravel, super_admin users still need roles with permissions
   // Check if user has required permission
   if (!hasPermission(requiredPermission)) {
     if (showAccessDenied) {
