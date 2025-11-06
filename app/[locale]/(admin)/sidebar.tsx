@@ -34,6 +34,13 @@ import {
   Calendar,
   ClipboardList,
   UserCog,
+  Globe,
+  Building,
+  Shield,
+  List,
+  UserPlus,
+  Home,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
@@ -79,169 +86,173 @@ export function AppSidebar({
   // Clean the pathname to match the navigation items
   const cleanedPathname = pathname.replace(/^\/[a-z]{2}\//, "");
 
-  // Define navigation items with their required permissions
-  const navigationItems: Array<{
+  // Define navigation structure matching Laravel's sidebar layout
+  // Only including items that exist in React
+  interface NavItem {
     name: string;
     href: string;
     icon: React.ReactNode;
     permission: PermissionName | null;
-  }> = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: <DashboardOutlined />,
-      permission: PERMISSIONS.VIEW_DASHBOARD,
-    },
-    {
-      name: "Admin Users",
-      href: "/admin-users",
-      icon: <Users size={18} />,
-      permission: PERMISSIONS.VIEW_USERS,
-    },
-    {
-      name: "Roles",
-      href: "/roles",
-      icon: <User size={18} />,
-      permission: PERMISSIONS.VIEW_ROLES,
-    },
-    {
-      name: "Categories",
-      href: "/categories",
-      icon: <FolderOutlined />,
-      permission: PERMISSIONS.VIEW_CATEGORIES,
-    },
-    {
-      name: "Tags",
-      href: "/tags",
-      icon: <TagsOutlined />,
-      permission: PERMISSIONS.VIEW_TAGS,
-    },
-    {
-      name: "Parhaiyan",
-      href: "/Parhaiyan",
-      icon: <ReadOutlined />,
-      permission: PERMISSIONS.VIEW_PARHAIYAN,
-    },
-    {
-      name: "Mehfils",
-      href: "/mehfil",
-      icon: <SoundOutlined />,
-      permission: PERMISSIONS.VIEW_MEHFILS,
-    },
-    {
-      name: "Mehfil Directry",
-      href: "/mehfildirectary",
-      icon: <BookOutlined />,
-      permission: PERMISSIONS.VIEW_MEHFIL_DIRECTORY,
-    },
-    {
-      name: "zone",
-      href: "/zone",
-      icon: <MapPinned size={18} />,
-      permission: PERMISSIONS.VIEW_ZONES,
-    },
-    {
-      name: "Regions",
-      href: "/regions",
-      icon: <MapPinned size={18} />,
-      permission: PERMISSIONS.VIEW_REGIONS,
-    },
-    {
-      name: "Ehad Karkun Directory",
-      href: "/ehadKarkun",
-      icon: <Contact size={18} />,
-      permission: PERMISSIONS.VIEW_EHAD_KARKUN,
-    },
-    {
-      name: "Karkuns",
-      href: "/karkunan",
-      icon: <Contact size={18} />,
-      permission: PERMISSIONS.VIEW_KARKUNS,
-    },
-    {
-      name: "Karkun Join Requests",
-      href: "/karkun-join-requests",
-      icon: <Users size={18} />,
-      permission: PERMISSIONS.VIEW_KARKUNAN, // Using same permission as Karkuns for now
-    },
-    {
-      name: "Mehfil Reports",
-      href: "/mehfil-reports",
-      icon: <FileText size={18} />,
-      permission: PERMISSIONS.VIEW_MEHFIL_REPORTS,
-    },
-    {
-      name: "Naat Shareefs",
-      href: "/naat-Shareef",
-      icon: <Headphones size={18} />,
-      permission: PERMISSIONS.VIEW_NAATS,
-    },
-    {
-      name: "Messages",
-      href: "/messages",
-      icon: <MessageSquare size={18} />,
-      permission: PERMISSIONS.VIEW_MESSAGES,
-    },
-    {
-      name: "Feedback",
-      href: "/feedback",
-      icon: <MessageCircle size={18} />,
-      permission: PERMISSIONS.VIEW_FEEDBACK,
-    },
-    {
-      name: "Taleemat",
-      href: "/taleemats",
-      icon: <VideoCameraOutlined />,
-      permission: PERMISSIONS.VIEW_TALEEMAT,
-    },
-    {
-      name: "Namaz",
-      href: "/Namaz",
-      icon: <ClockCircleFilled />,
-      permission: PERMISSIONS.VIEW_NAMAZ_TIMINGS,
-    },
-    {
-      name: "Wazaifs",
-      href: "/wazaifs",
-      icon: <BookFilled />,
-      permission: PERMISSIONS.VIEW_WAZAIFS,
-    },
-    {
-      name: "Tabarukats",
-      href: "/tabarukats",
-      icon: <Package size={18} />,
-      permission: PERMISSIONS.VIEW_TABARUKATS,
-    },
-    {
-      name: "New Ehads",
-      href: "/new-ehads",
-      icon: <User size={18} />,
-      permission: PERMISSIONS.VIEW_NEW_EHADS,
-    },
-    {
-      name: "Duty Types",
-      href: "/duty-types",
-      icon: <ClipboardList size={18} />,
-      permission: PERMISSIONS.VIEW_DUTY_TYPES,
-    },
-    {
-      name: "Duty Roster",
-      href: "/duty-roster",
-      icon: <Calendar size={18} />,
-      permission: PERMISSIONS.VIEW_DUTY_ROSTER,
-    },
-    {
-      name: "Coordinators",
-      href: "/coordinators",
-      icon: <UserCog size={18} />,
-      permission: PERMISSIONS.VIEW_COORDINATORS,
-    },
-    {
-      name: "File Uploader",
-      href: "/file-uploader",
-      icon: <UploadOutlined />,
-      permission: PERMISSIONS.UPLOAD_FILE,
-    },
+  }
+
+  interface NavGroup {
+    heading: string;
+    items: NavItem[];
+  }
+
+  // Home/Dashboard (standalone, not in a group)
+  const homeItem: NavItem = {
+    name: "Home",
+    href: "/dashboard",
+    icon: <Home size={18} />,
+    permission: PERMISSIONS.VIEW_DASHBOARD,
+  };
+
+  // MCC Group (matching Laravel structure)
+  const mccGroup: NavGroup = {
+    heading: "MCC",
+    items: [
+      {
+        name: "Regions",
+        href: "/regions",
+        icon: <Globe size={18} />,
+        permission: PERMISSIONS.VIEW_REGIONS,
+      },
+      {
+        name: "Zones",
+        href: "/zone",
+        icon: <MapPinned size={18} />,
+        permission: PERMISSIONS.VIEW_ZONES,
+      },
+      {
+        name: "Mehfil Directory",
+        href: "/mehfildirectary",
+        icon: <Building size={18} />,
+        permission: PERMISSIONS.VIEW_MEHFIL_DIRECTORY,
+      },
+      {
+        name: "Ehad Karkuns Directory",
+        href: "/ehadKarkun",
+        icon: <List size={18} />,
+        permission: PERMISSIONS.VIEW_EHAD_KARKUN,
+      },
+      {
+        name: "Karkuns",
+        href: "/karkunan",
+        icon: <Users size={18} />,
+        permission: PERMISSIONS.VIEW_KARKUNS,
+      },
+      {
+        name: "Mehfil Reports",
+        href: "/mehfil-reports",
+        icon: <FileText size={18} />,
+        permission: PERMISSIONS.VIEW_MEHFIL_REPORTS,
+      },
+      {
+        name: "Tabarukats",
+        href: "/tabarukats",
+        icon: <Package size={18} />,
+        permission: PERMISSIONS.VIEW_TABARUKATS,
+      },
+      {
+        name: "New Ehads",
+        href: "/new-ehads",
+        icon: <UserPlus size={18} />,
+        permission: PERMISSIONS.VIEW_NEW_EHADS,
+      },
+    ],
+  };
+
+  // CMS Group (matching Laravel structure)
+  const cmsGroup: NavGroup = {
+    heading: "CMS",
+    items: [
+      {
+        name: "Admin Users",
+        href: "/admin-users",
+        icon: <Users size={18} />,
+        permission: PERMISSIONS.VIEW_USERS,
+      },
+      {
+        name: "Roles",
+        href: "/roles",
+        icon: <Shield size={18} />,
+        permission: PERMISSIONS.VIEW_ROLES,
+      },
+      {
+        name: "Categories",
+        href: "/categories",
+        icon: <FolderOutlined />,
+        permission: PERMISSIONS.VIEW_CATEGORIES,
+      },
+      {
+        name: "Tags",
+        href: "/tags",
+        icon: <TagsOutlined />,
+        permission: PERMISSIONS.VIEW_TAGS,
+      },
+      {
+        name: "Namaz Timings",
+        href: "/Namaz",
+        icon: <ClockCircleFilled />,
+        permission: PERMISSIONS.VIEW_NAMAZ_TIMINGS,
+      },
+      {
+        name: "Naat Shareefs",
+        href: "/naat-Shareef",
+        icon: <Headphones size={18} />,
+        permission: PERMISSIONS.VIEW_NAATS,
+      },
+      {
+        name: "Taleemat",
+        href: "/taleemats",
+        icon: <VideoCameraOutlined />,
+        permission: PERMISSIONS.VIEW_TALEEMAT,
+      },
+      {
+        name: "Mehfils",
+        href: "/mehfil",
+        icon: <SoundOutlined />,
+        permission: PERMISSIONS.VIEW_MEHFILS,
+      },
+      {
+        name: "Wazaifs",
+        href: "/wazaifs",
+        icon: <BookFilled />,
+        permission: PERMISSIONS.VIEW_WAZAIFS,
+      },
+      {
+        name: "Messages",
+        href: "/messages",
+        icon: <MessageSquare size={18} />,
+        permission: PERMISSIONS.VIEW_MESSAGES,
+      },
+      {
+        name: "Parhaiyan",
+        href: "/Parhaiyan",
+        icon: <ReadOutlined />,
+        permission: PERMISSIONS.VIEW_PARHAIYAN,
+      },
+      {
+        name: "Feedback",
+        href: "/feedback",
+        icon: <MessageCircle size={18} />,
+        permission: PERMISSIONS.VIEW_FEEDBACK,
+      },
+      {
+        name: "File Uploader",
+        href: "/file-uploader",
+        icon: <UploadOutlined />,
+        permission: PERMISSIONS.UPLOAD_FILE,
+      },
+    ],
+  };
+
+  // Flatten all navigation items for path matching
+  const allNavigationItems: NavItem[] = [
+    homeItem,
+    ...mccGroup.items,
+    ...cmsGroup.items,
   ];
 
   // Memoize the selected key to prevent unnecessary recalculations
@@ -250,7 +261,7 @@ export function AppSidebar({
     const cleanPath = pathname.replace(/^\/[a-z]{2}\//, "").split("?")[0];
 
     // Find matching navigation item with improved matching logic
-    const matchingItem = navigationItems.find((item) => {
+    const matchingItem = allNavigationItems.find((item) => {
       // Exact match
       if (item.href === cleanPath) return true;
 
@@ -275,7 +286,7 @@ export function AppSidebar({
 
     // Fallback: if no exact match found, try to find the closest match
     if (!matchingItem && cleanPath !== "/") {
-      const fallbackMatch = navigationItems.find((item) => {
+      const fallbackMatch = allNavigationItems.find((item) => {
         // Try to match the first part of the path
         const pathSegments = cleanPath.split("/").filter(Boolean);
         const itemSegments = item.href.split("/").filter(Boolean);
@@ -288,76 +299,93 @@ export function AppSidebar({
 
       if (fallbackMatch) {
         key = fallbackMatch.href;
-        console.log(
-          "🔄 Using fallback match:",
-          fallbackMatch.name,
-          "for path:",
-          cleanPath
-        );
       }
     }
 
-    // Debug logging
-    console.log("🔍 Sidebar Selection Debug:", {
-      originalPathname: pathname,
-      cleanPath,
-      selectedKey: key,
-      matchingItem: matchingItem?.name || "None",
-      allHrefs: navigationItems.map((item) => item.href),
-      navigationItemsCount: navigationItems.length,
-    });
-
-    // Additional debug for specific cases
-    if (cleanPath.includes("roles") || cleanPath.includes("Roles")) {
-      console.log("🎯 Roles Debug:", {
-        cleanPath,
-        rolesItem: navigationItems.find((item) => item.href === "/roles"),
-        exactMatch: navigationItems.find((item) => item.href === cleanPath),
-        caseInsensitiveMatch: navigationItems.find(
-          (item) => item.href.toLowerCase() === cleanPath.toLowerCase()
-        ),
-      });
-    }
-
     return key;
-  }, [pathname, navigationItems]);
+  }, [pathname]);
 
   const handleLogout = () => {
     logout();
   };
 
-  // Filter navigation items based on user permissions
+  // Filter navigation groups based on user permissions
   // In Laravel, super_admin users still need roles with permissions
-  const navigation = navigationItems.filter((item) => {
-    // If no permission required, always show
-    if (item.permission === null) {
-      console.log(`✅ Showing ${item.name} - No permission required`);
-      return true;
-    }
-
-    // At this point, item.permission is guaranteed to be PermissionName (not null)
-    const permission = item.permission;
-    const hasAccess = hasPermission(permission);
-    console.log(
-      `🔍 ${item.name} (${permission}): ${hasAccess ? "✅ SHOW" : "❌ HIDE"}`
-    );
-    return hasAccess;
-  });
-
-  const items = navigation.map((item) => ({
-    key: item.href,
-    icon: item.icon,
-    label: <NavigationLink href={item.href}>{item.name}</NavigationLink>,
-  }));
-
-  // Add logout item separately to handle the click event
-  const logoutItem = {
-    key: "logout",
-    icon: <LogoutOutlined />,
-    label: <span onClick={handleLogout}>Logout</span>,
+  const filterGroupItems = (items: NavItem[]): NavItem[] => {
+    return items.filter((item) => {
+      // If no permission required, always show
+      if (item.permission === null) {
+        return true;
+      }
+      // Check permission
+      return hasPermission(item.permission);
+    });
   };
 
-  const allItems = [...items, logoutItem];
+  // Filter groups and only show groups that have at least one visible item
+  const filteredMccGroup = {
+    ...mccGroup,
+    items: filterGroupItems(mccGroup.items),
+  };
+
+  const filteredCmsGroup = {
+    ...cmsGroup,
+    items: filterGroupItems(cmsGroup.items),
+  };
+
+  // Check if home item should be shown
+  const showHome = homeItem.permission === null || hasPermission(homeItem.permission);
+
+  // Build menu items with groups (matching Laravel structure)
+  const buildMenuItems = () => {
+    const items: any[] = [];
+
+    // Home item (standalone)
+    if (showHome) {
+      items.push({
+        key: homeItem.href,
+        icon: homeItem.icon,
+        label: <NavigationLink href={homeItem.href}>{homeItem.name}</NavigationLink>,
+      });
+    }
+
+    // MCC Group
+    if (filteredMccGroup.items.length > 0) {
+      items.push({
+        type: "group",
+        label: mccGroup.heading,
+        children: filteredMccGroup.items.map((item) => ({
+          key: item.href,
+          icon: item.icon,
+          label: <NavigationLink href={item.href}>{item.name}</NavigationLink>,
+        })),
+      });
+    }
+
+    // CMS Group
+    if (filteredCmsGroup.items.length > 0) {
+      items.push({
+        type: "group",
+        label: cmsGroup.heading,
+        children: filteredCmsGroup.items.map((item) => ({
+          key: item.href,
+          icon: item.icon,
+          label: <NavigationLink href={item.href}>{item.name}</NavigationLink>,
+        })),
+      });
+    }
+
+    // Add logout item
+    items.push({
+      key: "logout",
+      icon: <LogOut size={18} />,
+      label: <span onClick={handleLogout}>Logout</span>,
+    });
+
+    return items;
+  };
+
+  const menuItems = buildMenuItems();
 
   return (
     <Sider
@@ -420,7 +448,7 @@ export function AppSidebar({
         theme="dark"
         mode="inline"
         selectedKeys={[selectedKey]}
-        items={allItems}
+        items={menuItems}
         // Important: This ensures icons remain visible in collapsed state
         inlineCollapsed={isCollapsed}
         style={{

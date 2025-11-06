@@ -140,11 +140,12 @@ export default function LoginForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-4">
+        
+        {/* Login Card */}
+        <div className="bg-white rounded-2xl shadow-xl px-8 pb-8 sm:px-10 pt-5">
+          <div className="flex flex-col items-center mb-4">
           <Image width={100} height={50} src={UrduIdreesiaLogo} alt="Logo" />
         </div>
-        {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-10">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl sm:text-2xl font-semibold text-gray-900 mb-2">
