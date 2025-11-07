@@ -58,7 +58,12 @@ const AdminTarteebRequestEditPage = () => {
         user?.is_region_admin ||
         user?.is_all_region_admin
       ),
-    [hasPermission, user?.is_all_region_admin, user?.is_region_admin, user?.is_super_admin]
+    [
+      hasPermission,
+      user?.is_all_region_admin,
+      user?.is_region_admin,
+      user?.is_super_admin,
+    ]
   );
 
   const canSelectMehfils = useMemo(
@@ -66,12 +71,7 @@ const AdminTarteebRequestEditPage = () => {
       canManageZones ||
       hasPermission(PERMISSIONS.VIEW_MEHFIL_DIRECTORY) ||
       !!(user?.is_zone_admin || user?.is_mehfil_admin),
-    [
-      canManageZones,
-      hasPermission,
-      user?.is_mehfil_admin,
-      user?.is_zone_admin,
-    ]
+    [canManageZones, hasPermission, user?.is_mehfil_admin, user?.is_zone_admin]
   );
 
   useEffect(() => {
@@ -172,7 +172,10 @@ const AdminTarteebRequestEditPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCheckboxChange = (field: keyof TarteebRequest, value: boolean) => {
+  const handleCheckboxChange = (
+    field: keyof TarteebRequest,
+    value: boolean
+  ) => {
     updateFormData(field, value);
   };
 
@@ -282,9 +285,7 @@ const AdminTarteebRequestEditPage = () => {
                         }}
                         disabled={!canManageZones}
                         className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                          !canManageZones
-                            ? "opacity-60 cursor-not-allowed"
-                            : ""
+                          !canManageZones ? "opacity-60 cursor-not-allowed" : ""
                         }`}
                       >
                         <option value="">Select Zone</option>
@@ -342,7 +343,9 @@ const AdminTarteebRequestEditPage = () => {
                         type="text"
                         required
                         value={formData.full_name || ""}
-                        onChange={(e) => updateFormData("full_name", e.target.value)}
+                        onChange={(e) =>
+                          updateFormData("full_name", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
@@ -355,7 +358,9 @@ const AdminTarteebRequestEditPage = () => {
                         type="text"
                         required
                         value={formData.father_name || ""}
-                        onChange={(e) => updateFormData("father_name", e.target.value)}
+                        onChange={(e) =>
+                          updateFormData("father_name", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
@@ -368,7 +373,9 @@ const AdminTarteebRequestEditPage = () => {
                         type="email"
                         required
                         value={formData.email || ""}
-                        onChange={(e) => updateFormData("email", e.target.value)}
+                        onChange={(e) =>
+                          updateFormData("email", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
@@ -413,7 +420,10 @@ const AdminTarteebRequestEditPage = () => {
                         required
                         value={formData.gender || "male"}
                         onChange={(e) =>
-                          updateFormData("gender", e.target.value as "male" | "female")
+                          updateFormData(
+                            "gender",
+                            e.target.value as "male" | "female"
+                          )
                         }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       >
@@ -443,7 +453,9 @@ const AdminTarteebRequestEditPage = () => {
                         type="text"
                         required
                         value={formData.country || ""}
-                        onChange={(e) => updateFormData("country", e.target.value)}
+                        onChange={(e) =>
+                          updateFormData("country", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
@@ -527,7 +539,9 @@ const AdminTarteebRequestEditPage = () => {
                       <label className="flex items-center mb-2">
                         <input
                           type="checkbox"
-                          checked={parsedBoolean(formData.consistent_in_prayers)}
+                          checked={parsedBoolean(
+                            formData.consistent_in_prayers
+                          )}
                           onChange={(e) =>
                             handleCheckboxChange(
                               "consistent_in_prayers",
@@ -574,7 +588,9 @@ const AdminTarteebRequestEditPage = () => {
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={parsedBoolean(formData.makes_up_missed_prayers)}
+                        checked={parsedBoolean(
+                          formData.makes_up_missed_prayers
+                        )}
                         onChange={(e) =>
                           handleCheckboxChange(
                             "makes_up_missed_prayers",
@@ -716,7 +732,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Wazaif Tarteeb Received <span className="text-red-500">*</span>
+                        Last Wazaif Tarteeb Received{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -731,7 +748,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        How long have you been consistent with current wazaif? <span className="text-red-500">*</span>
+                        How long have you been consistent with current wazaif?{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -750,7 +768,9 @@ const AdminTarteebRequestEditPage = () => {
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={parsedBoolean(formData.reads_current_wazaif_with_ease)}
+                        checked={parsedBoolean(
+                          formData.reads_current_wazaif_with_ease
+                        )}
                         onChange={(e) =>
                           handleCheckboxChange(
                             "reads_current_wazaif_with_ease",
@@ -767,7 +787,9 @@ const AdminTarteebRequestEditPage = () => {
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={parsedBoolean(formData.able_to_read_additional_wazaif)}
+                        checked={parsedBoolean(
+                          formData.able_to_read_additional_wazaif
+                        )}
                         onChange={(e) =>
                           handleCheckboxChange(
                             "able_to_read_additional_wazaif",
@@ -830,7 +852,9 @@ const AdminTarteebRequestEditPage = () => {
                           <input
                             type="number"
                             min="0"
-                            value={(formData[field] as number | undefined) ?? ""}
+                            value={
+                              (formData[field] as number | undefined) ?? ""
+                            }
                             onChange={(e) =>
                               updateFormData(field, Number(e.target.value))
                             }
@@ -865,7 +889,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Multan Visit Frequency <span className="text-red-500">*</span>
+                        Multan Visit Frequency{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -883,7 +908,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mehfil Attendance Frequency <span className="text-red-500">*</span>
+                        Mehfil Attendance Frequency{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -919,7 +945,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Other Wazaif You Read <span className="text-red-500">*</span>
+                        Other Wazaif You Read{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         required
@@ -934,7 +961,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Wazaif You Are Not Reading (from your tarteeb) <span className="text-red-500">*</span>
+                        Wazaif You Are Not Reading (from your tarteeb){" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         required
@@ -949,7 +977,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Additional Wazaif You Would Like to Read <span className="text-red-500">*</span>
+                        Additional Wazaif You Would Like to Read{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         required
@@ -967,7 +996,8 @@ const AdminTarteebRequestEditPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Issues or Difficulties You Are Facing <span className="text-red-500">*</span>
+                        Issues or Difficulties You Are Facing{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         required
@@ -987,7 +1017,9 @@ const AdminTarteebRequestEditPage = () => {
                       <textarea
                         rows={4}
                         value={formData.jawab || ""}
-                        onChange={(e) => updateFormData("jawab", e.target.value)}
+                        onChange={(e) =>
+                          updateFormData("jawab", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus-border-transparent"
                       />
                     </div>
@@ -999,7 +1031,9 @@ const AdminTarteebRequestEditPage = () => {
                       <textarea
                         rows={4}
                         value={formData.notes || ""}
-                        onChange={(e) => updateFormData("notes", e.target.value)}
+                        onChange={(e) =>
+                          updateFormData("notes", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus-border-transparent"
                       />
                     </div>
@@ -1032,4 +1066,3 @@ const AdminTarteebRequestEditPage = () => {
 };
 
 export default AdminTarteebRequestEditPage;
-

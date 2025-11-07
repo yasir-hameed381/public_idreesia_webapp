@@ -62,6 +62,8 @@ export interface TarteebRequest {
     mehfil_number: string;
     name_en: string;
   };
+  jawab?: string;
+  notes?: string;
 }
 
 export interface TarteebRequestListResponse {
