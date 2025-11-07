@@ -124,6 +124,10 @@ export const PERMISSIONS = {
   EDIT_MEHFIL_DIRECTORY: "edit mehfil directory",
   DELETE_MEHFIL_DIRECTORY: "delete mehfil directory",
 
+  // Tarteeb Requests
+  VIEW_TARTEEB_REQUESTS: "view tarteeb requests",
+  UPDATE_TARTEEB_REQUESTS: "update tarteeb requests",
+
   // Tags
   VIEW_TAGS: "view tags",
   DELETE_TAGS: "delete tags",
@@ -289,5 +293,9 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.CREATE_MEHFIL_DIRECTORY,
     PERMISSIONS.EDIT_MEHFIL_DIRECTORY,
     PERMISSIONS.DELETE_MEHFIL_DIRECTORY,
+  ],
+  TARTEEB_REQUEST_MANAGEMENT: [
+    PERMISSIONS.VIEW_TARTEEB_REQUESTS,
+    PERMISSIONS.UPDATE_TARTEEB_REQUESTS,
   ],
 } as const;

@@ -11,12 +11,15 @@ import { toast } from "sonner";
 interface Zone {
   id: number;
   title_en: string;
+  city_en?: string;
+  country_en?: string;
 }
 
 interface Mehfil {
   id: number;
   mehfil_number: string;
   name_en: string;
+  address_en?: string;
 }
 
 const NewTarteebRequestPage = () => {
@@ -25,6 +28,14 @@ const NewTarteebRequestPage = () => {
   const [loading, setLoading] = useState(false);
   const [zones, setZones] = useState<Zone[]>([]);
   const [mehfils, setMehfils] = useState<Mehfil[]>([]);
+
+  const canManageZones = Boolean(
+    user?.is_super_admin || user?.is_region_admin || user?.is_all_region_admin
+  );
+
+  const canSelectMehfils = Boolean(
+    canManageZones || user?.is_zone_admin || user?.is_mehfil_admin
+  );
 
   const [formData, setFormData] = useState<Partial<TarteebRequest>>({
     zone_id: user?.zone_id || 0,
@@ -96,6 +107,178 @@ const NewTarteebRequestPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (user?.zone_id) {
+      setFormData((prev) =>
+        prev.zone_id && prev.zone_id > 0
+          ? prev
+          : { ...prev, zone_id: user.zone_id ?? prev.zone_id }
+      );
+    }
+
+    if (user?.mehfil_directory_id) {
+      setFormData((prev) =>
+        prev.mehfil_directory_id && prev.mehfil_directory_id > 0
+          ? prev
+          : {
+              ...prev,
+              mehfil_directory_id:
+                user.mehfil_directory_id ?? prev.mehfil_directory_id,
+            }
+      );
+    }
+  }, [user?.zone_id, user?.mehfil_directory_id]);
+
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const zoneList = await TarteebRequestService.getZones(200);
+
+        if (canManageZones) {
+          setZones(zoneList);
+        } else if (user?.zone_id) {
+          const filtered = zoneList.filter((zone) => zone.id === user.zone_id);
+          if (filtered.length) {
+            setZones(filtered);
+          } else if (user?.zone) {
+            const userZone = user.zone as Partial<Zone>;
+            setZones([
+              {
+                id: user.zone_id,
+                title_en: userZone.title_en || "Your Zone",
+                city_en: userZone.city_en,
+                country_en: userZone.country_en,
+              },
+            ]);
+          } else {
+            setZones([
+              {
+                id: user.zone_id,
+                title_en: "Your Zone",
+                city_en: "",
+                country_en: "",
+              },
+            ]);
+          }
+        } else {
+          setZones(zoneList);
+        }
+      } catch (error) {
+        console.error("Error loading zones", error);
+        toast.error("Failed to load zones");
+      }
+    };
+
+    fetchZones();
+  }, [canManageZones, user?.zone_id]);
+
+  useEffect(() => {
+    if (!zones.length) {
+      return;
+    }
+
+    setFormData((prev) => {
+      if (prev.zone_id && prev.zone_id > 0) {
+        return prev;
+      }
+
+      const defaultZoneId = user?.zone_id
+        ? zones.find((zone) => zone.id === user.zone_id)?.id ?? zones[0].id
+        : zones[0].id;
+
+      if (!defaultZoneId || prev.zone_id === defaultZoneId) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        zone_id: defaultZoneId,
+      };
+    });
+  }, [zones, user?.zone_id]);
+
+  useEffect(() => {
+    const zoneId = formData.zone_id;
+
+    if (!zoneId || zoneId <= 0) {
+      setMehfils([]);
+      return;
+    }
+
+    const fetchMehfils = async () => {
+      try {
+        const mehfilList = await TarteebRequestService.getMehfilsByZone(
+          zoneId,
+          500
+        );
+        setMehfils(mehfilList);
+
+        if (mehfilList.length === 0) {
+          setFormData((prev) =>
+            prev.mehfil_directory_id
+              ? { ...prev, mehfil_directory_id: 0 }
+              : prev
+          );
+          return;
+        }
+
+        setFormData((prev) => {
+          if (prev.zone_id !== zoneId) {
+            return prev;
+          }
+
+          if (
+            prev.mehfil_directory_id &&
+            mehfilList.some((mehfil) => mehfil.id === prev.mehfil_directory_id)
+          ) {
+            return prev;
+          }
+
+          const defaultMehfilId = user?.mehfil_directory_id
+            ? mehfilList.find(
+                (mehfil) => mehfil.id === user.mehfil_directory_id
+              )?.id ?? mehfilList[0].id
+            : mehfilList[0].id;
+
+          if (!defaultMehfilId) {
+            return prev;
+          }
+
+          if (prev.mehfil_directory_id === defaultMehfilId) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            mehfil_directory_id: defaultMehfilId,
+          };
+        });
+      } catch (error) {
+        console.error("Error loading mehfils", error);
+        toast.error("Failed to load mehfils");
+      }
+    };
+
+    fetchMehfils();
+  }, [formData.zone_id, user?.mehfil_directory_id]);
+
+  const handleZoneChange = (value: string) => {
+    const zoneId = value ? Number(value) : 0;
+    setFormData((prev) => ({
+      ...prev,
+      zone_id: zoneId > 0 ? zoneId : 0,
+      mehfil_directory_id: 0,
+    }));
+  };
+
+  const handleMehfilChange = (value: string) => {
+    const mehfilId = value ? Number(value) : 0;
+    setFormData((prev) => ({
+      ...prev,
+      mehfil_directory_id: mehfilId > 0 ? mehfilId : 0,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -132,6 +315,63 @@ const NewTarteebRequestPage = () => {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Assignment Information */}
+            <div className="border-b border-gray-200 pb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Assignment
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Zone <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.zone_id || ""}
+                    onChange={(e) => handleZoneChange(e.target.value)}
+                    disabled={!canManageZones}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      !canManageZones ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <option value="">Select Zone</option>
+                    {zones.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.title_en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mehfil <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.mehfil_directory_id || ""}
+                    onChange={(e) => handleMehfilChange(e.target.value)}
+                    disabled={!canSelectMehfils || !mehfils.length}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      !canSelectMehfils || !mehfils.length
+                        ? "opacity-60 cursor-not-allowed"
+                        : ""
+                    }`}
+                  >
+                    <option value="">Select Mehfil</option>
+                    {mehfils.map((mehfil) => (
+                      <option key={mehfil.id} value={mehfil.id}>
+                        #{mehfil.mehfil_number} - {mehfil.name_en}
+                      </option>
+                    ))}
+                  </select>
+                  {!mehfils.length && formData.zone_id ? (
+                    <p className="mt-1 text-xs text-gray-500">
+                      No mehfils found for the selected zone.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
             {/* Personal Information */}
             <div className="border-b border-gray-200 pb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">

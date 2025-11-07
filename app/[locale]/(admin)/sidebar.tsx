@@ -160,6 +160,12 @@ export function AppSidebar({
         icon: <UserPlus size={18} />,
         permission: PERMISSIONS.VIEW_NEW_EHADS,
       },
+      {
+        name: "Tarteeb Requests",
+        href: "/tarteeb-requests",
+        icon: <ClipboardList size={18} />,
+        permission: PERMISSIONS.VIEW_TARTEEB_REQUESTS,
+      },
     ],
   };
 
@@ -334,7 +340,8 @@ export function AppSidebar({
   };
 
   // Check if home item should be shown
-  const showHome = homeItem.permission === null || hasPermission(homeItem.permission);
+  const showHome =
+    homeItem.permission === null || hasPermission(homeItem.permission);
 
   // Build menu items with groups (matching Laravel structure)
   const buildMenuItems = () => {
@@ -345,7 +352,9 @@ export function AppSidebar({
       items.push({
         key: homeItem.href,
         icon: homeItem.icon,
-        label: <NavigationLink href={homeItem.href}>{homeItem.name}</NavigationLink>,
+        label: (
+          <NavigationLink href={homeItem.href}>{homeItem.name}</NavigationLink>
+        ),
       });
     }
 

@@ -11,15 +11,15 @@ import { toast } from "sonner";
 interface Zone {
   id: number;
   title_en: string;
-  city_en: string;
-  country_en: string;
+  city_en?: string;
+  country_en?: string;
 }
 
 interface Mehfil {
   id: number;
   mehfil_number: string;
   name_en: string;
-  address_en: string;
+  address_en?: string;
 }
 
 const TarteebRequestsPage = () => {
@@ -28,6 +28,7 @@ const TarteebRequestsPage = () => {
   const [requests, setRequests] = useState<TarteebRequest[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [mehfils, setMehfils] = useState<Mehfil[]>([]);
+  const [mehfilCache, setMehfilCache] = useState<Record<number, Mehfil[]>>({});
 
   // Filters
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(
@@ -47,11 +48,90 @@ const TarteebRequestsPage = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Permissions
-  const canFilterZones = user?.is_region_admin;
+  const canFilterZones = Boolean(
+    user?.is_region_admin || user?.is_super_admin || user?.is_all_region_admin
+  );
+  const canFilterMehfils = Boolean(
+    canFilterZones || user?.is_zone_admin || user?.is_mehfil_admin
+  );
+
+  useEffect(() => {
+    if (user?.zone_id && !canFilterZones && !selectedZoneId) {
+      setSelectedZoneId(user.zone_id);
+    }
+    if (user?.mehfil_directory_id && !canFilterMehfils && !selectedMehfilId) {
+      setSelectedMehfilId(user.mehfil_directory_id);
+    }
+  }, [
+    user?.zone_id,
+    user?.mehfil_directory_id,
+    canFilterZones,
+    canFilterMehfils,
+    selectedZoneId,
+    selectedMehfilId,
+  ]);
 
   useEffect(() => {
     loadRequests();
   }, [selectedZoneId, selectedMehfilId, statusFilter, search, page]);
+
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        if (canFilterZones) {
+          const zoneList = await TarteebRequestService.getZones(200);
+          setZones(zoneList);
+        } else if (user?.zone) {
+          const zone = user.zone as Zone | undefined;
+          if (zone) {
+            setZones([zone]);
+          } else if (user?.zone_id) {
+            setZones([
+              {
+                id: user.zone_id,
+                title_en: "Your Zone",
+                city_en: "",
+                country_en: "",
+              },
+            ]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load zones", error);
+        toast.error("Failed to load zones");
+      }
+    };
+
+    if (user) {
+      fetchZones();
+    }
+  }, [user, canFilterZones]);
+
+  useEffect(() => {
+    const fetchMehfils = async () => {
+      if (!selectedZoneId) {
+        setMehfils([]);
+        return;
+      }
+
+      try {
+        const mehfilList = await TarteebRequestService.getMehfilsByZone(
+          selectedZoneId,
+          500
+        );
+        setMehfils(mehfilList);
+        setMehfilCache((prev) => ({
+          ...prev,
+          [selectedZoneId]: mehfilList,
+        }));
+      } catch (error) {
+        console.error("Failed to load mehfils", error);
+        toast.error("Failed to load mehfils");
+      }
+    };
+
+    fetchMehfils();
+  }, [selectedZoneId]);
 
   const loadRequests = async () => {
     try {
@@ -64,14 +144,100 @@ const TarteebRequestsPage = () => {
         selectedMehfilId || undefined,
         statusFilter || undefined
       );
+      const nextTotalPages = response.totalPages || 1;
       setRequests(response.data);
-      setTotalPages(response.totalPages);
+      setTotalPages(nextTotalPages);
+      if (page > nextTotalPages) {
+        setPage(nextTotalPages);
+      }
+
+      const uniqueZoneIds = Array.from(
+        new Set(
+          response.data
+            .map((request) => request.zone_id)
+            .filter((zoneId): zoneId is number => typeof zoneId === "number")
+        )
+      );
+
+      const missingZoneIds = uniqueZoneIds.filter(
+        (zoneId) => !mehfilCache[zoneId]
+      );
+
+      if (missingZoneIds.length > 0) {
+        const fetchedMehfils = await Promise.all(
+          missingZoneIds.map(async (zoneId) => {
+            try {
+              const list = await TarteebRequestService.getMehfilsByZone(
+                zoneId,
+                500
+              );
+              return { zoneId, list };
+            } catch (error) {
+              console.error(
+                `Failed to load mehfils for zone ${zoneId}:`,
+                error
+              );
+              return { zoneId, list: [] as Mehfil[] };
+            }
+          })
+        );
+
+        setMehfilCache((prev) => {
+          const next = { ...prev };
+          fetchedMehfils.forEach(({ zoneId, list }) => {
+            next[zoneId] = list;
+          });
+          return next;
+        });
+      }
     } catch (error) {
       console.error("Error loading tarteeb requests:", error);
       toast.error("Failed to load tarteeb requests");
     } finally {
       setLoading(false);
     }
+  };
+
+  const resolveZoneName = (request: TarteebRequest) => {
+    if (request.zone?.title_en) {
+      return request.zone.title_en;
+    }
+
+    if (request.zone_id) {
+      const zoneFromState = zones.find((zone) => zone.id === request.zone_id);
+      if (zoneFromState) {
+        return zoneFromState.title_en;
+      }
+    }
+
+    return "—";
+  };
+
+  const resolveMehfilName = (request: TarteebRequest) => {
+    if (request.mehfilDirectory?.name_en) {
+      return request.mehfilDirectory.name_en;
+    }
+
+    if (request.zone_id && request.mehfil_directory_id) {
+      const cachedMehfils = mehfilCache[request.zone_id];
+      const match = cachedMehfils?.find(
+        (mehfil) => mehfil.id === request.mehfil_directory_id
+      );
+      if (match) {
+        return match.name_en;
+      }
+    }
+
+    if (request.mehfil_directory_id) {
+      const match = mehfils.find(
+        (mehfil) => mehfil.id === request.mehfil_directory_id
+      );
+      if (match) {
+        return match.name_en;
+      }
+    }
+
+    return "—";
   };
 
   const handleDelete = async () => {
@@ -281,10 +447,10 @@ const TarteebRequestsPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {request.zone?.title_en || "—"}
+                          {resolveZoneName(request)}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {request.mehfilDirectory?.name_en || "—"}
+                          {resolveMehfilName(request)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
