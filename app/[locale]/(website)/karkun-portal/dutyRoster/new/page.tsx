@@ -8,7 +8,33 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/";
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+).replace(/\/$/, "");
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  if (config.method && config.method.toLowerCase() !== "get") {
+    config.headers = config.headers || {};
+    if (!config.headers["Content-Type"]) {
+      config.headers["Content-Type"] = "application/json";
+    }
+  }
+  return config;
+});
 
 const DAYS = [
   "monday",
@@ -93,8 +119,10 @@ export default function NewDutyRosterPage() {
 
   const fetchZones = async () => {
     try {
-      const response = await axios.get(`${API_URL}/zone?page=1&size=1000`);
-      setZones(response.data.data || []);
+      const response = await apiClient.get("/zone", {
+        params: { page: 1, size: 1000 },
+      });
+      setZones(response.data.data ?? []);
     } catch (error) {
       console.error("Failed to fetch zones:", error);
     }
@@ -103,10 +131,14 @@ export default function NewDutyRosterPage() {
   const fetchMehfils = async () => {
     if (!formData.zone_id) return;
     try {
-      const response = await axios.get(
-        `${API_URL}/mehfil-directory?zone_id=${formData.zone_id}&page=1&size=1000`
-      );
-      setMehfils(response.data.data || []);
+      const response = await apiClient.get("/mehfil-directory", {
+        params: {
+          zone_id: formData.zone_id,
+          page: 1,
+          size: 1000,
+        },
+      });
+      setMehfils(response.data.data ?? []);
     } catch (error) {
       console.error("Failed to fetch mehfils:", error);
     }
@@ -114,10 +146,10 @@ export default function NewDutyRosterPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/adminUsers?page=1&size=1000`
-      );
-      setUsers(response.data.data || []);
+      const response = await apiClient.get("/adminUsers", {
+        params: { page: 1, size: 1000 },
+      });
+      setUsers(response.data.data ?? []);
     } catch (error) {
       console.error("Failed to fetch users:", error);
     }
@@ -153,7 +185,7 @@ export default function NewDutyRosterPage() {
             : undefined,
       };
 
-      await axios.post(`${API_URL}/duty-rosters-data/add`, payload);
+      await apiClient.post("/duty-rosters-data/add", payload);
       toast.success("Duty roster created successfully!");
       router.push("/karkun-portal/dutyRoster");
     } catch (error: any) {
@@ -306,19 +338,30 @@ export default function NewDutyRosterPage() {
                           formData[`duty_type_id_${day}`]?.toString() || "none"
                         }
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            [`duty_type_id_${day}`]:
+                          setFormData((prev: any) => {
+                            const value =
                               e.target.value !== "none"
-                                ? parseInt(e.target.value)
-                                : undefined,
+                                ? parseInt(e.target.value, 10)
+                                : undefined;
+                            console.log("[DutyRoster New] Duty select change", {
+                              day,
+                              rawValue: e.target.value,
+                              parsedValue: value,
+                            });
+                            return {
+                              ...prev,
+                              [`duty_type_id_${day}`]: value,
+                            };
                           })
                         }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="none">None</option>
                         {dutyTypes.map((dt) => (
-                          <option key={dt.id} value={dt.toString()}>
+                          <option
+                            key={dt.id}
+                            value={dt.id?.toString() ?? ""}
+                          >
                             {dt.name}
                           </option>
                         ))}

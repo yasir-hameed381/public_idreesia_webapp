@@ -4,10 +4,30 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Calendar, PlusCircle, Pencil, Trash2, Search } from "lucide-react";
+import { Calendar, PlusCircle, Pencil, Trash2 } from "lucide-react";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/";
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+).replace(/\/$/, "");
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 const DAYS = [
   "monday",
@@ -17,46 +37,17 @@ const DAYS = [
   "friday",
   "saturday",
   "sunday",
-];
+] as const;
 
-const DAY_LABELS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
-interface DutyRoster {
-  id: number;
-  user_id: number;
-  user?: {
-    id: number;
-    name: string;
-    email?: string;
-  };
-  zone_id?: number;
-  zone?: {
-    id: number;
-    title_en: string;
-    city_en?: string;
-  };
-  mehfil_directory_id?: number;
-  mehfil?: {
-    id: number;
-    name_en: string;
-    mehfil_number?: string;
-  };
-  duty_type_id_monday?: number;
-  duty_type_id_tuesday?: number;
-  duty_type_id_wednesday?: number;
-  duty_type_id_thursday?: number;
-  duty_type_id_friday?: number;
-  duty_type_id_saturday?: number;
-  duty_type_id_sunday?: number;
-}
+const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
+};
 
 interface DutyType {
   id: number;
@@ -64,44 +55,55 @@ interface DutyType {
   zone_id: number;
 }
 
+interface DutyAssignment {
+  id: number;
+  duty_type_id: number;
+  duty_type: DutyType;
+  mehfil?: MehfilDirectory;
+}
+
+interface MehfilDirectory {
+  id: number;
+  mehfil_number: string;
+  name_en?: string;
+  address_en?: string;
+}
+
+interface DutyRoster {
+  roster_id?: number;
+  user_id: number;
+  user: {
+    id: number;
+    name: string;
+    father_name?: string;
+    phone_number?: string;
+    email?: string;
+  };
+  mehfil_directory_id?: number;
+  mehfil_directory?: MehfilDirectory;
+  duties: Record<(typeof DAYS)[number], DutyAssignment[]>;
+}
+
 export default function DutyRosterPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [rosters, setRosters] = useState<DutyRoster[]>([]);
-  const [dutyTypes, setDutyTypes] = useState<DutyType[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchRosters();
-    fetchDutyTypes();
-  }, [currentPage, searchTerm]);
+  }, []);
 
   const fetchRosters = async () => {
     setLoading(true);
     try {
-      const params: any = {
-        page: currentPage,
-        size: 10,
-        search: searchTerm,
-      };
-
-      // Add zone filtering based on user permissions
-      if (user?.zone_id && !user?.is_super_admin && !user?.is_region_admin) {
-        params.zone_id = user.zone_id;
-      }
-
-      if (user?.mehfil_directory_id && user?.is_mehfil_admin) {
-        params.mehfil_directory_id = user.mehfil_directory_id;
-      }
-
-      const response = await axios.get(`${API_URL}/duty-rosters-data`, {
-        params,
-      });
-      setRosters(response.data.data || []);
-      setTotalPages(response.data.totalPages || 1);
+      // Simple fetch - no filters applied (matching admin version)
+      const response = await apiClient.get("/duty-rosters-data");
+      
+      const rostersData = response.data.data || [];
+      console.log("[Karkun Portal] Fetched rosters:", rostersData);
+      
+      setRosters(rostersData);
     } catch (error) {
       toast.error("Failed to fetch duty rosters");
       console.error("Error fetching rosters:", error);
@@ -110,31 +112,16 @@ export default function DutyRosterPage() {
     }
   };
 
-  const fetchDutyTypes = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/duty-types-data/active`);
-      setDutyTypes(response.data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch duty types");
-    }
-  };
-
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this duty roster?")) {
       try {
-        await axios.delete(`${API_URL}/duty-rosters-data/${id}`);
+      await apiClient.delete(`/duty-rosters-data/${id}`);
         toast.success("Duty roster deleted successfully!");
         fetchRosters();
       } catch (error) {
         toast.error("Failed to delete duty roster");
       }
     }
-  };
-
-  const getDutyTypeName = (id?: number) => {
-    if (!id) return "-";
-    const dutyType = dutyTypes.find((dt) => dt.id === id);
-    return dutyType?.name || `ID: ${id}`;
   };
 
   return (
@@ -166,34 +153,7 @@ export default function DutyRosterPage() {
             </button>
           </div>
 
-          {/* Search */}
-          <div className="relative max-w-md">
-            <input
-              type="text"
-              placeholder="Search duty rosters..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-          </div>
-          {/* User Zone Context */}
-          {user?.zone && (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Your Zone
-              </p>
-              <p className="font-semibold text-gray-900">
-                {user.zone.title_en}
-              </p>
-              {user.zone.city_en && (
-                <p className="text-sm text-gray-600">
-                  {user.zone.city_en}
-                  {user.zone.country_en && `, ${user.zone.country_en}`}
-                </p>
-              )}
-            </div>
-          )}
+
         </div>
 
         {/* Table with Weekly View */}
@@ -206,17 +166,14 @@ export default function DutyRosterPage() {
                     Karkun
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Zone
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mehfil
                   </th>
-                  {DAY_LABELS.map((day) => (
+                  {DAYS.map((day) => (
                     <th
                       key={day}
                       className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]"
                     >
-                      {day}
+                      {DAY_LABELS[day]}
                     </th>
                   ))}
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -253,45 +210,56 @@ export default function DutyRosterPage() {
                 {!loading &&
                   rosters.map((roster) => (
                     <tr
-                      key={roster.id}
+                      key={roster.roster_id ?? roster.user_id}
                       className="hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
                             {roster.user?.name || `User #${roster.user_id}`}
                           </div>
-                          {roster.user?.email && (
+                          {roster.user?.father_name && (
                             <div className="text-xs text-gray-500">
-                              {roster.user.email}
+                              Son of {roster.user.father_name}
+                            </div>
+                          )}
+                          {roster.user?.phone_number && (
+                            <div className="text-xs text-gray-500">
+                              {roster.user.phone_number}
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {roster.zone_id || "-"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {roster.mehfil_directory_id
-                          ? `#${roster.mehfil_directory_id}`
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {roster.mehfil_directory?.mehfil_number
+                          ? `#${roster.mehfil_directory.mehfil_number}`
                           : "-"}
+                        {roster.mehfil_directory?.name_en && (
+                          <div className="text-xs text-gray-500">
+                            {roster.mehfil_directory.name_en}
+                          </div>
+                        )}
                       </td>
                       {DAYS.map((day) => {
-                        const dutyTypeId = roster[
-                          `duty_type_id_${day}` as keyof DutyRoster
-                        ] as number | undefined;
+                        const assignments = roster.duties?.[day] ?? [];
                         return (
                           <td
                             key={day}
                             className="px-4 py-3 text-center text-sm"
                           >
-                            {dutyTypeId ? (
-                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                {getDutyTypeName(dutyTypeId)}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
+                            <div className="space-y-1">
+                              {assignments.length === 0 && (
+                                <span className="text-gray-400">-</span>
+                              )}
+                              {assignments.map((assignment) => (
+                                <div
+                                  key={assignment.id}
+                                  className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mb-1"
+                                >
+                                  {assignment.duty_type?.name || assignment.duty_type_id || "Duty"}
+                                </div>
+                              ))}
+                            </div>
                           </td>
                         );
                       })}
@@ -300,7 +268,7 @@ export default function DutyRosterPage() {
                           <button
                             onClick={() =>
                               router.push(
-                                `/karkun-portal/dutyRoster/${roster.id}`
+                                `/karkun-portal/dutyRoster/${roster.roster_id}`
                               )
                             }
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -309,7 +277,7 @@ export default function DutyRosterPage() {
                             <Pencil size={16} />
                           </button>
                           <button
-                            onClick={() => handleDelete(roster.id)}
+                            onClick={() => handleDelete(roster.roster_id!)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete"
                           >
@@ -324,28 +292,7 @@ export default function DutyRosterPage() {
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              Previous
-            </button>
-            <span className="text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              Next
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
   );

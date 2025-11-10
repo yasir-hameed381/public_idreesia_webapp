@@ -8,7 +8,33 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/";
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+).replace(/\/$/, "");
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  if (config.method && config.method.toLowerCase() !== "get") {
+    config.headers = config.headers || {};
+    if (!config.headers["Content-Type"]) {
+      config.headers["Content-Type"] = "application/json";
+    }
+  }
+  return config;
+});
 
 const DAYS = [
   "monday",
@@ -101,8 +127,10 @@ export default function EditDutyRosterPage() {
 
   const fetchZones = async () => {
     try {
-      const response = await axios.get(`${API_URL}/zone?page=1&size=1000`);
-      setZones(response.data.data || []);
+      const response = await apiClient.get("/zone", {
+        params: { page: 1, size: 1000 },
+      });
+      setZones(response.data.data ?? []);
     } catch (error) {
       console.error("Failed to fetch zones:", error);
     }
@@ -111,10 +139,14 @@ export default function EditDutyRosterPage() {
   const fetchMehfils = async () => {
     if (!formData.zone_id) return;
     try {
-      const response = await axios.get(
-        `${API_URL}/mehfil-directory?zone_id=${formData.zone_id}&page=1&size=1000`
-      );
-      setMehfils(response.data.data || []);
+      const response = await apiClient.get("/mehfil-directory", {
+        params: {
+          zone_id: formData.zone_id,
+          page: 1,
+          size: 1000,
+        },
+      });
+      setMehfils(response.data.data ?? []);
     } catch (error) {
       console.error("Failed to fetch mehfils:", error);
     }
@@ -122,10 +154,10 @@ export default function EditDutyRosterPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/adminUsers?page=1&size=1000`
-      );
-      setUsers(response.data.data || []);
+      const response = await apiClient.get("/adminUsers", {
+        params: { page: 1, size: 1000 },
+      });
+      setUsers(response.data.data ?? []);
     } catch (error) {
       console.error("Failed to fetch users:", error);
     }
@@ -133,7 +165,7 @@ export default function EditDutyRosterPage() {
 
   const fetchDutyRoster = async () => {
     try {
-      const response = await axios.get(`${API_URL}/duty-rosters-data/${id}`);
+      const response = await apiClient.get(`/duty-rosters-data/${id}`);
       setFormData(response.data.data);
     } catch (error) {
       toast.error("Failed to fetch duty roster");
@@ -167,7 +199,7 @@ export default function EditDutyRosterPage() {
           : undefined,
       };
 
-      await axios.put(`${API_URL}/duty-rosters-data/update/${id}`, payload);
+      await apiClient.put(`/duty-rosters-data/update/${id}`, payload);
       toast.success("Duty roster updated successfully!");
       router.push("/karkun-portal/dutyRoster");
     } catch (error: any) {
@@ -347,7 +379,7 @@ export default function EditDutyRosterPage() {
                       >
                         <option value="none">None</option>
                         {dutyTypes.map((dt) => (
-                          <option key={dt.id} value={dt.id?.toString() || ""}>
+                          <option key={dt.id} value={dt.id?.toString() ?? ""}>
                             {dt.name}
                           </option>
                         ))}

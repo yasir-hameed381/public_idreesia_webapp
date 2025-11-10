@@ -1,7 +1,27 @@
-import axios from 'axios';
-import { DutyType } from './DutyTypes';
+import axios from "axios";
+import { DutyType } from "./DutyTypes";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/';
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+).replace(/\/$/, "");
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 export interface User {
   id: number;
@@ -80,7 +100,7 @@ class DutyRosterService {
     userTypeFilter = 'karkun',
     search = ''
   ): Promise<DutyRosterListResponse> {
-    const response = await axios.get(`${API_URL}duty-rosters-data`, {
+    const response = await apiClient.get('/duty-rosters-data', {
       params: { zoneId, mehfilDirectoryId, userTypeFilter, search },
     });
     return response.data;
@@ -90,7 +110,7 @@ class DutyRosterService {
    * Get duty roster by user
    */
   async getDutyRosterByKarkun(userId: number): Promise<DutyRoster[]> {
-    const response = await axios.get(`${API_URL}duty-rosters-data/karkun/${userId}`);
+    const response = await apiClient.get(`/duty-rosters-data/karkun/${userId}`);
     return response.data.data;
   }
 
@@ -98,7 +118,7 @@ class DutyRosterService {
    * Get a single duty roster by ID
    */
   async getDutyRosterById(id: number): Promise<DutyRoster> {
-    const response = await axios.get(`${API_URL}duty-rosters-data/${id}`);
+    const response = await apiClient.get(`/duty-rosters-data/${id}`);
     return response.data.data;
   }
 
@@ -106,7 +126,7 @@ class DutyRosterService {
    * Add karkun to roster
    */
   async addKarkunToRoster(userId: number, zoneId: number, mehfilDirectoryId: number): Promise<DutyRoster> {
-    const response = await axios.post(`${API_URL}duty-rosters-data/add-karkun`, {
+    const response = await apiClient.post('/duty-rosters-data/add', {
       user_id: userId,
       zone_id: zoneId,
       mehfil_directory_id: mehfilDirectoryId,
@@ -120,28 +140,30 @@ class DutyRosterService {
   async addDuty(
     rosterId: number,
     day: string,
-    dutyTypeId: number
+    dutyTypeId: number,
+    mehfilDirectoryId?: number
   ): Promise<DutyRosterAssignment> {
-    const response = await axios.post(`${API_URL}duty-rosters-data/add-duty`, {
-      duty_roster_id: rosterId,
+    const response = await apiClient.post('/duty-rosters-data/add-duty', {
+      rosterId,
       day: day.toLowerCase(),
-      duty_type_id: dutyTypeId,
+      dutyTypeId,
+      mehfilDirectoryId,
     });
-    return response.data.data;
+    return response.data.data ?? response.data;
   }
 
   /**
    * Remove duty assignment
    */
   async removeDuty(assignmentId: number): Promise<void> {
-    await axios.delete(`${API_URL}duty-rosters-data/remove-duty/${assignmentId}`);
+    await apiClient.delete(`/duty-rosters-data/remove-duty/${assignmentId}`);
   }
 
   /**
    * Remove all duties for a karkun (delete roster)
    */
   async removeKarkunFromRoster(rosterId: number): Promise<void> {
-    await axios.delete(`${API_URL}duty-rosters-data/${rosterId}`);
+    await apiClient.delete(`/duty-rosters-data/${rosterId}`);
   }
 
   /**
@@ -152,11 +174,11 @@ class DutyRosterService {
     mehfilDirectoryId?: number,
     includeAll = false
   ): Promise<Blob> {
-    const response = await axios.get(`${API_URL}duty-rosters-data/download-pdf`, {
+    const response = await apiClient.get('/duty-rosters-data/download-pdf', {
       params: { zoneId, mehfilDirectoryId, includeAll },
       responseType: 'blob',
     });
-    return response.data;
+    return response.data as Blob;
   }
 
   /**
@@ -167,8 +189,8 @@ class DutyRosterService {
     mehfilDirectoryId: number,
     userType = 'karkun'
   ): Promise<User[]> {
-    const response = await axios.get(`${API_URL}duty-rosters-data/available-karkuns`, {
-      params: { zoneId, mehfilDirectoryId, userType },
+    const response = await apiClient.get('/duty-rosters-data/available-karkuns', {
+      params: { zoneId, mehfilDirectoryId, userTypeFilter: userType },
     });
     return response.data.data;
   }

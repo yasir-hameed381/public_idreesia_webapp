@@ -1,6 +1,26 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/';
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+).replace(/\/$/, "");
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 export interface DutyType {
   id?: number;
@@ -8,7 +28,6 @@ export interface DutyType {
   name: string;
   description?: string;
   is_editable: boolean;
-  is_hidden: boolean;
   created_by?: number;
   updated_by?: number;
   created_at?: string;
@@ -29,8 +48,8 @@ class DutyTypeService {
    * Get all duty types with pagination
    */
   async getAllDutyTypes(page = 1, size = 10, search = '', zoneId?: number): Promise<DutyTypeListResponse> {
-    const response = await axios.get(`${API_URL}/duty-types-data`, {
-      params: { page, size, search, zoneId },
+    const response = await apiClient.get('/duty-types-data', {
+      params: { page, size, search, zone_id: zoneId },
     });
     return response.data;
   }
@@ -39,8 +58,8 @@ class DutyTypeService {
    * Get all active duty types
    */
   async getActiveDutyTypes(zoneId?: number): Promise<DutyType[]> {
-    const response = await axios.get(`${API_URL}/duty-types-data/active`, {
-      params: { zoneId },
+    const response = await apiClient.get('/duty-types-data/active', {
+      params: { zone_id: zoneId },
     });
     return response.data.data;
   }
@@ -49,7 +68,9 @@ class DutyTypeService {
    * Get duty types by zone
    */
   async getDutyTypesByZone(zoneId: number): Promise<DutyType[]> {
-    const response = await axios.get(`${API_URL}/duty-types-data/zone/${zoneId}`);
+    const response = await apiClient.get('/duty-types-data', {
+      params: { zone_id: zoneId },
+    });
     return response.data.data;
   }
 
@@ -57,7 +78,7 @@ class DutyTypeService {
    * Get a single duty type by ID
    */
   async getDutyTypeById(id: number): Promise<DutyType> {
-    const response = await axios.get(`${API_URL}/duty-types-data/${id}`);
+    const response = await apiClient.get(`/duty-types-data/${id}`);
     return response.data.data;
   }
 
@@ -65,7 +86,7 @@ class DutyTypeService {
    * Create a new duty type
    */
   async createDutyType(dutyType: DutyType): Promise<DutyType> {
-    const response = await axios.post(`${API_URL}/duty-types-data/add`, dutyType);
+    const response = await apiClient.post('/duty-types-data/add', dutyType);
     return response.data.data;
   }
 
@@ -73,7 +94,7 @@ class DutyTypeService {
    * Update a duty type
    */
   async updateDutyType(id: number, dutyType: Partial<DutyType>): Promise<DutyType> {
-    const response = await axios.put(`${API_URL}/duty-types-data/update/${id}`, dutyType);
+    const response = await apiClient.put(`/duty-types-data/update/${id}`, dutyType);
     return response.data.data;
   }
 
@@ -81,7 +102,7 @@ class DutyTypeService {
    * Delete a duty type
    */
   async deleteDutyType(id: number): Promise<void> {
-    await axios.delete(`${API_URL}/duty-types-data/${id}`);
+    await apiClient.delete(`/duty-types-data/${id}`);
   }
 }
 
