@@ -166,6 +166,12 @@ export function AppSidebar({
         icon: <ClipboardList size={18} />,
         permission: PERMISSIONS.VIEW_TARTEEB_REQUESTS,
       },
+      {
+        name: "Khatoot / Masail",
+        href: "/khatoot",
+        icon: <BookOutlined />,
+        permission: null,
+      },
     ],
   };
 

@@ -44,6 +44,11 @@ export const KarkunNavigation = () => {
       label: "Duty Roster",
       icon: "📅",
     },
+    {
+      href: "/karkun-portal/khatoot",
+      label: "Khatoot",
+      icon: "📜",
+    },
   ];
 
   return (
