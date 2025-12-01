@@ -117,9 +117,9 @@ const defaultFormState: FormState = {
 };
 
 const numberOrNull = (value: string) => {
-  if (value === "" || value === null || value === undefined) return null;
+  if (value === "" || value === null || value === undefined) return undefined;
   const parsed = Number(value);
-  return Number.isNaN(parsed) ? null : parsed;
+  return Number.isNaN(parsed) ? undefined : parsed;
 };
 
 const KhatForm: React.FC<KhatFormProps> = ({ variant = "admin", redirectPath, defaultType }) => {
@@ -246,7 +246,6 @@ const KhatForm: React.FC<KhatFormProps> = ({ variant = "admin", redirectPath, de
         zone_id: form.zone_id ?? undefined,
         mehfil_directory_id: form.mehfil_directory_id || null,
         last_tarteeb: form.last_tarteeb || null,
-        consistent_in_ishraq: form.consistent_in_ishraq,
         reciter_relation: form.reciter_relation || null,
         reciter_name: form.reciter_name || null,
         reciter_age: numberOrNull(form.reciter_age),
@@ -260,7 +259,7 @@ const KhatForm: React.FC<KhatFormProps> = ({ variant = "admin", redirectPath, de
         reciter_mehfil_attendance_frequency: form.reciter_mehfil_attendance_frequency || null,
         type: form.type,
         status: "pending",
-        created_by: user?.id,
+          created_by: user?.id ? (typeof user.id === 'string' ? parseInt(user.id) : user.id) : undefined,
       };
 
       const response = await KhatService.createKhat(payload);

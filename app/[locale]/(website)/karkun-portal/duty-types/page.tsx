@@ -184,9 +184,6 @@ const DutyTypesPage = () => {
                       Description
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created At
                     </th>
                     {canManage && (
@@ -208,17 +205,6 @@ const DutyTypesPage = () => {
                         <div className="text-sm text-gray-600">
                           {dutyType.description || "—"}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${
-                            dutyType.is_hidden
-                              ? "bg-red-100 text-red-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {dutyType.is_hidden ? "Hidden" : "Active"}
-                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {dutyType.created_at

@@ -15,7 +15,6 @@ const NewDutyTypePage = () => {
     name: "",
     description: "",
     is_editable: true,
-    is_hidden: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,24 +82,6 @@ const NewDutyTypePage = () => {
               />
             </div>
 
-            {/* Is Hidden */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="is_hidden"
-                checked={formData.is_hidden}
-                onChange={(e) =>
-                  setFormData({ ...formData, is_hidden: e.target.checked })
-                }
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label
-                htmlFor="is_hidden"
-                className="ml-2 block text-sm text-gray-700"
-              >
-                Hide this duty type
-              </label>
-            </div>
 
             {/* Submit Buttons */}
             <div className="flex gap-4">
