@@ -9,6 +9,9 @@ import MehfilCoordinatorService, {
   MehfilCoordinator,
 } from "@/services/MehfilCoordinators";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Download } from "lucide-react";
 
 interface Zone {
   id: number;
@@ -30,6 +33,16 @@ interface User {
   email: string;
   phone_number?: string;
   user_type?: string;
+}
+
+interface CoordinatorWithUser extends MehfilCoordinator {
+  user?: User;
+}
+
+interface ZoneAdmin {
+  id: number;
+  name: string;
+  phone_number?: string;
 }
 
 // Coordinator Types for all categories
@@ -219,12 +232,269 @@ const CoordinatorListPage = () => {
     }
 
     try {
-      // TODO: Implement PDF download
-      toast.success("PDF download feature coming soon");
+      setLoading(true);
+
+      // Fetch additional data needed for PDF
+      const [zoneData, mehfilData, coordinatorsData, zoneAdminData] = await Promise.all([
+        apiClient.get(`/zone/${selectedZoneId}`).catch(() => ({ data: { data: null } })),
+        apiClient.get(`/mehfil-directory/${selectedMehfilId}`).catch(() => ({ data: { data: null } })),
+        apiClient.get("/mehfil-coordinators", {
+          params: { mehfil_directory_id: selectedMehfilId },
+        }).catch(() => ({ data: { data: [] } })),
+        apiClient.get("/karkun", {
+          params: {
+            zone_id: selectedZoneId,
+            is_zone_admin: true,
+            size: 1,
+          },
+        }).catch(() => ({ data: { data: [] } })),
+      ]);
+
+      const zone = zoneData.data.data;
+      const mehfil = mehfilData.data.data;
+      const coordinatorsList: any[] = coordinatorsData.data.data || [];
+      const zoneAdmins = zoneAdminData.data.data || [];
+      const zoneAdmin: ZoneAdmin | null = zoneAdmins.length > 0
+        ? {
+            id: zoneAdmins[0].id,
+            name: zoneAdmins[0].name,
+            phone_number: zoneAdmins[0].phone_number,
+          }
+        : null;
+
+      // Check if coordinators already have user data, if not fetch it
+      const coordinatorsWithUsers: CoordinatorWithUser[] = await Promise.all(
+        coordinatorsList.map(async (coordinator) => {
+          // If user data is already present, use it
+          if (coordinator.user) {
+            return coordinator as CoordinatorWithUser;
+          }
+
+          // Otherwise, fetch user data
+          try {
+            const userResponse = await apiClient.get(`/users/${coordinator.user_id}`).catch(() => null);
+            if (userResponse?.data?.data) {
+              return {
+                ...coordinator,
+                user: userResponse.data.data,
+              } as CoordinatorWithUser;
+            }
+            
+            // Fallback: try karkun endpoint
+            const karkunResponse = await apiClient.get(`/karkun/${coordinator.user_id}`).catch(() => null);
+            if (karkunResponse?.data?.data) {
+              return {
+                ...coordinator,
+                user: karkunResponse.data.data,
+              } as CoordinatorWithUser;
+            }
+
+            // If no user data found, return coordinator with minimal info
+            return {
+              ...coordinator,
+              user: {
+                id: coordinator.user_id,
+                name: `User #${coordinator.user_id}`,
+                email: "",
+                phone_number: "",
+              },
+            } as CoordinatorWithUser;
+          } catch (error) {
+            console.error(`Error fetching user ${coordinator.user_id}:`, error);
+            return {
+              ...coordinator,
+              user: {
+                id: coordinator.user_id,
+                name: `User #${coordinator.user_id}`,
+                email: "",
+                phone_number: "",
+              },
+            } as CoordinatorWithUser;
+          }
+        })
+      );
+
+      // Generate PDF
+      generatePDF({
+        zone,
+        mehfil,
+        coordinators: coordinatorsWithUsers,
+        zoneAdmin,
+      });
+
+      toast.success("PDF downloaded successfully");
     } catch (error) {
       console.error("Error downloading PDF:", error);
       toast.error("Failed to download PDF");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const generatePDF = ({
+    zone,
+    mehfil,
+    coordinators,
+    zoneAdmin,
+  }: {
+    zone: Zone | null;
+    mehfil: Mehfil | null;
+    coordinators: CoordinatorWithUser[];
+    zoneAdmin: ZoneAdmin | null;
+  }) => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Header
+    const title = mehfil
+      ? `Coordinators - Mehfil # ${mehfil.mehfil_number} - ${mehfil.name_en || ""}`
+      : `Coordinators - ${zone?.title_en || ""}`;
+
+    doc.setFontSize(18);
+    doc.text(title, 10, 15);
+
+    // Zone and Mehfil Info
+    let yPos = 25;
+    doc.setFontSize(12);
+
+    if (zone) {
+      doc.text(`Zone: ${zone.title_en}`, 10, yPos);
+      yPos += 5;
+      if (zone.city_en || zone.country_en) {
+        doc.text(
+          `Location: ${zone.city_en || ""}${zone.city_en && zone.country_en ? ", " : ""}${zone.country_en || ""}`,
+          10,
+          yPos
+        );
+        yPos += 5;
+      }
+    }
+
+    if (mehfil) {
+      doc.text(`Mehfil: #${mehfil.mehfil_number} - ${mehfil.name_en || ""}`, 10, yPos);
+      yPos += 5;
+      if (mehfil.address_en) {
+        const addressLines = doc.splitTextToSize(`Address: ${mehfil.address_en}`, 190);
+        doc.text(addressLines, 10, yPos);
+        yPos += addressLines.length * 5;
+      }
+    }
+
+    if (zoneAdmin) {
+      doc.text(
+        `Zone Admin: ${zoneAdmin.name}${zoneAdmin.phone_number ? ` - ${zoneAdmin.phone_number}` : ""}`,
+        10,
+        yPos
+      );
+      yPos += 5;
+    }
+
+    yPos += 5;
+
+    // Group coordinators by category
+    const coordinatorsByCategory: Record<string, CoordinatorWithUser[]> = {};
+    Object.keys(COORDINATOR_CATEGORIES).forEach((category) => {
+      coordinatorsByCategory[category] = [];
+    });
+
+    coordinators.forEach((coordinator) => {
+      Object.entries(COORDINATOR_CATEGORIES).forEach(([category, types]) => {
+        if (types.includes(coordinator.coordinator_type)) {
+          if (!coordinatorsByCategory[category]) {
+            coordinatorsByCategory[category] = [];
+          }
+          coordinatorsByCategory[category].push(coordinator);
+        }
+      });
+    });
+
+    // Generate tables for each category
+    Object.entries(COORDINATOR_CATEGORIES).forEach(([category, types]) => {
+      const categoryCoordinators = coordinatorsByCategory[category] || [];
+      
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      // Category header
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${category} Coordinators`, 10, yPos);
+      yPos += 8;
+
+      // Prepare table data
+      const tableData: any[] = [];
+      types.forEach((type) => {
+        const coordinator = categoryCoordinators.find((c) => c.coordinator_type === type);
+        const coordinatorName = coordinator?.user?.name || "—";
+        const coordinatorPhone = coordinator?.user?.phone_number || "—";
+        const coordinatorEmail = coordinator?.user?.email || "—";
+        const coordinatorTypeLabel = COORDINATOR_TYPES[type as keyof typeof COORDINATOR_TYPES];
+
+        tableData.push([
+          coordinatorTypeLabel,
+          coordinatorName,
+          coordinatorPhone,
+          coordinatorEmail,
+        ]);
+      });
+
+      // Table headers
+      const headers = ["Coordinator Type", "Name", "Phone", "Email"];
+
+      // Column widths (adjusted for portrait A4: 210mm width - 20mm margins = 190mm available)
+      const columnWidths = [55, 55, 35, 45];
+
+      // Generate table
+      autoTable(doc, {
+        head: [headers],
+        body: tableData,
+        startY: yPos,
+        styles: {
+          fontSize: 10,
+          cellPadding: 3,
+          overflow: "linebreak",
+        },
+        headStyles: {
+          fillColor: [243, 244, 246],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
+        },
+        bodyStyles: {
+          halign: "left",
+          valign: "middle",
+        },
+        columnStyles: {
+          0: { halign: "left", cellWidth: columnWidths[0] },
+          1: { halign: "left", cellWidth: columnWidths[1] },
+          2: { halign: "center", cellWidth: columnWidths[2] },
+          3: { halign: "left", cellWidth: columnWidths[3] },
+        },
+        margin: { left: 10, right: 10 },
+        tableWidth: "auto",
+      });
+
+      // Update yPos after table
+      const finalY = (doc as any).lastAutoTable.finalY || yPos;
+      yPos = finalY + 10;
+    });
+
+    // Generate filename
+    let filename = `coordinators-${zone?.title_en || "unknown"}`;
+    if (mehfil) {
+      filename += `-mehfil-${mehfil.mehfil_number}`;
+    }
+    filename += `-${new Date().toISOString().split("T")[0]}.pdf`;
+
+    // Save PDF
+    doc.save(filename);
   };
 
   return (
@@ -246,9 +516,11 @@ const CoordinatorListPage = () => {
             {selectedMehfilId && (
               <button
                 onClick={handleDownloadPDF}
-                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors mt-4 md:mt-0"
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors mt-4 md:mt-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Download PDF
+                <Download size={18} />
+                {loading ? "Generating PDF..." : "Download PDF"}
               </button>
             )}
           </div>
@@ -328,7 +600,7 @@ const CoordinatorListPage = () => {
                 key={category}
                 className="bg-white rounded-lg shadow-md overflow-hidden"
               >
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+                <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-800">
                     {category} Coordinators
                   </h3>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import axios from "axios";
 import { ChevronDown } from "lucide-react";
+import { useFetchUserZonesQuery } from "@/store/slicers/zoneApi";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
@@ -31,18 +32,16 @@ apiClient.interceptors.request.use((config) => {
 });
 
 interface Zone {
-  id: number;
+  id: number | string;
   title_en: string;
   city_en: string;
-  country_en: string;
+  country_en?: string;
 }
 
 const DutyTypesPage = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dutyTypes, setDutyTypes] = useState<DutyType[]>([]);
-  console.log('dutyTypes', dutyTypes);
-  
   const [zones, setZones] = useState<Zone[]>([]);
   const [regionId, setRegionId] = useState<number | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(
@@ -57,6 +56,29 @@ const DutyTypesPage = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<"created_at" | "name">("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Fetch zones using RTK Query hook from zoneApi.ts
+  const { data: zoneRes, isLoading: zonesLoading, error: zonesError } = useFetchUserZonesQuery();
+  
+  // Get zones from RTK Query or fallback to state
+  const availableZones = zoneRes?.data || zones;
+
+  const getZoneName = (zoneId: number) => {
+    if (!zoneId) return "—";
+    
+    // Search in RTK Query zones first (id is string)
+    if (zoneRes?.data) {
+      const rtkZone = zoneRes.data.find((z) => Number(z.id) === Number(zoneId));
+      if (rtkZone) {
+        return rtkZone.title_en || "—";
+      }
+    }
+    
+    // Fallback to state zones (id is number)
+    const zone = zones.find((z) => Number(z.id) === Number(zoneId));
+    return zone ? zone.title_en : "—";
+  };
+
 
   // Permissions
   const canFilterZones = user?.is_region_admin || user?.is_all_region_admin;
@@ -134,7 +156,6 @@ const DutyTypesPage = () => {
           return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
         });
       }
-      console.log('dutyTypesList', dutyTypesList);
       setDutyTypes(dutyTypesList);
 
       setTotalPages(response.data.totalPages || 1);
@@ -209,7 +230,7 @@ const DutyTypesPage = () => {
                 }`}
               >
                 <option value="">Select Zone</option>
-                {zones.map((zone) => (
+                {availableZones.map((zone) => (
                   <option key={zone.id} value={zone.id}>
                     {zone.title_en} - {zone.city_en}
                   </option>
@@ -333,69 +354,59 @@ const DutyTypesPage = () => {
                     const isEditable = Boolean((dutyType as any).is_editable === 1 || dutyType.is_editable === true);
                     return (
                       <tr key={dutyType.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {dutyType.id || "—"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {dutyType.zone_id || "—"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {dutyType.name}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-600 max-w-xs truncate">
-                            {dutyType.description || "—"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {dutyType.created_by || "—"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {dutyType.updated_by || "—"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {dutyType.created_at
-                            ? new Date(dutyType.created_at).toLocaleString()
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {dutyType.updated_at
-                            ? new Date(dutyType.updated_at).toLocaleString()
-                            : "—"}
-                        </td>
-                        {canManage && (
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm">
-                            <div className="flex justify-center gap-2">
-                              {isEditable && (
-                                <>
-                                  <Link
-                                    href={`/karkun-portal/duty-types/edit/${dutyType.id}`}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    Edit
-                                  </Link>
-                                  <button
-                                    onClick={() => {
-                                      setDeleteId(dutyType.id!);
-                                      setShowDeleteModal(true);
-                                    }}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
-                              {!isEditable && (
-                                <span className="text-gray-400 italic text-xs">
-                                  System Duty
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
+
+  {/* Zone Name */}
+  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+    {getZoneName(dutyType.zone_id)}
+  </td>
+
+  {/* Duty Type Name */}
+  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+    {dutyType.name}
+  </td>
+
+  {/* Description */}
+  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+    {dutyType.description || "—"}
+  </td>
+
+  {/* Created By */}
+  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+    {dutyType.created_by}
+  </td>
+
+  {/* Created At */}
+  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+    {dutyType.created_at
+      ? new Date(dutyType.created_at).toLocaleString()
+      : "—"}
+  </td>
+
+  {/* Actions (if allowed) */}
+  {canManage && (
+    <td className="px-4 py-4 whitespace-nowrap text-center text-sm">
+      <div className="flex justify-center gap-2">
+        <Link
+          href={`/karkun-portal/duty-types/edit/${dutyType.id}`}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          Edit
+        </Link>
+
+        <button
+          onClick={() => {
+            setDeleteId(dutyType.id!);
+            setShowDeleteModal(true);
+          }}
+          className="text-red-600 hover:text-red-800"
+        >
+          Delete
+        </button>
+      </div>
+    </td>
+  )}
+</tr>
+
                     );
                   })}
                 </tbody>

@@ -32,16 +32,42 @@ const apiClient = axios.create({
   },
 });
 
-apiClient.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("auth-token");
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+apiClient.interceptors.request.use(
+  (config) => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("auth-token");
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.warn("No auth token found in localStorage");
+      }
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// Response interceptor to handle 401 errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token might be expired or invalid
+      console.error("Unauthorized - Token may be expired or invalid");
+      // Optionally redirect to login or refresh token
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("auth-token");
+        if (!token) {
+          console.warn("No token found - user may need to log in again");
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 const DAYS = [
   "monday",
@@ -94,6 +120,11 @@ interface Karkun {
   father_name?: string;
   phone_number?: string;
   email?: string;
+  zone_id?: number;
+  user_type?: string;
+  is_zone_admin?: boolean;
+  is_mehfile_admin?: boolean;
+  mehfil_directory_id?: number;
 }
 
 interface DutyRoster {
@@ -212,10 +243,27 @@ export default function DutyRosterPage() {
 
   const loadZones = async () => {
     try {
+      // Verify token exists before making request
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("auth-token");
+        if (!token) {
+          console.error("No auth token found - cannot load zones");
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+      }
+      
       const response = await apiClient.get("/dashboard/zones");
       setZones(response.data.data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading zones:", error);
+      if (error.response?.status === 401) {
+        toast.error("Authentication failed. Please log in again.");
+        // Optionally redirect to login
+        // router.push("/login");
+      } else {
+        toast.error("Failed to load zones");
+      }
     }
   };
 
@@ -244,7 +292,7 @@ export default function DutyRosterPage() {
       return;
     }
     try {
-      const response = await apiClient.get("/duty-types", {
+      const response = await apiClient.get("/duty-types-data", {
         params: { zone_id: zoneId },
       });
       const types = (response.data.data || []).sort((a: DutyType, b: DutyType) =>
@@ -262,23 +310,41 @@ export default function DutyRosterPage() {
       return;
     }
     try {
+      // Note: Backend karkun endpoint only supports page, size, and search
+      // Filtering by zone_id, user_type, etc. needs to be done client-side
       const params: any = {
-        zone_id: zoneId,
-        user_type: userTypeFilter,
-        exclude_admins: true,
+        page: 1,
+        size: 1000, // Get a large number to filter client-side
       };
 
-      if (userTypeFilter === "karkun" && mehfilDirectoryId) {
-        params.mehfil_directory_id = mehfilDirectoryId;
-      }
-
       const response = await apiClient.get("/karkun", { params });
-      const karkunsList = (response.data.data || []).sort((a: Karkun, b: Karkun) =>
+      let karkunsList = response.data.data || [];
+      
+      // Client-side filtering
+      if (zoneId) {
+        karkunsList = karkunsList.filter((k: any) => Number(k.zone_id) === Number(zoneId));
+      }
+      
+      if (userTypeFilter) {
+        karkunsList = karkunsList.filter((k: any) => k.user_type === userTypeFilter);
+      }
+      
+      // Exclude admins
+      karkunsList = karkunsList.filter((k: any) => !k.is_zone_admin && !k.is_mehfile_admin);
+      
+      if (userTypeFilter === "karkun" && mehfilDirectoryId) {
+        karkunsList = karkunsList.filter((k: any) => 
+          Number(k.mehfil_directory_id) === Number(mehfilDirectoryId)
+        );
+      }
+      
+      karkunsList = karkunsList.sort((a: Karkun, b: Karkun) =>
         a.name.localeCompare(b.name)
       );
       setKarkuns(karkunsList);
     } catch (error) {
       console.error("Error loading karkuns:", error);
+      setKarkuns([]);
     }
   };
 
@@ -291,6 +357,17 @@ export default function DutyRosterPage() {
 
     setLoading(true);
     try {
+      // Verify token exists before making request
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("auth-token");
+        if (!token) {
+          console.error("No auth token found - cannot load duty data");
+          toast.error("Authentication required. Please log in again.");
+          setLoading(false);
+          return;
+        }
+      }
+      
       const params: any = {
         zone_id: zoneId,
         user_type: userTypeFilter,
@@ -307,9 +384,16 @@ export default function DutyRosterPage() {
       const response = await apiClient.get("/duty-rosters-data", { params });
       setRosters(response.data.data || []);
       setShowTable(true);
-    } catch (error) {
-      toast.error("Failed to fetch duty rosters");
+    } catch (error: any) {
       console.error("Error fetching rosters:", error);
+      if (error.response?.status === 401) {
+        toast.error("Authentication failed. Please log in again.");
+        // Optionally redirect to login
+        // router.push("/login");
+      } else {
+        toast.error("Failed to fetch duty rosters");
+      }
+      setShowTable(false);
     } finally {
       setLoading(false);
     }
@@ -450,7 +534,7 @@ export default function DutyRosterPage() {
               .catch(() => ({ data: { data: [] } }))
           : Promise.resolve({ data: { data: [] } }),
         apiClient
-          .get("/duty-types", {
+          .get("/duty-types-data", {
             params: { zone_id: zoneId },
           })
           .catch(() => ({ data: { data: [] } })),

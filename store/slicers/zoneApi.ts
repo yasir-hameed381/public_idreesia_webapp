@@ -21,8 +21,9 @@ interface Zone {
 }
 
 interface ZoneResponse {
+  success?: boolean;
   data: Zone[];
-  meta: {
+  meta?: {
     total: number;
   };
 }
@@ -38,7 +39,7 @@ interface SingleZoneResponse {
 export const zoneSlice = createApi({
   reducerPath: 'zoneslice',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${getApiBaseUrl()}/`,
+    baseUrl: getApiBaseUrl(),
     prepareHeaders: prepareAuthHeaders,
   }),
   tagTypes: ['zone'],
@@ -88,7 +89,7 @@ export const zoneSlice = createApi({
 
     // Fetch zones accessible to the current user (filtered by backend based on permissions)
     fetchUserZones: builder.query<ZoneResponse, void>({
-      query: () => 'zone/user-zones',
+      query: () => '/dashboard/zones',
       providesTags: ['zone'],
     }),
   }),
