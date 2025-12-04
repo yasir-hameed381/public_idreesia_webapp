@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Image from "next/image";
+import mehfilImage from "@/app/assets/mehfile.png";
 import { useAuth } from "@/hooks/useAuth";
 import MehfilCoordinatorService, {
   MehfilCoordinator,
@@ -29,45 +32,53 @@ interface User {
   user_type?: string;
 }
 
-// Coordinator Types based on Laravel CoordinatorType enum
+// Coordinator Types for all categories
 const COORDINATOR_TYPES = {
   // Mehfil Coordinators
   MEHFIL_CO_1: "Mehfil Coordinator 1",
   MEHFIL_CO_2: "Mehfil Coordinator 2",
-  // Tarbiyat Coordinators
-  TARBIYAT_MAIN: "Tarbiyat Main Coordinator",
-  TARBIYAT_SUB_1: "Tarbiyat Sub Coordinator 1",
-  TARBIYAT_SUB_2: "Tarbiyat Sub Coordinator 2",
-  TARBIYAT_SUB_3: "Tarbiyat Sub Coordinator 3",
-  // Technical Coordinators
-  TECHNICAL_MAIN: "Technical Main Coordinator",
-  TECHNICAL_SUB_1: "Technical Sub Coordinator 1",
-  TECHNICAL_SUB_2: "Technical Sub Coordinator 2",
-  // Tajweed Coordinators
-  TAJWEED_MAIN: "Tajweed Main Coordinator",
-  TAJWEED_SUB_1: "Tajweed Sub Coordinator 1",
-  TAJWEED_SUB_2: "Tajweed Sub Coordinator 2",
-  // Ahl-e-Bait Coordinators
-  AHL_E_BAIT_MAIN: "Ahl-e-Bait Main Coordinator",
-  AHL_E_BAIT_SUB_1: "Ahl-e-Bait Sub Coordinator 1",
-  AHL_E_BAIT_SUB_2: "Ahl-e-Bait Sub Coordinator 2",
+  // Media Cell Coordinators
+  MEDIA_CELL_1: "Media Cell Coordinator 1",
+  MEDIA_CELL_2: "Media Cell Coordinator 2",
+  MEDIA_CELL_3: "Media Cell Coordinator 3",
+  // Finance Coordinators
+  FINANCE_1: "Finance Coordinator 1",
+  FINANCE_2: "Finance Coordinator 2",
+  FINANCE_3: "Finance Coordinator 3",
+  // MS Duty Coordinators
+  MS_DUTY_1: "MS Duty Coordinator 1",
+  MS_DUTY_2: "MS Duty Coordinator 2",
+  MS_DUTY_3: "MS Duty Coordinator 3",
 };
 
 const COORDINATOR_CATEGORIES = {
-  Mehfil: ["MEHFIL_CO_1", "MEHFIL_CO_2"],
-  Tarbiyat: [
-    "TARBIYAT_MAIN",
-    "TARBIYAT_SUB_1",
-    "TARBIYAT_SUB_2",
-    "TARBIYAT_SUB_3",
-  ],
-  Technical: ["TECHNICAL_MAIN", "TECHNICAL_SUB_1", "TECHNICAL_SUB_2"],
-  Tajweed: ["TAJWEED_MAIN", "TAJWEED_SUB_1", "TAJWEED_SUB_2"],
-  "Ahl-e-Bait": ["AHL_E_BAIT_MAIN", "AHL_E_BAIT_SUB_1", "AHL_E_BAIT_SUB_2"],
+  "Mehfil": ["MEHFIL_CO_1", "MEHFIL_CO_2"],
+  "Media Cell": ["MEDIA_CELL_1", "MEDIA_CELL_2", "MEDIA_CELL_3"],
+  "Finance": ["FINANCE_1", "FINANCE_2", "FINANCE_3"],
+  "MS Duty": ["MS_DUTY_1", "MS_DUTY_2", "MS_DUTY_3"],
 };
 
 const CoordinatorListPage = () => {
   const { user } = useAuth();
+  const API_URL = (
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  ).replace(/\/$/, "");
+
+  const apiClient = axios.create({
+    baseURL: API_URL,
+    headers: { Accept: "application/json" },
+  });
+
+  apiClient.interceptors.request.use((config) => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("auth-token");
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  });
   const [loading, setLoading] = useState(false);
   const [zones, setZones] = useState<Zone[]>([]);
   const [mehfils, setMehfils] = useState<Mehfil[]>([]);
@@ -84,6 +95,44 @@ const CoordinatorListPage = () => {
 
   // Permissions
   const canFilterZones = user?.is_region_admin;
+
+  // Load zones on mount
+  useEffect(() => {
+    const loadZones = async () => {
+      try {
+        const response = await apiClient.get("/dashboard/zones");
+        setZones(response.data.data || []);
+      } catch (error) {
+        console.error("Error loading zones:", error);
+      }
+    };
+
+    if (user) loadZones();
+  }, [user]);
+
+  // Load mehfils when zone changes
+  useEffect(() => {
+    const loadMehfils = async () => {
+      if (!selectedZoneId) {
+        setMehfils([]);
+        return;
+      }
+
+      try {
+        const response = await apiClient.get("/mehfil-directory", {
+          params: { zoneId: selectedZoneId, size: 500 },
+        });
+        const mehfilData = (response.data.data || []).sort(
+          (a: Mehfil, b: Mehfil) => parseInt(a.mehfil_number) - parseInt(b.mehfil_number)
+        );
+        setMehfils(mehfilData);
+      } catch (error) {
+        console.error("Error loading mehfils:", error);
+      }
+    };
+
+    loadMehfils();
+  }, [selectedZoneId]);
 
   useEffect(() => {
     if (selectedMehfilId) {
@@ -239,7 +288,7 @@ const CoordinatorListPage = () => {
                 Mehfil
               </label>
               <select
-                value={selectedMehfilId || ""}
+                value={selectedMehfilId === null ? "" : selectedMehfilId}
                 onChange={(e) =>
                   setSelectedMehfilId(
                     e.target.value ? Number(e.target.value) : null
@@ -262,15 +311,15 @@ const CoordinatorListPage = () => {
         </div>
 
         {/* Coordinators by Category */}
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-          </div>
-        ) : !selectedMehfilId ? (
+        {!selectedMehfilId ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <p className="text-gray-600">
               Please select a zone and mehfil to manage coordinators
             </p>
+          </div>
+        ) : loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
           </div>
         ) : (
           <div className="space-y-6">

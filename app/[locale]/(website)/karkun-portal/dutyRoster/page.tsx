@@ -18,9 +18,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
 ).replace(/\/$/, "");
 
 const apiClient = axios.create({
@@ -107,6 +109,22 @@ interface DutyRoster {
   mehfil_directory_id?: number;
   mehfil_directory?: MehfilDirectory;
   duties: Record<(typeof DAYS)[number], DutyAssignment[]>;
+}
+
+interface ZoneAdmin {
+  id: number;
+  name: string;
+  phone_number?: string;
+}
+
+interface MehfilCoordinator {
+  id: number;
+  coordinator_type: string;
+  user: {
+    id: number;
+    name: string;
+    phone_number?: string;
+  };
 }
 
 export default function DutyRosterPage() {
@@ -419,36 +437,317 @@ export default function DutyRosterPage() {
     }
 
     try {
-      const params: any = {
-        zone_id: zoneId,
-        download: true,
-      };
+      setLoading(true);
 
-      if (mehfilDirectoryId) {
-        params.mehfil_directory_id = mehfilDirectoryId;
+      // Fetch additional data needed for PDF
+      const [zoneData, coordinatorsData, coordinatorDutyTypeData] = await Promise.all([
+        apiClient.get(`/zone/${zoneId}`).catch(() => ({ data: { data: null } })),
+        mehfilDirectoryId
+          ? apiClient
+              .get("/mehfil-coordinators", {
+                params: { mehfil_directory_id: mehfilDirectoryId },
+              })
+              .catch(() => ({ data: { data: [] } }))
+          : Promise.resolve({ data: { data: [] } }),
+        apiClient
+          .get("/duty-types", {
+            params: { zone_id: zoneId },
+          })
+          .catch(() => ({ data: { data: [] } })),
+      ]);
+
+      const zone = zoneData.data.data;
+      const coordinators: MehfilCoordinator[] = coordinatorsData.data.data || [];
+      const allDutyTypes: DutyType[] = coordinatorDutyTypeData.data.data || [];
+      const coordinatorDutyType = allDutyTypes.find(
+        (dt) => dt.name.toLowerCase() === "coordinator"
+      );
+
+      // Get day coordinators if mehfil is selected
+      const dayCoordinators: Record<string, Karkun> = {};
+      if (mehfilDirectoryId && coordinatorDutyType) {
+        for (const day of DAYS) {
+          const rosterWithCoordinator = rosters.find((r) => {
+            if (r.mehfil_directory_id !== mehfilDirectoryId) return false;
+            const dayDuties = r.duties[day] || [];
+            return dayDuties.some(
+              (d) => d.duty_type?.id === coordinatorDutyType.id
+            );
+          });
+
+          if (rosterWithCoordinator) {
+            const coordinatorAssignment = rosterWithCoordinator.duties[day]?.find(
+              (d) => d.duty_type?.id === coordinatorDutyType.id
+            );
+            if (coordinatorAssignment) {
+              dayCoordinators[day] = rosterWithCoordinator.user;
+            }
+          }
+        }
       }
 
+      // Filter rosters based on includeAll
+      let rostersToExport = rosters;
       if (!includeAll) {
-        params.user_type = userTypeFilter;
+        rostersToExport = rosters.filter((r) => {
+          // This filtering is already done by the backend, but we keep it for safety
+          return true;
+        });
       }
 
-      const response = await apiClient.get("/duty-rosters/download", {
-        params,
-        responseType: "blob",
+      // Group rosters by user_id (similar to PHP implementation)
+      const groupedRosters = new Map<number, DutyRoster[]>();
+      rostersToExport.forEach((roster) => {
+        const userId = roster.user_id;
+        if (!groupedRosters.has(userId)) {
+          groupedRosters.set(userId, []);
+        }
+        groupedRosters.get(userId)!.push(roster);
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `duty-roster-${Date.now()}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // Get zone admin
+      let zoneAdmin: ZoneAdmin | null = null;
+      try {
+        const karkunsResponse = await apiClient.get("/karkun", {
+          params: {
+            zone_id: zoneId,
+            is_zone_admin: true,
+            size: 1,
+          },
+        });
+        const zoneAdmins = karkunsResponse.data.data || [];
+        if (zoneAdmins.length > 0) {
+          zoneAdmin = {
+            id: zoneAdmins[0].id,
+            name: zoneAdmins[0].name,
+            phone_number: zoneAdmins[0].phone_number,
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching zone admin:", error);
+      }
+
+      // Generate PDF
+      generatePDF({
+        zone,
+        mehfil: mehfilDirectoryId
+          ? mehfilDirectories.find((m) => m.id === mehfilDirectoryId)
+          : null,
+        rosters: Array.from(groupedRosters.values()).map((rosterGroup) => {
+          const firstRoster = rosterGroup[0];
+          const consolidatedRoster: DutyRoster = {
+            ...firstRoster,
+            duties: {} as Record<(typeof DAYS)[number], DutyAssignment[]>,
+          };
+
+          // Consolidate duties from all rosters in the group
+          DAYS.forEach((day) => {
+            const dayDuties: DutyAssignment[] = [];
+            rosterGroup.forEach((roster) => {
+              const duties = roster.duties[day] || [];
+              duties.forEach((duty) => {
+                dayDuties.push({
+                  ...duty,
+                  mehfil: roster.mehfil_directory,
+                });
+              });
+            });
+            consolidatedRoster.duties[day] = dayDuties;
+          });
+
+          return consolidatedRoster;
+        }),
+        zoneAdmin,
+        coordinators,
+        dayCoordinators,
+        userTypeFilter,
+      });
 
       toast.success("Roster downloaded successfully.");
     } catch (error) {
+      console.error("Error downloading roster:", error);
       toast.error("Failed to download roster");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const generatePDF = ({
+    zone,
+    mehfil,
+    rosters,
+    zoneAdmin,
+    coordinators,
+    dayCoordinators,
+    userTypeFilter: filterType,
+  }: {
+    zone: Zone | null;
+    mehfil: MehfilDirectory | null | undefined;
+    rosters: DutyRoster[];
+    zoneAdmin: ZoneAdmin | null;
+    coordinators: MehfilCoordinator[];
+    dayCoordinators: Record<string, Karkun>;
+    userTypeFilter: "karkun" | "ehad-karkun";
+  }) => {
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Header
+    const title = mehfil
+      ? `Duty Roster Mehfil # ${mehfil.mehfil_number} - ${mehfil.name_en || ""}`
+      : `Duty Roster ${zone?.title_en || ""}`;
+
+    doc.setFontSize(18);
+    doc.text(title, 10, 15);
+
+    // Zone Admin and Coordinators Info
+    let yPos = 25;
+    doc.setFontSize(12);
+
+    if (zoneAdmin) {
+      doc.text(
+        `Zone Admin: ${zoneAdmin.name} ${zoneAdmin.phone_number || ""}`,
+        10,
+        yPos
+      );
+      yPos += 5;
+    }
+
+    // Filter coordinators by type (MEHFIL_CO_1 and MEHFIL_CO_2)
+    const coordinator1 = coordinators.find(
+      (c) => c.coordinator_type === "MEHFIL_CO_1"
+    );
+    const coordinator2 = coordinators.find(
+      (c) => c.coordinator_type === "MEHFIL_CO_2"
+    );
+
+    if (coordinator1) {
+      doc.text(
+        `Mehfil Coordinator 1: ${coordinator1.user.name} ${coordinator1.user.phone_number || ""}`,
+        10,
+        yPos
+      );
+      yPos += 5;
+    }
+
+    if (coordinator2) {
+      doc.text(
+        `Mehfil Coordinator 2: ${coordinator2.user.name} ${coordinator2.user.phone_number || ""}`,
+        10,
+        yPos
+      );
+      yPos += 5;
+    }
+
+    // Prepare table data
+    const tableData: any[] = [];
+    rosters
+      .sort((a, b) => a.user.name.localeCompare(b.user.name))
+      .forEach((roster) => {
+        const userName = roster.user?.name || `User #${roster.user_id}`;
+        const initials = getUserInitials(userName);
+        const karkunId = getKarkunId(roster);
+        const fatherName = roster.user?.father_name || "";
+        const phone = roster.user?.phone_number || "—";
+
+        const row: any[] = [
+          initials, // Avatar
+          `${karkunId}\n${filterType}`, // Karkun ID with type
+          `${userName}\n${fatherName}`, // Name / Father Name
+          phone, // Phone
+        ];
+
+        // Add duties for each day
+        DAYS.forEach((day) => {
+          const assignments = roster.duties[day] || [];
+          const nonCoordinatorDuties = assignments.filter(
+            (d) => d.duty_type?.name.toLowerCase() !== "coordinator"
+          );
+
+          if (nonCoordinatorDuties.length === 0) {
+            row.push("—");
+          } else {
+            const dutyTexts = nonCoordinatorDuties.map((duty) => {
+              let text = duty.duty_type?.name || "Duty";
+              if (!mehfil && duty.mehfil) {
+                text += `\nMehfil # ${duty.mehfil.mehfil_number}`;
+              }
+              return text;
+            });
+            row.push(dutyTexts.join("\n"));
+          }
+        });
+
+        tableData.push(row);
+      });
+
+    // Table headers
+    const headers = [
+      "Avatar",
+      "Karkun ID\nType",
+      "Name\nFather Name",
+      "Phone",
+      ...DAYS.map((day) => {
+        const dayLabel = DAY_LABELS[day];
+        const coordinator = dayCoordinators[day];
+        return coordinator
+          ? `${dayLabel}\n${coordinator.name}`
+          : dayLabel;
+      }),
+    ];
+
+    // Column widths (adjusted for landscape A4)
+    const columnWidths = [
+      15, // Avatar
+      20, // Karkun ID
+      35, // Name
+      25, // Phone
+      ...DAYS.map(() => 25), // Days (7 columns)
+    ];
+
+    // Generate table
+    autoTable(doc, {
+      head: [headers],
+      body: tableData,
+      startY: yPos + 5,
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: [243, 244, 246],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+        halign: "center",
+        valign: "middle",
+      },
+      bodyStyles: {
+        halign: "center",
+        valign: "middle",
+      },
+      columnStyles: {
+        0: { halign: "center", cellWidth: columnWidths[0] }, // Avatar
+        1: { halign: "center", cellWidth: columnWidths[1] }, // Karkun ID
+        2: { halign: "left", cellWidth: columnWidths[2] }, // Name
+        3: { halign: "center", cellWidth: columnWidths[3] }, // Phone
+      },
+      margin: { left: 10, right: 10 },
+      tableWidth: "auto",
+    });
+
+    // Generate filename
+    let filename = `duty-roster-${zone?.title_en || "unknown"}`;
+    if (mehfil) {
+      filename += `-mehfil-${mehfil.mehfil_number}`;
+    }
+    filename += `-${new Date().toISOString().split("T")[0]}.pdf`;
+
+    // Save PDF
+    doc.save(filename);
   };
 
   // Filter available karkuns (not already in roster)
