@@ -582,7 +582,7 @@ const CoordinatorListPage = () => {
           </div>
         </div>
 
-        {/* Coordinators by Category */}
+        {/* Coordinators by Categories */}
         {!selectedMehfilId ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <p className="text-gray-600">
