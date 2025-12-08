@@ -38,6 +38,47 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Response interceptor to handle errors and log details
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Log detailed error information for debugging
+    if (error.response) {
+      // Server responded with error status
+      console.error("API Error Response:", {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+      });
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error("API Error - No Response:", {
+        message: error.message,
+        url: error.config?.url,
+      });
+    } else {
+      // Error setting up the request
+      console.error("API Error - Request Setup:", error.message);
+    }
+    
+    // Handle 401 errors (unauthorized)
+    if (error.response?.status === 401) {
+      console.error("Unauthorized - Token may be expired or invalid");
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("auth-token");
+        if (!token) {
+          console.warn("No token found - user may need to log in again");
+        }
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 interface Zone {
   id: number;
   title_en: string;
@@ -54,20 +95,60 @@ interface MehfilDirectory {
 interface Karkun {
   id: number;
   name: string;
+  name_ur?: string | null;
   email: string;
-  phone_number?: string;
+  phone_number?: string | null;
   mobile_no?: string;
+  id_card_number?: string | null;
+  father_name?: string | null;
+  father_name_ur?: string | null;
   user_type?: string;
-  zone_id?: number;
+  zone_id?: number | null;
+  region_id?: number | null;
   zone?: string | Zone;
-  mehfil_directory_id?: number;
+  mehfil_directory_id?: number | null;
+  address?: string | null;
+  birth_year?: number | null;
+  ehad_year?: number | null;
+  duty_days?: string | string[] | null;
+  duty_type?: string | null;
+  city?: string | null;
+  country?: string | null;
+  avatar?: string | null;
   is_mehfil_admin?: boolean;
   is_mehfile_admin?: boolean;
   is_zone_admin?: boolean;
   is_region_admin?: boolean;
+  is_super_admin?: boolean;
+  is_all_region_admin?: boolean;
+  is_active?: boolean;
   mehfilDirectory?: MehfilDirectory;
   creator?: { name: string };
   created_at?: string;
+  updated_at?: string | null;
+}
+
+interface PaginationMeta {
+  current_page: number;
+  from: number;
+  last_page: number;
+  path: string;
+  per_page: string;
+  to: number;
+  total: number;
+}
+
+interface PaginationLinks {
+  first: string | null;
+  last: string | null;
+  prev: string | null;
+  next: string | null;
+}
+
+interface KarkunApiResponse {
+  data: Karkun[];
+  links: PaginationLinks;
+  meta: PaginationMeta;
 }
 
 type TabType = "karkun" | "ehad_karkun" | "mehfil_admin" | "zone_admin";
@@ -98,6 +179,8 @@ const KarkunanPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null);
+  const [paginationLinks, setPaginationLinks] = useState<PaginationLinks | null>(null);
 
   // Initialize filters based on user permissions (matching PHP mount)
   useEffect(() => {
@@ -173,8 +256,7 @@ const KarkunanPage = () => {
   const loadKarkuns = async () => {
     setLoading(true);
     try {
-      // Backend currently only supports page, size, and search parameters
-      // Advanced filtering will need to be done client-side or backend needs to be updated
+      // Build API parameters
       const params: any = {
         page: currentPage,
         size: perPage,
@@ -185,44 +267,79 @@ const KarkunanPage = () => {
         params.search = search;
       }
 
-      const response = await apiClient.get("/karkun", { params });
-      let karkunsData = response.data.data || [];
-      
-      // Client-side filtering (since backend doesn't support advanced filters yet)
-      // Note: Backend model uses 'zone' as string and 'mehfile' as string, not IDs
+      // Apply zone filtering - this filters at the backend level for all tabs
+      // When a zone is selected, only records from that zone are fetched
       if (zoneId) {
-        karkunsData = karkunsData.filter((k: Karkun) => {
-          if (typeof k.zone === 'object' && k.zone?.id) {
-            return k.zone.id === zoneId;
+        params.zone_id = zoneId;
+      }
+
+      const response = await apiClient.get("/karkun", { params });
+      
+      // Handle API response structure: { data: [...], links: {...}, meta: {...} }
+      const apiResponse: KarkunApiResponse = response.data;
+      
+      let karkunsData: Karkun[] = [];
+      if (apiResponse && apiResponse.data) {
+        karkunsData = Array.isArray(apiResponse.data) ? apiResponse.data : [];
+        
+        // Parse duty_days JSON string if it exists
+        karkunsData = karkunsData.map((karkun) => {
+          if (karkun.duty_days && typeof karkun.duty_days === 'string') {
+            try {
+              const parsed = JSON.parse(karkun.duty_days);
+              return { ...karkun, duty_days: parsed };
+            } catch (e) {
+              // If parsing fails, keep original value
+              return karkun;
+            }
           }
-          // If zone is a string, try to match by zone_id if available
-          return k.zone_id === zoneId;
+          return karkun;
         });
       }
+      
+      // Store pagination metadata from API
+      if (apiResponse.meta) {
+        setPaginationMeta(apiResponse.meta);
+        setTotalPages(apiResponse.meta.last_page);
+        setTotal(apiResponse.meta.total);
+        setCurrentPage(apiResponse.meta.current_page);
+      }
+      
+      if (apiResponse.links) {
+        setPaginationLinks(apiResponse.links);
+      }
+      
+      // Apply mehfil filtering (client-side, since backend doesn't support it yet)
       if (mehfilDirectoryId && !["ehad_karkun", "zone_admin"].includes(activeTab)) {
         karkunsData = karkunsData.filter((k: Karkun) => k.mehfil_directory_id === mehfilDirectoryId);
       }
 
-      // Apply tab filters
+      // Apply tab-specific filters
+      // Zone filtering is already applied at the API level, so all tabs will only show records from the selected zone
       if (activeTab === "mehfil_admin") {
+        // Show karkuns who are mehfil admins (from the selected zone)
         karkunsData = karkunsData.filter((k: Karkun) => 
           k.is_mehfil_admin === true || k.is_mehfile_admin === true
         );
       } else if (activeTab === "zone_admin") {
+        // Show karkuns who are zone admins (from the selected zone)
         karkunsData = karkunsData.filter((k: Karkun) => k.is_zone_admin === true);
       } else if (activeTab === "karkun") {
+        // Show all regular karkuns (from the selected zone)
+        // Exclude those who are admins in other tabs
         karkunsData = karkunsData.filter((k: Karkun) => 
-          (k.user_type === "karkun" || !k.user_type) && 
-          !k.is_mehfil_admin && 
+          k.user_type === "karkun" &&
+          !k.is_mehfil_admin &&
           !k.is_mehfile_admin &&
-          !k.is_zone_admin && 
+          !k.is_zone_admin &&
           !k.is_region_admin
         );
       } else if (activeTab === "ehad_karkun") {
+        // Show ehad karkuns (from the selected zone)
         karkunsData = karkunsData.filter((k: Karkun) => k.user_type === "ehad_karkun");
       }
 
-      // Client-side sorting
+      // Client-side sorting (backend doesn't support sorting yet)
       karkunsData.sort((a: Karkun, b: Karkun) => {
         let aVal: any, bVal: any;
         if (sortBy === "name") {
@@ -244,11 +361,28 @@ const KarkunanPage = () => {
       });
 
       setKarkuns(karkunsData);
-      setTotalPages(Math.ceil(karkunsData.length / perPage));
-      setTotal(karkunsData.length);
-    } catch (error) {
-      toast.error("Failed to load karkuns");
+    } catch (error: any) {
+      // Enhanced error handling with detailed logging
       console.error("Error loading karkuns:", error);
+      
+      // Log full error details
+      if (error.response) {
+        console.error("Error Response Data:", error.response.data);
+        console.error("Error Response Status:", error.response.status);
+        console.error("Error Response Headers:", error.response.headers);
+        
+        // Show more specific error message if available
+        const errorMessage = error.response.data?.message || 
+                            error.response.data?.error || 
+                            `Server error (${error.response.status})`;
+        toast.error(`Failed to load karkuns: ${errorMessage}`);
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        toast.error("Failed to connect to server. Please check your connection.");
+      } else {
+        console.error("Error setting up request:", error.message);
+        toast.error(`Failed to load karkuns: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -493,14 +627,13 @@ const KarkunanPage = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">
-                            {typeof karkun.zone === 'object' 
-                              ? karkun.zone?.title_en 
-                              : karkun.zone || "—"}
+                            {karkun.zone_id 
+                              ? zones.find(z => z.id === karkun.zone_id)?.title_en || `Zone ${karkun.zone_id}`
+                              : "—"}
                           </div>
-                          {karkun.mehfilDirectory && (
+                          {karkun.mehfil_directory_id && (
                             <div className="text-xs text-gray-500">
-                              #{karkun.mehfilDirectory.mehfil_number} -{" "}
-                              {karkun.mehfilDirectory.name_en}
+                              Mehfil ID: {karkun.mehfil_directory_id}
                             </div>
                           )}
                         </td>
@@ -539,15 +672,24 @@ const KarkunanPage = () => {
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    onClick={() => {
+                      const prevPage = Math.max(1, (paginationMeta?.current_page || currentPage) - 1);
+                      setCurrentPage(prevPage);
+                    }}
+                    disabled={!paginationLinks?.prev && (paginationMeta?.current_page || currentPage) === 1}
                     className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
                   <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => {
+                      const nextPage = Math.min(
+                        paginationMeta?.last_page || totalPages,
+                        (paginationMeta?.current_page || currentPage) + 1
+                      );
+                      setCurrentPage(nextPage);
+                    }}
+                    disabled={!paginationLinks?.next && (paginationMeta?.current_page || currentPage) >= (paginationMeta?.last_page || totalPages)}
                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
@@ -558,13 +700,13 @@ const KarkunanPage = () => {
                     <p className="text-sm text-gray-700">
                       Showing{" "}
                       <span className="font-medium">
-                        {(currentPage - 1) * perPage + 1}
+                        {paginationMeta?.from || (currentPage - 1) * perPage + 1}
                       </span>{" "}
                       to{" "}
                       <span className="font-medium">
-                        {Math.min(currentPage * perPage, total)}
+                        {paginationMeta?.to || Math.min(currentPage * perPage, total)}
                       </span>{" "}
-                      of <span className="font-medium">{total}</span> results
+                      of <span className="font-medium">{paginationMeta?.total || total}</span> results
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -582,18 +724,27 @@ const KarkunanPage = () => {
                     </select>
                     <div className="flex gap-1">
                       <button
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
+                        onClick={() => {
+                          const prevPage = Math.max(1, (paginationMeta?.current_page || currentPage) - 1);
+                          setCurrentPage(prevPage);
+                        }}
+                        disabled={!paginationLinks?.prev && (paginationMeta?.current_page || currentPage) === 1}
                         className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                       >
                         <ChevronLeft size={16} />
                       </button>
                       <span className="px-3 py-2 text-sm text-gray-700">
-                        Page {currentPage} of {totalPages}
+                        Page {paginationMeta?.current_page || currentPage} of {paginationMeta?.last_page || totalPages}
                       </span>
                       <button
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
+                        onClick={() => {
+                          const nextPage = Math.min(
+                            paginationMeta?.last_page || totalPages,
+                            (paginationMeta?.current_page || currentPage) + 1
+                          );
+                          setCurrentPage(nextPage);
+                        }}
+                        disabled={!paginationLinks?.next && (paginationMeta?.current_page || currentPage) >= (paginationMeta?.last_page || totalPages)}
                         className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                       >
                         <ChevronRight size={16} />

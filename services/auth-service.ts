@@ -161,8 +161,20 @@ export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const { email, password, remember } = credentials;
 
+    // Validate input
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+      throw new Error("Email is required");
+    }
+
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+      throw new Error("Password is required");
+    }
+
+    // Normalize email (trim and lowercase)
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Check rate limiting
-    const rateLimitCheck = isRateLimited(email);
+    const rateLimitCheck = isRateLimited(normalizedEmail);
     if (rateLimitCheck.limited) {
       throw new Error(
         `Too many login attempts. Please try again in ${rateLimitCheck.secondsRemaining} seconds.`
@@ -170,10 +182,25 @@ export const authService = {
     }
 
     try {
+      // Log the request payload for debugging
+      console.log("📤 Sending login request:", {
+        url: `${authApi.defaults.baseURL}/auth/login`,
+        email: normalizedEmail,
+        passwordLength: password?.length || 0,
+        remember: remember,
+      });
+
+      // Send login credentials
+      // Note: Backend only uses email and password, but we include remember for potential future use
       const response = await authApi.post("/auth/login", {
-        email,
-        password,
-        remember,
+        email: normalizedEmail,
+        password: password.trim(),
+      });
+
+      console.log("📥 Login response received:", {
+        status: response.status,
+        hasToken: !!response.data.token || !!response.data.accessToken,
+        hasUser: !!response.data.user,
       });
 
       const { message, token, accessToken, refreshToken, user } = response.data;
@@ -190,7 +217,7 @@ export const authService = {
       }
 
       // Clear rate limit on successful login
-      clearRateLimit(email);
+      clearRateLimit(normalizedEmail);
 
       // Store token and user data
       localStorage.setItem("auth-token", authToken);
@@ -256,6 +283,16 @@ export const authService = {
 
       return { message, user, token: authToken, refreshToken };
     } catch (error: any) {
+      // Enhanced error logging
+      console.error("❌ Login error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.response?.data?.message,
+        data: error.response?.data,
+        requestUrl: error.config?.url,
+        requestData: error.config?.data,
+      });
+
       // Handle rate limiting from server
       if (error.response?.status === 429) {
         const retryAfter = error.response.headers["retry-after"] || 300;
@@ -271,14 +308,28 @@ export const authService = {
           throw new Error(errors.email[0]);
         }
         // For any other validation errors, use generic auth error
-        hitRateLimit(email);
+        hitRateLimit(normalizedEmail);
         throw new Error("Invalid email or password");
+      }
+
+      // Handle 400 Bad Request - could be missing fields or invalid credentials
+      if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || "Invalid email or password";
+        console.error("🔴 400 Bad Request:", errorMessage);
+        hitRateLimit(normalizedEmail);
+        throw new Error(errorMessage);
       }
 
       // Handle authentication failure (401) and any other auth-related errors
       if (error.response?.status === 401 || error.response?.status === 404) {
-        hitRateLimit(email);
+        hitRateLimit(normalizedEmail);
         throw new Error("Invalid email or password");
+      }
+
+      // Handle network errors
+      if (!error.response) {
+        console.error("🌐 Network error:", error.message);
+        throw new Error("Network error. Please check your connection and try again.");
       }
 
       // Handle other errors

@@ -16,18 +16,18 @@ export default function middleware(request) {
   // Check if the request is for admin routes
   const isAdminRoute = request.nextUrl.pathname.includes('/admin');
   
-  if (isAdminRoute) {
-    // Check for authentication token in cookies or headers
-    const token = request.cookies.get('auth-token')?.value || 
-                  request.headers.get('authorization')?.replace('Bearer ', '');
+  // if (isAdminRoute) {
+  //   // Check for authentication token in cookies or headers
+  //   const token = request.cookies.get('auth-token')?.value || 
+  //                 request.headers.get('authorization')?.replace('Bearer ', '');
     
-    // If no token and trying to access admin routes, redirect to login
-    if (!token) {
-      const locale = request.nextUrl.pathname.split('/')[1] || 'en';
-      const loginUrl = new URL(`/${locale}/login`, request.url);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
+  //   // If no token and trying to access admin routes, redirect to login
+  //   if (!token) {
+  //     const locale = request.nextUrl.pathname.split('/')[1] || 'en';
+  //     const loginUrl = new URL(`/${locale}/login`, request.url);
+  //     return NextResponse.redirect(loginUrl);
+  //   }
+  // }
   
   return response;
 }

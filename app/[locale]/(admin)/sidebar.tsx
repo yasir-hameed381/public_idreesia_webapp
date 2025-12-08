@@ -268,54 +268,54 @@ export function AppSidebar({
   ];
 
   // Memoize the selected key to prevent unnecessary recalculations
-  const selectedKey = React.useMemo(() => {
-    // Remove locale prefix and query parameters
-    const cleanPath = pathname.replace(/^\/[a-z]{2}\//, "").split("?")[0];
+  // const selectedKey = React.useMemo(() => {
+  //   // Remove locale prefix and query parameters
+  //   const cleanPath = pathname.replace(/^\/[a-z]{2}\//, "").split("?")[0];
 
-    // Find matching navigation item with improved matching logic
-    const matchingItem = allNavigationItems.find((item) => {
-      // Exact match
-      if (item.href === cleanPath) return true;
+  //   // Find matching navigation item with improved matching logic
+  //   // const matchingItem = allNavigationItems.find((item) => {
+  //   //   // Exact match
+  //   //   if (item.href === cleanPath) return true;
 
-      // Case-insensitive match
-      if (item.href.toLowerCase() === cleanPath.toLowerCase()) return true;
+  //   //   // Case-insensitive match
+  //   //   if (item.href.toLowerCase() === cleanPath.toLowerCase()) return true;
 
-      // Handle nested routes - if current path starts with item href
-      if (cleanPath.startsWith(item.href + "/")) return true;
+  //   //   // Handle nested routes - if current path starts with item href
+  //   //   if (cleanPath.startsWith(item.href + "/")) return true;
 
-      // Handle nested routes with case-insensitive matching
-      if (cleanPath.toLowerCase().startsWith(item.href.toLowerCase() + "/"))
-        return true;
+  //   //   // Handle nested routes with case-insensitive matching
+  //   //   if (cleanPath.toLowerCase().startsWith(item.href.toLowerCase() + "/"))
+  //   //     return true;
 
-      // Handle special cases for dashboard
-      if (item.href === "/dashboard" && (cleanPath === "/" || cleanPath === ""))
-        return true;
+  //   //   // Handle special cases for dashboard
+  //   //   if (item.href === "/dashboard" && (cleanPath === "/" || cleanPath === ""))
+  //   //     return true;
 
-      return false;
-    });
+  //   //   return false;
+  //   // });
 
-    let key = matchingItem ? matchingItem.href : cleanPath;
+  //  // let key = matchingItem ? matchingItem.href : cleanPath;
 
-    // Fallback: if no exact match found, try to find the closest match
-    if (!matchingItem && cleanPath !== "/") {
-      const fallbackMatch = allNavigationItems.find((item) => {
-        // Try to match the first part of the path
-        const pathSegments = cleanPath.split("/").filter(Boolean);
-        const itemSegments = item.href.split("/").filter(Boolean);
+  //   // Fallback: if no exact match found, try to find the closest match
+  //   // if (!matchingItem && cleanPath !== "/") {
+  //   //   const fallbackMatch = allNavigationItems.find((item) => {
+  //   //     // Try to match the first part of the path
+  //   //     const pathSegments = cleanPath.split("/").filter(Boolean);
+  //   //     const itemSegments = item.href.split("/").filter(Boolean);
 
-        if (pathSegments.length > 0 && itemSegments.length > 0) {
-          return pathSegments[0] === itemSegments[0];
-        }
-        return false;
-      });
+  //   //     if (pathSegments.length > 0 && itemSegments.length > 0) {
+  //   //       return pathSegments[0] === itemSegments[0];
+  //   //     }
+  //   //     return false;
+  //   //   });
 
-      if (fallbackMatch) {
-        key = fallbackMatch.href;
-      }
-    }
+  //   //   if (fallbackMatch) {
+  //   //     key = fallbackMatch.href;
+  //   //   }
+  //   // }
 
-    return key;
-  }, [pathname]);
+  //   return key;
+  // }, [pathname]);
 
   const handleLogout = () => {
     logout();
@@ -462,7 +462,7 @@ export function AppSidebar({
       <Menu
         theme="dark"
         mode="inline"
-        selectedKeys={[selectedKey]}
+       // selectedKeys={[selectedKey]}
         items={menuItems}
         // Important: This ensures icons remain visible in collapsed state
         inlineCollapsed={isCollapsed}
