@@ -83,7 +83,7 @@ export default function WazaifDetails() {
         ur: "نوٹس بورڈ تعلیمات",
       },
       parhaiyan: { en: "Parhaiyan", ur: "پڑھائیں" },
-      wazaif: { en: "Wazaif", ur: "وظائف" },
+      wazaif: { en: "Wazaifaa", ur: "وظائف" },
     };
     const label = categoryMap[category] || { en: category, ur: category };
     return locale === "ur" ? label.ur : label.en;

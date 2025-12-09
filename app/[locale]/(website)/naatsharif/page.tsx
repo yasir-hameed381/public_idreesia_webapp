@@ -4,7 +4,7 @@ import Image from "next/image";
 import playImage from "../../../assets/play.png";
 import { SearchIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { TranslationKeys } from "@/app/constants/translationKeys";
 import { useFetchNaatSharifDataQuery } from "@/store/slicers/naatsharifApi";
@@ -26,31 +26,75 @@ const CATEGORY_MAP = {
 
 const NaatSharif = () => {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const locale = pathname.split("/")[1] || "en";
+  
+  // Initialize state from URL params
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  // Debounced search query for API calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  const categoryFromUrl = searchParams.get("category") || "all";
+  const [activeCategory, setActiveCategory] = useState(
+    Object.keys(CATEGORY_MAP).includes(categoryFromUrl) 
+      ? categoryFromUrl 
+      : "all"
+  );
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1", 10)
+  );
   const itemsPerPage = 15;
 
   const t = useTranslations(TranslationKeys.ALL_TITLES);
   const searchPlaceholder = useTranslations(TranslationKeys.SEARCH_PLACEHOLDER);
   const naatsharif_titles = useTranslations(TranslationKeys.NAATSHARIF_TITLES);
-  const pathname = usePathname();
-  const locale = pathname.split("/")[1] || "en";
+
+  // Debounce search query - update debounced value after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update URL params when debounced search/category/page change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearchQuery) params.set("search", debouncedSearchQuery);
+    if (activeCategory && activeCategory !== "all") {
+      params.set("category", activeCategory);
+    }
+    if (currentPage > 1) params.set("page", currentPage.toString());
+
+    const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    // Use replace to avoid adding to history, but preserve state
+    window.history.replaceState({}, "", newUrl);
+  }, [debouncedSearchQuery, activeCategory, currentPage, pathname]);
 
   const { data, isLoading, error } = useFetchNaatSharifDataQuery({
     page: currentPage,
     size: itemsPerPage,
-    search: searchQuery,
+    search: debouncedSearchQuery,
     category: CATEGORY_MAP[activeCategory],
   });
 
   const handleNavigation = (item: NaatSharifItem) => {
     localStorage.setItem("naatSharifData", JSON.stringify(item));
+    // Navigate to detail page - search params are preserved in the list page URL
+    // and will be restored when user navigates back
     router.push(`/naatsharif/${item.id}`);
   };
 
   const handleSearch = () => {
+    // Search is now handled by debounce, but we can keep this for Enter key
+    setDebouncedSearchQuery(searchQuery);
     setCurrentPage(1);
   };
 
@@ -131,13 +175,14 @@ const NaatSharif = () => {
       return (
         <div className="flex flex-col items-center justify-center min-h-[200px]">
           <div className="text-black-500 text-xl text-center">
-            {searchPlaceholder("no_results_found", { query: searchQuery })}
+            {searchPlaceholder("no_results_found", { query: debouncedSearchQuery })}
           </div>
           <button
             onClick={() => {
               setSearchQuery("");
               setActiveCategory("all");
               setCurrentPage(1);
+              // URL will be updated by useEffect
             }}
             className="px-2 py-4 border border-gray-200 bg-white focus:text-white focus:bg-green-600 rounded-2xl text-gray-600 font-semibold hover:opacity-90 transition ring-2 ring-white"
           ></button>
@@ -250,7 +295,7 @@ const NaatSharif = () => {
       <h2 className="font-sans text-2xl text-gray-700 mb-10">
         {t("naatShareef")}
       </h2>
-      <div className="relative mb-8 w-full">
+      <div className="relative mb-8 mx-auto w-full max-w-5xl">
         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
           <SearchIcon className="w-6 h-6 text-green-600" />
         </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { SearchIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -28,28 +28,64 @@ interface MehfilItem {
 const Mehfils = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locale = pathname.split("/")[1] || "en";
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Initialize state from URL params
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  // Debounced search query for API calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
   const [dateFilter, setDateFilter] = useState({
-    startDate: "",
-    endDate: "",
+    startDate: searchParams.get("startDate") || "",
+    endDate: searchParams.get("endDate") || "",
   });
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1", 10)
+  );
   const itemsPerPage = 15;
   const t = useTranslations(TranslationKeys.ALL_TITLES);
   const searchPlaceholder = useTranslations(TranslationKeys.SEARCH_PLACEHOLDER);
+
+  // Debounce search query - update debounced value after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update URL params when debounced search/filters/page change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearchQuery) params.set("search", debouncedSearchQuery);
+    if (dateFilter.startDate) params.set("startDate", dateFilter.startDate);
+    if (dateFilter.endDate) params.set("endDate", dateFilter.endDate);
+    if (currentPage > 1) params.set("page", currentPage.toString());
+
+    const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    // Use replace to avoid adding to history, but preserve state
+    window.history.replaceState({}, "", newUrl);
+  }, [debouncedSearchQuery, dateFilter, currentPage, pathname]);
 
   // Modified API call to include date filter
   const { data, isLoading, isFetching } = useFetchMehfilsDataQuery({
     page: currentPage,
     size: itemsPerPage,
-    search: searchQuery,
+    search: debouncedSearchQuery,
     startDate: dateFilter.startDate,
     endDate: dateFilter.endDate,
   });
 
   const handleSearch = () => {
+    // Search is now handled by debounce, but we can keep this for Enter key
+    setDebouncedSearchQuery(searchQuery);
     setCurrentPage(1);
   };
 
@@ -61,6 +97,7 @@ const Mehfils = () => {
     setSearchQuery("");
     setDateFilter({ startDate: "", endDate: "" });
     setCurrentPage(1);
+    // URL will be updated by useEffect
   };
 
   console.log("mehfile data ================", data);
@@ -69,6 +106,8 @@ const Mehfils = () => {
     // Note: Consider using sessionStorage or state management instead of localStorage
     // for better practices in a Next.js environment
     localStorage.setItem("mehfilsData", JSON.stringify(item));
+    // Navigate to detail page - search params are preserved in the list page URL
+    // and will be restored when user navigates back
     router.push(`/mehfils/${item.id}`);
   };
 
@@ -140,7 +179,7 @@ const Mehfils = () => {
       return (
         <div className="flex flex-col items-center justify-center min-h-[200px]">
           <div className="text-black-500 text-xl text-center">
-            {searchPlaceholder("no_results_found", { query: searchQuery })}
+            {searchPlaceholder("no_results_found", { query: debouncedSearchQuery })}
           </div>
           <button
             onClick={clearFilters}

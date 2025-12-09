@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { SearchIcon, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { TranslationKeys } from "@/app/constants/translationKeys";
@@ -13,24 +13,65 @@ import Navigation from "../../../../components/Navigation";
 const WazaifList = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locale = pathname.split("/")[1] || "en";
+  
+  // Initialize state from URL params
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  // Debounced search query for API calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  const validCategories = ["all", "bunyadi", "notice_board_taleem", "parhaiyan", "wazaif"];
+  const categoryFromUrl = searchParams.get("category") || "all";
+  const [activeCategory, setActiveCategory] = useState(
+    validCategories.includes(categoryFromUrl) ? categoryFromUrl : "all"
+  );
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1", 10)
+  );
   const itemsPerPage = 20;
 
   const t = useTranslations(TranslationKeys.ALL_TITLES);
   const searchPlaceholder = useTranslations(TranslationKeys.SEARCH_PLACEHOLDER);
 
+  // Debounce search query - update debounced value after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update URL params when debounced search/category/page change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearchQuery) params.set("search", debouncedSearchQuery);
+    if (activeCategory && activeCategory !== "all") {
+      params.set("category", activeCategory);
+    }
+    if (currentPage > 1) params.set("page", currentPage.toString());
+
+    const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    // Use replace to avoid adding to history, but preserve state
+    window.history.replaceState({}, "", newUrl);
+  }, [debouncedSearchQuery, activeCategory, currentPage, pathname]);
+
   const { data, isLoading, error } = useGetWazaifQuery({
     page: currentPage,
     size: itemsPerPage,
-    search: searchQuery,
+    search: debouncedSearchQuery,
     category: activeCategory,
   });
 
   const handleSearch = () => {
+    // Search is now handled by debounce, but we can keep this for form submission
+    setDebouncedSearchQuery(searchQuery);
     setCurrentPage(1);
   };
 
@@ -96,6 +137,8 @@ const WazaifList = () => {
         navigationId,
       });
 
+      // Navigate to detail page - search params are preserved in the list page URL
+      // and will be restored when user navigates back
       router.push(`/wazaif/${navigationId}`);
     } catch (error) {
       console.error("Error storing wazaif data:", error);
@@ -150,7 +193,7 @@ const WazaifList = () => {
 
     const wazaifItems = data?.data || [];
 
-    if (wazaifItems.length === 0 && searchQuery) {
+    if (wazaifItems.length === 0 && debouncedSearchQuery) {
       return (
         <div className="text-center text-red-700 py-12">
           <p>{locale === "ur" ? "کوئی نتیجہ نہیں ملا" : "No results found"}</p>
