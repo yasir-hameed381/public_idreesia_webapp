@@ -46,7 +46,7 @@ export default function LatestMessage() {
           letterSpacing: "0%",
         }}
       >
-        Latest Messagesaaa
+        Latest Messages
       </h1>
 
       <div className="flex w-full">
