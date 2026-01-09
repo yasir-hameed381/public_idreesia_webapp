@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import KhatService from "@/services/KhatService";
 import { Khat, MehfilSummary, ZoneSummary } from "@/types/khat";
 import { usePermissions } from "@/context/PermissionContext";
+import { useAuth } from "@/hooks/useAuth";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -39,6 +40,7 @@ const sortFieldLabels = {
 } as const;
 
 const AdminKhatListPage = () => {
+  const { user } = useAuth();
   const { isSuperAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [khats, setKhats] = useState<Khat[]>([]);
@@ -236,9 +238,13 @@ const AdminKhatListPage = () => {
     try {
       setGeneratingLink(true);
       const result = await KhatService.generatePublicLink(
-        linkExpiryHours
+        linkExpiryHours,
+        user?.zone_id,
+        user?.mehfil_directory_id
       );
-      setGeneratedLink(result.url);
+            setGeneratedLink(`${window.location.origin}${result.url}`);
+
+     // setGeneratedLink(result.url);
       toast.success("Public link generated successfully!");
     } catch (error: any) {
       console.error("Failed to generate link", error);

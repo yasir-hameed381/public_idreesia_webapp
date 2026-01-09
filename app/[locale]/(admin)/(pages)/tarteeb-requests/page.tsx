@@ -325,8 +325,8 @@ const AdminTarteebRequestsPage = () => {
         user?.zone_id,
         user?.mehfil_directory_id 
       );
-      console.log(window.location.origin);
-      setGeneratedLink(result.url);
+      console.log('sdsdsdsdsdds',window.location.origin);
+      setGeneratedLink(`${window.location.origin}${result.url}`);
       toast.success("Public link generated successfully!");
     } catch (error: any) {
       console.error("Failed to generate link", error);
