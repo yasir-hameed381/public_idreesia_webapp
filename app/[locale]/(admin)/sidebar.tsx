@@ -41,6 +41,7 @@ import {
   UserPlus,
   Home,
   LogOut,
+  Files,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
@@ -66,7 +67,7 @@ export function AppSidebar({
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const { logout, user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
   // Use external collapsed state if provided, otherwise use internal state
   const isCollapsed =
@@ -171,6 +172,12 @@ export function AppSidebar({
         href: "/khatoot",
         icon: <BookOutlined />,
         permission: null,
+      },
+      {
+        name: "Response Templates",
+        href: "/response-templates",
+        icon: <Files size={18} />,
+        permission: PERMISSIONS.VIEW_RESPONSE_TEMPLATES,
       },
     ],
   };
@@ -329,7 +336,18 @@ export function AppSidebar({
       if (item.permission === null) {
         return true;
       }
-      // Check permission
+      
+      // For super admin, only show specific items: Khatoot/Masail, Response Templates, and Tarteeb Requests
+      if (isSuperAdmin) {
+        const allowedForSuperAdmin = [
+          "/khatoot",
+          "/response-templates",
+          "/tarteeb-requests"
+        ];
+        return allowedForSuperAdmin.includes(item.href);
+      }
+      
+      // Check permission for non-super-admin users
       return hasPermission(item.permission);
     });
   };

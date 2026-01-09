@@ -128,6 +128,12 @@ export const PERMISSIONS = {
   VIEW_TARTEEB_REQUESTS: "view tarteeb requests",
   UPDATE_TARTEEB_REQUESTS: "update tarteeb requests",
 
+  // Response Templates
+  VIEW_RESPONSE_TEMPLATES: "view response templates",
+  CREATE_RESPONSE_TEMPLATES: "create response templates",
+  UPDATE_RESPONSE_TEMPLATES: "update response templates",
+  DELETE_RESPONSE_TEMPLATES: "delete response templates",
+
   // Tags
   VIEW_TAGS: "view tags",
   DELETE_TAGS: "delete tags",

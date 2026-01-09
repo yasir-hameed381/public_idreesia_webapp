@@ -2,6 +2,27 @@ import axios from 'axios';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/+$/, '');
 
+// Create axios instance with interceptor for auth token
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth-token');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 export interface TarteebRequest {
   id?: number;
   zone_id: number;
@@ -135,8 +156,8 @@ class TarteebRequestService {
       params.status = statusFilter;
     }
 
-    const response = await axios.get<PaginatedResponse<TarteebRequest>>(
-      `${API_URL}/tarteeb-requests`,
+    const response = await apiClient.get<PaginatedResponse<TarteebRequest>>(
+      '/tarteeb-requests',
       {
         params,
       }
@@ -163,8 +184,8 @@ class TarteebRequestService {
    * Get a single tarteeb request by ID
    */
   async getTarteebRequestById(id: number): Promise<TarteebRequest> {
-    const response = await axios.get<{ data: TarteebRequest }>(
-      `${API_URL}/tarteeb-requests/${id}`
+    const response = await apiClient.get<{ data: TarteebRequest }>(
+      `/tarteeb-requests/${id}`
     );
     return response.data.data;
   }
@@ -173,8 +194,8 @@ class TarteebRequestService {
    * Create a new tarteeb request
    */
   async createTarteebRequest(request: Partial<TarteebRequest>): Promise<TarteebRequest> {
-    const response = await axios.post<{ data: TarteebRequest }>(
-      `${API_URL}/tarteeb-requests/add`,
+    const response = await apiClient.post<{ data: TarteebRequest }>(
+      '/tarteeb-requests/add',
       request
     );
     return response.data.data;
@@ -184,8 +205,8 @@ class TarteebRequestService {
    * Update a tarteeb request
    */
   async updateTarteebRequest(id: number, request: Partial<TarteebRequest>): Promise<TarteebRequest> {
-    const response = await axios.put<{ data: TarteebRequest }>(
-      `${API_URL}/tarteeb-requests/update/${id}`,
+    const response = await apiClient.put<{ data: TarteebRequest }>(
+      `/tarteeb-requests/update/${id}`,
       request
     );
     return response.data.data;
@@ -195,15 +216,15 @@ class TarteebRequestService {
    * Delete a tarteeb request
    */
   async deleteTarteebRequest(id: number): Promise<void> {
-    await axios.delete(`${API_URL}/tarteeb-requests/${id}`);
+    await apiClient.delete(`/tarteeb-requests/${id}`);
   }
 
   /**
    * Update status of a tarteeb request
    */
   async updateStatus(id: number, status: 'pending' | 'approved' | 'rejected'): Promise<TarteebRequest> {
-    const response = await axios.patch<{ data: TarteebRequest }>(
-      `${API_URL}/tarteeb-requests/${id}/status`,
+    const response = await apiClient.patch<{ data: TarteebRequest }>(
+      `/tarteeb-requests/${id}/status`,
       { status }
     );
     return response.data.data;
@@ -219,8 +240,8 @@ class TarteebRequestService {
       params.search = search;
     }
 
-    const response = await axios.get<PaginatedResponse<ZoneSummary>>(
-      `${API_URL}/zone`,
+    const response = await apiClient.get<PaginatedResponse<ZoneSummary>>(
+      '/zone',
       { params }
     );
 
@@ -238,12 +259,69 @@ class TarteebRequestService {
       params.search = search;
     }
 
-    const response = await axios.get<PaginatedResponse<MehfilSummary>>(
-      `${API_URL}/mehfil-directory`,
+    const response = await apiClient.get<PaginatedResponse<MehfilSummary>>(
+      '/mehfil-directory',
       { params }
     );
 
     return response.data.data || [];
+  }
+
+  /**
+   * Generate a public link for tarteeb request form
+   */
+  async generatePublicLink(
+    linkExpiryHours: number,
+    zoneId?: number,
+    mehfilDirectoryId?: number
+  ): Promise<{ token: string; url: string; expires_at: string }> {
+    console.log("Generating public link with params:", { linkExpiryHours, zoneId, mehfilDirectoryId });
+    const response = await apiClient.post<{
+      success: boolean;
+      data: { token: string; url: string; expires_at: string };
+    }>(
+      '/tarteeb-requests/generate-public-link',
+      {
+        linkExpiryHours,
+        zone_id: zoneId,
+        mehfil_directory_id: mehfilDirectoryId,
+      }
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Validate a public link token
+   */
+  async validateToken(token: string): Promise<{
+    success: boolean;
+    valid: boolean;
+    data?: { zone_id?: number; mehfil_directory_id?: number };
+    message?: string;
+  }> {
+    // This endpoint is public, so use plain axios without auth
+    const response = await axios.get<{
+      success: boolean;
+      valid: boolean;
+      data?: { zone_id?: number; mehfil_directory_id?: number };
+      message?: string;
+    }>(`${API_URL}/tarteeb-requests/validate-token/${token}`);
+    return response.data;
+  }
+
+  /**
+   * Create a tarteeb request with optional token
+   */
+  async createTarteebRequestWithToken(
+    request: Partial<TarteebRequest>,
+    token?: string
+  ): Promise<TarteebRequest> {
+    // This endpoint can be public (with token) or authenticated, so use plain axios
+    const response = await axios.post<{ data: TarteebRequest }>(
+      `${API_URL}/tarteeb-requests/add`,
+      { ...request, token }
+    );
+    return response.data.data;
   }
 }
 

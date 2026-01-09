@@ -36,7 +36,7 @@ const statusOptions: { value: StatusValue; label: string }[] = [
 
 const AdminTarteebRequestsPage = () => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<TarteebRequest[]>([]);
@@ -49,11 +49,16 @@ const AdminTarteebRequestsPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<number | null>(
     null
   );
+  const [showGenerateLinkModal, setShowGenerateLinkModal] = useState(false);
+  const [linkExpiryHours, setLinkExpiryHours] = useState(24);
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   const canFilterZones = useMemo(
     () =>
@@ -166,8 +171,10 @@ const AdminTarteebRequestsPage = () => {
       );
 
       const nextTotalPages = response.totalPages || 1;
+      const nextTotalItems = response.totalItems || 0;
       setRequests(response.data);
       setTotalPages(nextTotalPages);
+      setTotalItems(nextTotalItems);
       if (page > nextTotalPages) {
         setPage(nextTotalPages);
       }
@@ -222,7 +229,7 @@ const AdminTarteebRequestsPage = () => {
   useEffect(() => {
     loadRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedZoneId, selectedMehfilId, statusFilter, search, page]);
+  }, [selectedZoneId, selectedMehfilId, statusFilter, search, page, pageSize]);
 
   const resolveZoneName = (request: TarteebRequest) => {
     if (request.zone?.title_en) {
@@ -305,6 +312,41 @@ const AdminTarteebRequestsPage = () => {
     }
   };
 
+  const handleGenerateLink = async () => {
+    if (linkExpiryHours < 1 || linkExpiryHours > 720) {
+      toast.error("Link expiry hours must be between 1 and 720");
+      return;
+    }
+
+    try {
+      setGeneratingLink(true);
+      const result = await TarteebRequestService.generatePublicLink(
+        linkExpiryHours,
+        user?.zone_id,
+        user?.mehfil_directory_id 
+      );
+      console.log(window.location.origin);
+      setGeneratedLink(result.url);
+      toast.success("Public link generated successfully!");
+    } catch (error: any) {
+      console.error("Failed to generate link", error);
+      toast.error(
+        error?.response?.data?.message || "Failed to generate public link"
+      );
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      toast.success("Link copied to clipboard!");
+    } catch (error) {
+      toast.error("Failed to copy link");
+    }
+  };
+
   return (
     <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_TARTEEB_REQUESTS}>
       <div className="min-h-screen bg-gray-50 p-4">
@@ -321,9 +363,34 @@ const AdminTarteebRequestsPage = () => {
                   Review and manage tarteeb advancement submissions
                 </p>
               </div>
+              <div className="mt-4 md:mt-0">
+                <button
+                  onClick={() => {
+                    setShowGenerateLinkModal(true);
+                    setLinkExpiryHours(24);
+                    setGeneratedLink("");
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                    />
+                  </svg>
+                  Generate Public Tarteeb Link
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Zone
@@ -412,6 +479,25 @@ const AdminTarteebRequestsPage = () => {
                   placeholder="Search by name, email..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Items per page
+                </label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
               </div>
             </div>
           </div>
@@ -520,12 +606,14 @@ const AdminTarteebRequestsPage = () => {
                             >
                               View Portal
                             </Link>
-                            <button
-                              onClick={() => handleDelete(request.id)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              Delete
-                            </button>
+                            {!isSuperAdmin && (
+                              <button
+                                onClick={() => handleDelete(request.id)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -535,27 +623,152 @@ const AdminTarteebRequestsPage = () => {
               </div>
 
               {totalPages > 1 && (
-                <div className="mt-6 flex justify-center gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-4 py-2 text-sm text-gray-600">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                  >
-                    Next
-                  </button>
+                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white rounded-lg shadow-md p-4 border border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    Showing{" "}
+                    <span className="font-medium">
+                      {requests.length > 0 ? (page - 1) * pageSize + 1 : 0}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-medium">
+                      {Math.min(page * pageSize, totalItems)}
+                    </span>{" "}
+                    of <span className="font-medium">{totalItems}</span> results
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="px-3 py-2 text-sm text-gray-600">
+                      Page {page} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </>
+          )}
+
+          {/* Generate Public Link Modal */}
+          {showGenerateLinkModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Generate Public Tarteeb Request Link
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Create a public link that allows anyone to submit a tarteeb request
+                  </p>
+                </div>
+
+                {!generatedLink ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Link Expiry (Hours)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="720"
+                        value={linkExpiryHours}
+                        onChange={(e) =>
+                          setLinkExpiryHours(parseInt(e.target.value, 10) || 24)
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        placeholder="Enter hours (1-720)"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the number of hours the link should be valid (max 720 hours / 30 days)
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button
+                        onClick={() => {
+                          setShowGenerateLinkModal(false);
+                          setGeneratedLink("");
+                          setLinkExpiryHours(24);
+                        }}
+                        className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleGenerateLink}
+                        disabled={generatingLink}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {generatingLink ? "Generating..." : "Generate Link"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Generated Link
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={generatedLink}
+                          readOnly
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                        />
+                        <button
+                          onClick={handleCopyLink}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          Copy
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        This link will expire in {linkExpiryHours} hours
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => {
+                          setShowGenerateLinkModal(false);
+                          setGeneratedLink("");
+                          setLinkExpiryHours(24);
+                        }}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -10,6 +10,25 @@ import {
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/+$/, "");
 
+// Create axios instance with interceptor for auth token
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+// Request interceptor to add auth token
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 export interface KhatListResponse {
   success: boolean;
   data: Khat[];
@@ -80,30 +99,69 @@ class KhatService {
     if (sortField) params.sortField = sortField;
     if (sortDirection) params.sortDirection = sortDirection;
 
-    const response = await axios.get<PaginatedKhatResponse>(`${API_URL}/khat`, { params });
+    const response = await apiClient.get<PaginatedKhatResponse>(`/khat`, { params });
     return this.buildListResponse(response.data, page, size);
   }
 
   async getKhatById(id: number): Promise<Khat> {
-    const response = await axios.get<{ data: Khat }>(`${API_URL}/khat/${id}`);
+    const response = await apiClient.get<{ data: Khat }>(`/khat/${id}`);
     return response.data.data;
   }
 
   async createKhat(payload: Partial<Khat>): Promise<Khat> {
-    const response = await axios.post<{ data: Khat }>(`${API_URL}/khat/add`, payload);
+    const response = await apiClient.post<{ data: Khat }>(`/khat/add`, payload);
     return response.data.data;
   }
 
   async updateKhat(id: number, payload: Partial<Khat>): Promise<void> {
-    await axios.put(`${API_URL}/khat/update/${id}`, payload);
+    await apiClient.put(`/khat/update/${id}`, payload);
   }
 
   async deleteKhat(id: number): Promise<void> {
-    await axios.delete(`${API_URL}/khat/${id}`);
+    await apiClient.delete(`/khat/${id}`);
   }
 
   async updateStatus(id: number, status: KhatStatus): Promise<void> {
-    await axios.patch(`${API_URL}/khat/${id}/status`, { status });
+    await apiClient.patch(`/khat/${id}/status`, { status });
+  }
+
+  async generatePublicLink(
+    linkExpiryHours: number,
+    zoneId?: number,
+    mehfilDirectoryId?: number
+  ): Promise<{ token: string; url: string; expires_at: string }> {
+    const response = await apiClient.post<{
+      success: boolean;
+      data: { token: string; url: string; expires_at: string };
+    }>("/khat/generate-public-link", {
+      linkExpiryHours,
+      zone_id: zoneId,
+      mehfil_directory_id: mehfilDirectoryId,
+    });
+    return response.data.data;
+  }
+
+  async validateToken(token: string): Promise<{
+    success: boolean;
+    valid: boolean;
+    message?: string;
+    data?: {
+      zone_id?: number;
+      mehfil_directory_id?: number;
+      created_by?: number;
+    };
+  }> {
+    const response = await apiClient.get<{
+      success: boolean;
+      valid: boolean;
+      message?: string;
+      data?: {
+        zone_id?: number;
+        mehfil_directory_id?: number;
+        created_by?: number;
+      };
+    }>(`/khat/validate-token/${token}`);
+    return response.data;
   }
 
   async getZones(size = 200, search = ""): Promise<ZoneSummary[]> {
