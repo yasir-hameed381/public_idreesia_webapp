@@ -113,6 +113,24 @@ class KhatService {
     return response.data.data;
   }
 
+  async createKhatWithToken(payload: Partial<Khat>, token: string): Promise<Khat> {
+    const response = await apiClient.post<{ data: Khat }>(`/khat/add`, payload, {
+      headers: {
+        "X-Khat-Form-Token": token,
+      },
+    });
+    
+    // Mark token as used after successful creation
+    try {
+      await apiClient.post(`/khat/mark-token-used`, { token });
+    } catch (error) {
+      console.error("Failed to mark token as used:", error);
+      // Don't fail the request if marking token fails
+    }
+    
+    return response.data.data;
+  }
+
   async updateKhat(id: number, payload: Partial<Khat>): Promise<void> {
     await apiClient.put(`/khat/update/${id}`, payload);
   }
