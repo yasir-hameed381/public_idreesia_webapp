@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Phone, MessageCircle, Copy, Search, Plus, X, Info } from "lucide-react";
@@ -84,6 +83,18 @@ const AdminTarteebRequestDetailPage = () => {
     loadTemplates();
   }, [requestId, router]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showSearchModal || showTemplateModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showSearchModal, showTemplateModal]);
+
   const loadRequest = async () => {
     if (!requestId) return;
     try {
@@ -93,12 +104,22 @@ const AdminTarteebRequestDetailPage = () => {
       setStatus((data.status as "pending" | "approved" | "rejected") || "pending");
       setJawab(data.jawab || "");
       setNotes(data.notes || "");
-      // Parse jawab_links if it exists
-      if (data.jawab_links && Array.isArray(data.jawab_links)) {
-        setJawabLinks(data.jawab_links as JawabLink[]);
-      } else {
-        setJawabLinks([]);
+      
+      // Ensure jawab_links is always an array
+      let links: JawabLink[] = [];
+      if (data.jawab_links) {
+        if (typeof data.jawab_links === 'string') {
+          try {
+            links = JSON.parse(data.jawab_links);
+          } catch (e) {
+            console.error('Failed to parse jawab_links:', e);
+            links = [];
+          }
+        } else if (Array.isArray(data.jawab_links)) {
+          links = data.jawab_links;
+        }
       }
+      setJawabLinks(links);
     } catch (error) {
       console.error("Failed to load request", error);
       toast.error("Unable to load request details");
@@ -125,7 +146,9 @@ const AdminTarteebRequestDetailPage = () => {
 
     try {
       setSaving(true);
-      const filteredLinks = jawabLinks.filter((link) => link.title && link.url);
+      const filteredLinks = Array.isArray(jawabLinks) 
+        ? jawabLinks.filter((link) => link.title && link.url)
+        : [];
       await TarteebRequestService.updateTarteebRequest(requestId, {
         status,
         jawab,
@@ -149,7 +172,22 @@ const AdminTarteebRequestDetailPage = () => {
     const template = templates.find((t) => t.id === Number(templateId));
     if (template) {
       setJawab(template.jawab || "");
-      setJawabLinks((template.jawab_links as JawabLink[]) || []);
+      
+      // Ensure jawab_links is always an array
+      let links: JawabLink[] = [];
+      if (template.jawab_links) {
+        if (typeof template.jawab_links === 'string') {
+          try {
+            links = JSON.parse(template.jawab_links);
+          } catch (e) {
+            console.error('Failed to parse template jawab_links:', e);
+            links = [];
+          }
+        } else if (Array.isArray(template.jawab_links)) {
+          links = template.jawab_links;
+        }
+      }
+      setJawabLinks(links);
       toast.success("Template applied successfully");
     }
   };
@@ -160,7 +198,9 @@ const AdminTarteebRequestDetailPage = () => {
       return;
     }
 
-    const filteredLinks = jawabLinks.filter((link) => link.title && link.url);
+    const filteredLinks = Array.isArray(jawabLinks)
+      ? jawabLinks.filter((link) => link.title && link.url)
+      : [];
 
     try {
       await ResponseTemplatesService.createResponseTemplate({
@@ -371,12 +411,13 @@ const AdminTarteebRequestDetailPage = () => {
         <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Request Not Found</h2>
-            <Link
-              href="/tarteeb-requests"
-              className="text-indigo-600 hover:text-indigo-800"
+            <button
+              onClick={() => router.push("/tarteeb-requests")}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
-              ← Back to Tarteeb Requests
-            </Link>
+              <span>←</span>
+              <span>Back to Tarteeb Requests</span>
+            </button>
           </div>
         </div>
       </PermissionWrapper>
@@ -403,12 +444,13 @@ const AdminTarteebRequestDetailPage = () => {
                   </span>
                 </div>
               </div>
-              <Link
-                href="/tarteeb-requests"
-                className="text-sm text-indigo-600 hover:text-indigo-800"
+              <button
+                onClick={() => router.push("/tarteeb-requests")}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
-                ← Back to Tarteeb Requests
-              </Link>
+                <span>←</span>
+                <span>Back to Tarteeb Requests</span>
+              </button>
             </div>
           </div>
 
@@ -451,7 +493,7 @@ const AdminTarteebRequestDetailPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Taleemat/Wazaif Links
                 </label>
-                {jawabLinks.length === 0 ? (
+                {!Array.isArray(jawabLinks) || jawabLinks.length === 0 ? (
                   <p className="text-sm text-gray-500 mb-2">
                     No links added yet. Click 'Add Link' to add resources.
                   </p>
@@ -856,8 +898,15 @@ const AdminTarteebRequestDetailPage = () => {
 
         {/* Resource Search Modal */}
         {showSearchModal && (
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowSearchModal(false);
+              }
+            }}
+          >
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Search Resources</h3>
@@ -989,8 +1038,16 @@ const AdminTarteebRequestDetailPage = () => {
 
         {/* Save Template Modal */}
         {showTemplateModal && (
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowTemplateModal(false);
+                setNewTemplateTitle("");
+              }
+            }}
+          >
+            <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Save as Template</h3>
                 <button

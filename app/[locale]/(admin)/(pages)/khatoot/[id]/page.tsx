@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -37,10 +36,11 @@ const SEARCH_TYPES = {
 type SearchType = typeof SEARCH_TYPES[keyof typeof SEARCH_TYPES];
 
 const AdminKhatDetailPage = () => {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ id: string; locale: string }>();
   const router = useRouter();
   const { hasPermission, isSuperAdmin } = usePermissions();
   const khatId = Number(params?.id);
+  const locale = params.locale as string;
 
   const [khat, setKhat] = useState<Khat | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,6 +86,18 @@ const AdminKhatDetailPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [khatId]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showSearchModal || showTemplateModal || showDeleteQuestionModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showSearchModal, showTemplateModal, showDeleteQuestionModal]);
+
   const loadKhat = async () => {
     if (!Number.isFinite(khatId)) return;
     try {
@@ -95,7 +107,22 @@ const AdminKhatDetailPage = () => {
       setStatus((data.status as KhatStatus) || "pending");
       setJawab(data.jawab || "");
       setNotes(data.notes || "");
-      setJawabLinks((data.jawab_links as JawabLink[]) || []);
+      
+      // Ensure jawab_links is always an array
+      let links: JawabLink[] = [];
+      if (data.jawab_links) {
+        if (typeof data.jawab_links === 'string') {
+          try {
+            links = JSON.parse(data.jawab_links);
+          } catch (e) {
+            console.error('Failed to parse jawab_links:', e);
+            links = [];
+          }
+        } else if (Array.isArray(data.jawab_links)) {
+          links = data.jawab_links;
+        }
+      }
+      setJawabLinks(links);
 
       // Load questions
       try {
@@ -139,7 +166,12 @@ const AdminKhatDetailPage = () => {
   };
 
   const filteredLinks = useMemo(
-    () => jawabLinks.filter((link) => link.title && link.url),
+    () => {
+      if (!Array.isArray(jawabLinks)) {
+        return [];
+      }
+      return jawabLinks.filter((link) => link.title && link.url);
+    },
     [jawabLinks]
   );
 
@@ -236,7 +268,22 @@ const AdminKhatDetailPage = () => {
     const template = templates.find((t) => t.id === Number(templateId));
     if (template) {
       setJawab(template.jawab || "");
-      setJawabLinks((template.jawab_links as JawabLink[]) || []);
+      
+      // Ensure jawab_links is always an array
+      let links: JawabLink[] = [];
+      if (template.jawab_links) {
+        if (typeof template.jawab_links === 'string') {
+          try {
+            links = JSON.parse(template.jawab_links);
+          } catch (e) {
+            console.error('Failed to parse template jawab_links:', e);
+            links = [];
+          }
+        } else if (Array.isArray(template.jawab_links)) {
+          links = template.jawab_links;
+        }
+      }
+      setJawabLinks(links);
       toast.success("Template applied successfully");
     }
   };
@@ -465,12 +512,13 @@ const AdminKhatDetailPage = () => {
                     )}
                   </div>
                 </div>
-                <Link
-                  href="/admin/khatoot"
-                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                <button
+                  onClick={() => router.push(`/${locale}/khatoot`)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-colors"
                 >
-                  ← Back to Khatoot
-                </Link>
+                  <span>←</span>
+                  <span>Back to Khatoot</span>
+                </button>
               </div>
             </div>
 
@@ -707,18 +755,35 @@ const AdminKhatDetailPage = () => {
 
               {/* Add Question */}
               <div className="space-y-2">
-                <textarea
-                  value={newQuestion}
-                  onChange={(e) => setNewQuestion(e.target.value)}
-                  placeholder="Type your question here..."
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+                <div>
+                  <textarea
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                    placeholder="Type your question here..."
+                    rows={2}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                      newQuestion.length > 0 && newQuestion.length < 10
+                        ? "border-red-300 focus:ring-red-500 bg-red-50"
+                        : "border-gray-300 focus:ring-indigo-500"
+                    }`}
+                  />
+                  {newQuestion.length > 0 && newQuestion.length < 10 && (
+                    <p className="mt-1 text-xs text-red-600">
+                      Question must be at least 10 characters ({newQuestion.length}/10)
+                    </p>
+                  )}
+                  {newQuestion.length >= 10 && (
+                    <p className="mt-1 text-xs text-green-600">
+                      ✓ {newQuestion.length} characters
+                    </p>
+                  )}
+                </div>
                 <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={handleAddQuestion}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    disabled={newQuestion.trim().length < 10}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
                   >
                     <Plus size={16} />
                     Add Question
@@ -941,8 +1006,15 @@ const AdminKhatDetailPage = () => {
 
       {/* Resource Search Modal */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSearchModal(false);
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Search Resources</h3>

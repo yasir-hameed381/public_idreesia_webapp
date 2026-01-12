@@ -10,7 +10,7 @@ import { usePermissions } from "@/context/PermissionContext";
 import { useAuth } from "@/hooks/useAuth";
 import ActionsDropdown from "@/components/ActionsDropdown";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -47,6 +47,8 @@ const sortFieldLabels = {
 const AdminKhatListPage = () => {
   const { user } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const { isSuperAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [khats, setKhats] = useState<Khat[]>([]);
@@ -506,7 +508,7 @@ const AdminKhatListPage = () => {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{khat.id}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         <Link
-                          href={`/admin/khatoot/${khat.id}`}
+                          href={`/${locale}/khatoot/${khat.id}`}
                           className="text-green-600 hover:text-green-800 font-semibold"
                         >
                           {khat.full_name}
@@ -539,7 +541,7 @@ const AdminKhatListPage = () => {
                       <td className="px-6 py-4 text-right text-sm">
                         <div className="flex items-center justify-end">
                           <ActionsDropdown
-                            onView={() => router.push(`/admin/khatoot/${khat.id}`)}
+                            onView={() => router.push(`/${locale}/khatoot/${khat.id}`)}
                             onDelete={!isSuperAdmin ? () => handleDeleteClick(khat.id!) : undefined}
                             showView={true}
                             showEdit={false}

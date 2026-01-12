@@ -252,35 +252,65 @@ class KhatService {
   // Resource search methods
   async searchTaleemat(search?: string, offset = 0, limit = 50): Promise<SearchResource[]> {
     const params: Record<string, string | number> = {
-      offset,
-      limit,
+      page: Math.floor(offset / limit) + 1,
+      size: limit,
     };
     if (search) params.search = search;
 
-    const response = await apiClient.get<{ data: SearchResource[] }>(`/taleem`, { params });
-    return response.data.data || [];
+    const response = await apiClient.get<{ data: any[] }>(`/taleemat-data`, { params });
+    const items = response.data.data || [];
+    return items.map((item: any) => ({
+      id: item.id,
+      title_en: item.title_en || "",
+      title_ur: item.title_ur,
+      slug: item.slug,
+      url: item.slug ? `/taleemat/${item.slug}` : `/taleemat/${item.id}`,
+      is_admin_favorite: item.is_admin_favorite,
+      track: item.track,
+      date: item.date,
+    }));
   }
 
   async searchWazaif(search?: string, offset = 0, limit = 50): Promise<SearchResource[]> {
     const params: Record<string, string | number> = {
-      offset,
-      limit,
+      page: Math.floor(offset / limit) + 1,
+      size: limit,
     };
     if (search) params.search = search;
 
-    const response = await apiClient.get<{ data: SearchResource[] }>(`/wazaifs`, { params });
-    return response.data.data || [];
+    const response = await apiClient.get<{ data: any[] }>(`/wazaifs-data`, { params });
+    const items = response.data.data || [];
+    return items.map((item: any) => ({
+      id: item.id,
+      title_en: item.title_en || "",
+      title_ur: item.title_ur,
+      slug: item.slug,
+      url: item.slug ? `/wazaif/${item.slug}` : `/wazaif/${item.id}`,
+      is_admin_favorite: item.is_admin_favorite,
+      track: item.track,
+      date: item.date,
+    }));
   }
 
   async searchMehfils(search?: string, offset = 0, limit = 50): Promise<SearchResource[]> {
     const params: Record<string, string | number> = {
-      offset,
-      limit,
+      page: Math.floor(offset / limit) + 1,
+      size: limit,
     };
     if (search) params.search = search;
 
-    const response = await apiClient.get<{ data: SearchResource[] }>(`/mehfils`, { params });
-    return response.data.data || [];
+    const response = await apiClient.get<{ data: any[] }>(`/mehfils-data`, { params });
+    const items = response.data.data || [];
+    return items.map((item: any) => ({
+      id: item.id,
+      title_en: item.title_en || "",
+      title_ur: item.title_ur,
+      slug: item.slug,
+      url: item.slug ? `/mehfils/${item.slug}` : `/mehfils/${item.id}`,
+      is_admin_favorite: item.is_admin_favorite,
+      track: item.track,
+      date: item.date,
+    }));
   }
 
   // Response template methods

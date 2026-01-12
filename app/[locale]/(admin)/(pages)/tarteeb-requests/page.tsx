@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
@@ -40,6 +42,8 @@ const AdminTarteebRequestsPage = () => {
   const { user } = useAuth();
   const { hasPermission, isSuperAdmin } = usePermissions();
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
 
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<TarteebRequest[]>([]);
@@ -62,6 +66,8 @@ const AdminTarteebRequestsPage = () => {
   const [linkExpiryHours, setLinkExpiryHours] = useState(24);
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatingLink, setGeneratingLink] = useState(false);
+  const [sortField, setSortField] = useState<"id" | "created_at" | "updated_at">("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -302,6 +308,45 @@ const AdminTarteebRequestsPage = () => {
     }
   };
 
+  const handleSortChange = (field: "id" | "created_at" | "updated_at") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusClasses: Record<string, string> = {
+      pending: "bg-yellow-100 text-yellow-800",
+      approved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+    };
+    const statusLabels: Record<string, string> = {
+      pending: "Pending",
+      approved: "Approved",
+      rejected: "Rejected",
+    };
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status] || statusClasses.pending}`}>
+        {statusLabels[status] || status}
+      </span>
+    );
+  };
+
   const handleDeleteClick = (request: TarteebRequest) => {
     setRequestToDelete(request);
     setShowDeleteDialog(true);
@@ -375,7 +420,7 @@ const AdminTarteebRequestsPage = () => {
                   Tarteeb Requests
                 </h2>
                 <p className="text-gray-600">
-                  Review and manage tarteeb advancement submissions
+                  Manage tarteeb requests and their details
                 </p>
               </div>
               <div className="mt-4 md:mt-0">
@@ -406,6 +451,21 @@ const AdminTarteebRequestsPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search
+                </label>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Search by name, email..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Zone
@@ -482,22 +542,6 @@ const AdminTarteebRequestsPage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search
-                </label>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Search by name, email..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Items per page
                 </label>
                 <select
@@ -531,39 +575,106 @@ const AdminTarteebRequestsPage = () => {
           ) : (
             <>
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Zone / Mehfil
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
+                <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer bg-gray-50"
+                          onClick={() => handleSortChange("id")}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>ID</span>
+                            {sortField === "id" && (
+                              <svg
+                                className="w-3 h-3 text-gray-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                {sortDirection === "asc" ? (
+                                  <path d="M10 5l-5 6h10l-5-6z" />
+                                ) : (
+                                  <path d="M10 15l5-6H5l5 6z" />
+                                )}
+                              </svg>
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                          NAME
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                          STATUS
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                          CONTACT
+                        </th>
+                        <th 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer bg-gray-50"
+                          onClick={() => handleSortChange("created_at")}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>SUBMITTED AT/BY</span>
+                            {sortField === "created_at" && (
+                              <svg
+                                className="w-3 h-3 text-gray-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                {sortDirection === "asc" ? (
+                                  <path d="M10 5l-5 6h10l-5-6z" />
+                                ) : (
+                                  <path d="M10 15l5-6H5l5 6z" />
+                                )}
+                              </svg>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer bg-gray-50"
+                          onClick={() => handleSortChange("updated_at")}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>UPDATED AT/BY</span>
+                            {sortField === "updated_at" && (
+                              <svg
+                                className="w-3 h-3 text-gray-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                {sortDirection === "asc" ? (
+                                  <path d="M10 5l-5 6h10l-5-6z" />
+                                ) : (
+                                  <path d="M10 15l5-6H5l5 6z" />
+                                )}
+                              </svg>
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                          ACTIONS
+                        </th>
+                      </tr>
+                    </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {requests.map((request) => (
                       <tr key={request.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {request.id}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
+                          <Link
+                            href={`/${locale}/tarteeb-requests/${request.id}`}
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                          >
                             {request.full_name}
-                          </div>
+                          </Link>
                           <div className="text-sm text-gray-500">
-                            Father: {request.father_name}
+                            {request.father_name}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(request.status || "pending")}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-600">
@@ -573,43 +684,27 @@ const AdminTarteebRequestsPage = () => {
                             {request.phone_number}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
-                            {resolveZoneName(request)}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-600">
+                            {formatDate(request.created_at)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {resolveMehfilName(request)}
+                            —
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={request.status || "pending"}
-                            onChange={(e) =>
-                              handleStatusChange(
-                                request.id,
-                                e.target.value as StatusValue
-                              )
-                            }
-                            disabled={statusUpdateLoading === request.id}
-                            className="px-2 py-1 text-xs border border-gray-300 rounded-full bg-gray-50"
-                          >
-                            {statusOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {request.created_at
-                            ? new Date(request.created_at).toLocaleDateString()
-                            : "—"}
+                          <div className="text-sm text-gray-600">
+                            {formatDate(request.updated_at)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            —
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex justify-center">
                             <ActionsDropdown
-                              onEdit={() => router.push(`/tarteeb-requests/${request.id}/edit`)}
-                              onView={() => router.push(`/tarteeb-requests/${request.id}`)}
+                              onEdit={() => router.push(`/${locale}/tarteeb-requests/${request.id}/edit`)}
+                              onView={() => router.push(`/${locale}/tarteeb-requests/${request.id}`)}
                               onDelete={!isSuperAdmin ? () => handleDeleteClick(request) : undefined}
                               showView={true}
                               showEdit={true}
@@ -621,7 +716,8 @@ const AdminTarteebRequestsPage = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
 
               {totalPages > 1 && (
