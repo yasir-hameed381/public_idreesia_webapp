@@ -16,7 +16,8 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { useFetchZonesQuery } from "../../../../../store/slicers/zoneApi";
-import { useFetchAddressQuery } from "../../../../../store/slicers/mehfildirectoryApi";
+import KhatService from "@/services/KhatService";
+import { MehfilSummary } from "@/types/khat";
 
 interface TabarukatData {
   id: number;
@@ -62,8 +63,9 @@ export function TabarukatTable({
   hideDelete = false,
 }: TabarukatTableProps) {
   const [search, setSearch] = useState("");
-  const [selectedZone, setSelectedZone] = useState("");
-  const [selectedMehfil, setSelectedMehfil] = useState("");
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
+  const [selectedMehfil, setSelectedMehfil] = useState<number | null>(null);
+  const [mehfils, setMehfils] = useState<MehfilSummary[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedTabarukat, setSelectedTabarukat] =
     useState<TabarukatData | null>(null);
@@ -76,14 +78,29 @@ export function TabarukatTable({
   const debouncedSearch = useDebounce(search, 500);
   const { showError, showSuccess } = useToast();
 
-  // Fetch zones and mehfils for filters
+  // Fetch zones for filters
   const { data: zonesData } = useFetchZonesQuery({ per_page: 1000 });
-  const { data: mehfilData } = useFetchAddressQuery({
-    page: 1,
-    size: 1000,
-    zoneId: selectedZone,
-    search: "",
-  });
+
+  // Fetch mehfils when zone is selected
+  useEffect(() => {
+    const fetchMehfils = async () => {
+      if (!selectedZone) {
+        setMehfils([]);
+        return;
+      }
+
+      try {
+        const list = await KhatService.getMehfilsByZone(selectedZone, 500);
+        setMehfils(list);
+      } catch (error) {
+        console.error("Failed to load mehfils", error);
+        showError("Unable to load mehfils");
+        setMehfils([]);
+      }
+    };
+
+    fetchMehfils();
+  }, [selectedZone, showError]);
 
   // Fetch tabarukats data
   useEffect(() => {
@@ -96,8 +113,8 @@ export function TabarukatTable({
           page: currentPage.toString(),
           per_page: perPage.toString(),
           search: debouncedSearch.trim(),
-          ...(selectedZone && { zone_id: selectedZone }),
-          ...(selectedMehfil && { mehfil_directory_id: selectedMehfil }),
+          ...(selectedZone && { zone_id: selectedZone.toString() }),
+          ...(selectedMehfil && { mehfil_directory_id: selectedMehfil.toString() }),
         });
 
         const response = await fetch(
@@ -158,8 +175,8 @@ export function TabarukatTable({
         page: currentPage.toString(),
         per_page: perPage.toString(),
         search: debouncedSearch.trim(),
-        ...(selectedZone && { zone_id: selectedZone }),
-        ...(selectedMehfil && { mehfil_directory_id: selectedMehfil }),
+        ...(selectedZone && { zone_id: selectedZone.toString() }),
+        ...(selectedMehfil && { mehfil_directory_id: selectedMehfil.toString() }),
       });
 
       const refreshResponse = await fetch(`/api/tabarukat?${params}`);
@@ -254,8 +271,13 @@ export function TabarukatTable({
               {/* Filters */}
               <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                 <select
-                  value={selectedZone}
-                  onChange={(e) => setSelectedZone(e.target.value)}
+                  value={selectedZone || ""}
+                  onChange={(e) => {
+                    const zoneId = e.target.value ? Number(e.target.value) : null;
+                    setSelectedZone(zoneId);
+                    setSelectedMehfil(null); // Reset mehfil when zone changes
+                    setCurrentPage(1); // Reset to first page
+                  }}
                   className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px]"
                 >
                   <option value="">All Zones</option>
@@ -267,14 +289,21 @@ export function TabarukatTable({
                 </select>
 
                 <select
-                  value={selectedMehfil}
-                  onChange={(e) => setSelectedMehfil(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px]"
+                  value={selectedMehfil || ""}
+                  onChange={(e) => {
+                    const mehfilId = e.target.value ? Number(e.target.value) : null;
+                    setSelectedMehfil(mehfilId);
+                    setCurrentPage(1); // Reset to first page
+                  }}
+                  disabled={!selectedZone}
+                  className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px] ${
+                    !selectedZone ? "opacity-50 cursor-not-allowed bg-gray-50" : ""
+                  }`}
                 >
                   <option value="">All Mehfils</option>
-                  {mehfilData?.data?.map((mehfil: any) => (
+                  {mehfils.map((mehfil) => (
                     <option key={mehfil.id} value={mehfil.id}>
-                      {mehfil.address_en}
+                      #{mehfil.mehfil_number} - {mehfil.name_en}
                     </option>
                   ))}
                 </select>

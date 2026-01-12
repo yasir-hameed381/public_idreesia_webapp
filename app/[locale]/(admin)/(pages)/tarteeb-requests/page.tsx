@@ -720,9 +720,9 @@ const AdminTarteebRequestsPage = () => {
                 </div>
               </div>
 
-              {totalPages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                  <div className="text-sm text-gray-600">
+              {!loading && requests.length > 0 && (
+                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                  <div className="text-sm text-gray-700">
                     Showing{" "}
                     <span className="font-medium">
                       {requests.length > 0 ? (page - 1) * pageSize + 1 : 0}
@@ -734,23 +734,110 @@ const AdminTarteebRequestsPage = () => {
                     of <span className="font-medium">{totalItems}</span> results
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                      className={`px-3 py-2 text-sm border-r border-gray-300 ${
+                        page === 1
+                          ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                          : "text-gray-700 hover:bg-gray-100"
+                      } transition-colors`}
                     >
-                      Previous
+                      &lt;
                     </button>
-                    <span className="px-3 py-2 text-sm text-gray-600">
-                      Page {page} of {totalPages}
-                    </span>
+                    {(() => {
+                      const getPageNumbers = () => {
+                        const pages: (number | string)[] = [];
+                        const delta = 1; // Show 1 page on each side of current
+                        
+                        if (totalPages <= 7) {
+                          // Show all pages if 7 or fewer
+                          for (let i = 1; i <= totalPages; i++) {
+                            pages.push(i);
+                          }
+                        } else {
+                          // Always show first page
+                          pages.push(1);
+                          
+                          let start = Math.max(2, page - delta);
+                          let end = Math.min(totalPages - 1, page + delta);
+                          
+                          // Adjust if we're near the start
+                          if (page <= 3) {
+                            end = Math.min(5, totalPages - 1);
+                          }
+                          
+                          // Adjust if we're near the end
+                          if (page >= totalPages - 2) {
+                            start = Math.max(2, totalPages - 4);
+                          }
+                          
+                          // Add ellipsis after first page if needed
+                          if (start > 2) {
+                            pages.push("ellipsis-start");
+                          }
+                          
+                          // Add page numbers around current
+                          for (let i = start; i <= end; i++) {
+                            pages.push(i);
+                          }
+                          
+                          // Add ellipsis before last page if needed
+                          if (end < totalPages - 1) {
+                            pages.push("ellipsis-end");
+                          }
+                          
+                          // Always show last page
+                          if (totalPages > 1) {
+                            pages.push(totalPages);
+                          }
+                        }
+                        
+                        return pages;
+                      };
+                      
+                      const pageNumbers = getPageNumbers();
+                      
+                      return pageNumbers.map((pageNum, index) => {
+                        if (pageNum === "ellipsis-start" || pageNum === "ellipsis-end") {
+                          return (
+                            <span
+                              key={`ellipsis-${index}`}
+                              className="px-3 py-2 text-sm text-gray-500 border-r border-gray-300"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum as number)}
+                            className={`px-3 py-2 text-sm border-r border-gray-300 ${
+                              index === pageNumbers.length - 1 ? "last:border-r-0" : ""
+                            } ${
+                              page === pageNum
+                                ? "bg-indigo-600 text-white font-medium"
+                                : "text-gray-700 hover:bg-gray-100"
+                            } transition-colors`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      });
+                    })()}
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                      className={`px-3 py-2 text-sm ${
+                        page === totalPages
+                          ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                          : "text-gray-700 hover:bg-gray-100"
+                      } transition-colors`}
                     >
-                      Next
+                      &gt;
                     </button>
                   </div>
                 </div>

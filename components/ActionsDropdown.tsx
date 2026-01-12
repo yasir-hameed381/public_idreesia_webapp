@@ -80,7 +80,9 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
           viewBox="0 0 20 20"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          <circle cx="5" cy="10" r="1.5" />
+          <circle cx="10" cy="10" r="1.5" />
+          <circle cx="15" cy="10" r="1.5" />
         </svg>
       </button>
 

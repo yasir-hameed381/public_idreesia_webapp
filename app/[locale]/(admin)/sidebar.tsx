@@ -337,14 +337,9 @@ export function AppSidebar({
         return true;
       }
       
-      // For super admin, only show specific items: Khatoot/Masail, Response Templates, and Tarteeb Requests
+      // For super admin, show all items (they have all permissions)
       if (isSuperAdmin) {
-        const allowedForSuperAdmin = [
-          "/khatoot",
-          "/response-templates",
-          "/tarteeb-requests"
-        ];
-        return allowedForSuperAdmin.includes(item.href);
+        return true;
       }
       
       // Check permission for non-super-admin users
@@ -365,7 +360,7 @@ export function AppSidebar({
 
   // Check if home item should be shown
   const showHome =
-    homeItem.permission === null || hasPermission(homeItem.permission);
+    homeItem.permission === null || isSuperAdmin || hasPermission(homeItem.permission);
 
   // Build menu items with groups (matching Laravel structure)
   const buildMenuItems = () => {
@@ -413,6 +408,8 @@ export function AppSidebar({
       key: "logout",
       icon: <LogOut size={18} />,
       label: <span onClick={handleLogout}>Logout</span>,
+      href: "/logout",
+      onClick: handleLogout,
     });
 
     return items;
