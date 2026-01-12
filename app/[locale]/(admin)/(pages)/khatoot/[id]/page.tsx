@@ -412,16 +412,25 @@ const AdminKhatDetailPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Khat Details
-              </h1>
-              <div className="flex items-center gap-2">
-                {khat && (
-                  <>
+        {loading ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading khat details...</p>
+          </div>
+        ) : !khat ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <p className="text-gray-600">Khat submission not found.</p>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                    Khat Details
+                  </h1>
+                  <div className="flex items-center gap-2">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         khat.type === "khat"
@@ -454,30 +463,17 @@ const AdminKhatDetailPage = () => {
                         First submission
                       </span>
                     )}
-                  </>
-                )}
+                  </div>
+                </div>
+                <Link
+                  href="/admin/khatoot"
+                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  ← Back to Khatoot
+                </Link>
               </div>
             </div>
-            <Link
-              href="/admin/khatoot"
-              className="text-sm text-indigo-600 hover:text-indigo-800"
-            >
-              ← Back to Khatoot
-            </Link>
-          </div>
-        </div>
 
-        {loading ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading khat details...</p>
-          </div>
-        ) : !khat ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-            <p className="text-gray-600">Khat submission not found.</p>
-          </div>
-        ) : (
-          <>
             {/* Description/Issue */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Description/Issue</h2>
@@ -486,11 +482,11 @@ const AdminKhatDetailPage = () => {
 
             {/* Response & Actions */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Response & Actions</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Response & Actions</h2>
 
               {/* Template Selection */}
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Apply Template
                 </label>
                 <select
@@ -509,7 +505,7 @@ const AdminKhatDetailPage = () => {
 
               {/* Jawab */}
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Jawab</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Jawab</label>
                 <textarea
                   value={jawab}
                   onChange={(e) => setJawab(e.target.value)}

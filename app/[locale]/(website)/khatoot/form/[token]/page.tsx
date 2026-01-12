@@ -56,17 +56,17 @@ const PublicKhatFormPage = () => {
       try {
         const result = await KhatService.validateToken(token);
         
-        if (result.success && result.valid) {
+        if (result.success && result.valid && result.data) {
           setTokenValid(true);
           setTokenData(result.data);
           // Set zone and mehfil from token if available
-          if (result.data?.zone_id) {
-            setFormData((prev) => ({ ...prev, zone_id: result.data.zone_id }));
+          if (result.data.zone_id) {
+            setFormData((prev) => ({ ...prev, zone_id: result.data!.zone_id }));
           }
-          if (result.data?.mehfil_directory_id) {
+          if (result.data.mehfil_directory_id) {
             setFormData((prev) => ({
               ...prev,
-              mehfil_directory_id: result.data.mehfil_directory_id,
+              mehfil_directory_id: result.data!.mehfil_directory_id,
             }));
           }
         } else {

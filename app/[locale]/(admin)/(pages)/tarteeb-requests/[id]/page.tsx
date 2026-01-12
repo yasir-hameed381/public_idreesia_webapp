@@ -294,7 +294,7 @@ const AdminTarteebRequestDetailPage = () => {
             break;
         }
         newLinks.push({
-          title: resource.title || resource.name || "",
+          title: resource.title_en || "",
           url: `${window.location.origin}${url}`,
         });
       }
@@ -948,9 +948,9 @@ const AdminTarteebRequestDetailPage = () => {
                             className="mt-1"
                           />
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{resource.title || resource.name}</p>
-                            {resource.description && (
-                              <p className="text-sm text-gray-600 mt-1">{resource.description}</p>
+                            <p className="font-medium text-gray-900">{resource.title_en}</p>
+                            {resource.title_ur && (
+                              <p className="text-sm text-gray-600 mt-1">{resource.title_ur}</p>
                             )}
                           </div>
                         </label>
