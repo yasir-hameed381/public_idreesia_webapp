@@ -1,4 +1,4 @@
-export type KhatStatus = "pending" | "in-review" | "closed";
+export type KhatStatus = "pending" | "in-review" | "awaiting-response" | "closed";
 
 export type KhatType = "khat" | "masail";
 
@@ -80,6 +80,7 @@ export interface Khat {
   updated_at?: string;
   zone?: ZoneSummary | null;
   mehfilDirectory?: MehfilSummary | null;
+  questions?: KhatQuestion[] | null;
 }
 
 export interface PaginatedKhatResponse {
@@ -92,6 +93,42 @@ export interface PaginatedKhatResponse {
     per_page?: number | string;
     total?: number;
   };
+}
+
+export interface KhatQuestion {
+  id: number;
+  khat_id: number;
+  question: string;
+  answer?: string | null;
+  answered_at?: string | null;
+  asked_by?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  askedBy?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+export interface ResponseTemplate {
+  id: number;
+  title: string;
+  jawab?: string | null;
+  jawab_links?: JawabLink[] | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SearchResource {
+  id: number;
+  title_en: string;
+  title_ur?: string;
+  slug?: string;
+  url: string;
+  is_admin_favorite?: boolean;
+  track?: string;
+  date?: string;
 }
 
 

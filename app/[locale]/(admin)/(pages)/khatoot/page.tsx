@@ -8,16 +8,21 @@ import KhatService from "@/services/KhatService";
 import { Khat, MehfilSummary, ZoneSummary } from "@/types/khat";
 import { usePermissions } from "@/context/PermissionContext";
 import { useAuth } from "@/hooks/useAuth";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
+import { useRouter } from "next/navigation";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
   "in-review": "In Review",
+  "awaiting-response": "Awaiting Response",
   closed: "Closed",
 };
 
 const statusClasses: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   "in-review": "bg-green-100 text-green-800",
+  "awaiting-response": "bg-blue-100 text-blue-800",
   closed: "bg-gray-200 text-gray-800",
 };
 
@@ -41,6 +46,7 @@ const sortFieldLabels = {
 
 const AdminKhatListPage = () => {
   const { user } = useAuth();
+  const router = useRouter();
   const { isSuperAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [khats, setKhats] = useState<Khat[]>([]);
@@ -64,6 +70,11 @@ const AdminKhatListPage = () => {
   const [linkExpiryHours, setLinkExpiryHours] = useState(24);
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatingLink, setGeneratingLink] = useState(false);
+
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [khatToDelete, setKhatToDelete] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchZones = async () => {
@@ -198,19 +209,26 @@ const AdminKhatListPage = () => {
     return "—";
   };
 
-  const handleDelete = async (id?: number) => {
-    if (!id) return;
-    if (!confirm("Delete this khat record? This action cannot be undone.")) {
-      return;
-    }
+  const handleDeleteClick = (id: number) => {
+    setKhatToDelete(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!khatToDelete) return;
 
     try {
-      await KhatService.deleteKhat(id);
-      toast.success("Khat record deleted");
+      setDeleting(true);
+      await KhatService.deleteKhat(khatToDelete);
+      toast.success("Khat record deleted successfully");
+      setShowDeleteDialog(false);
+      setKhatToDelete(null);
       loadKhats();
     } catch (error: any) {
       console.error("Failed to delete khat", error);
       toast.error(error?.response?.data?.message || "Unable to delete record");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -519,22 +537,15 @@ const AdminKhatListPage = () => {
                       <td className="px-6 py-4 text-sm text-gray-700">{resolveMehfilName(khat)}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{khat.phone_number}</td>
                       <td className="px-6 py-4 text-right text-sm">
-                        <div className="flex items-center justify-end gap-3">
-                          <Link
-                            href={`/admin/khatoot/${khat.id}`}
-                            className="text-green-600 hover:text-green-800 font-medium"
-                          >
-                            View
-                          </Link>
-                          {!isSuperAdmin && (
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(khat.id)}
-                              className="text-red-600 hover:text-red-800 font-medium"
-                            >
-                              Delete
-                            </button>
-                          )}
+                        <div className="flex items-center justify-end">
+                          <ActionsDropdown
+                            onView={() => router.push(`/admin/khatoot/${khat.id}`)}
+                            onDelete={!isSuperAdmin ? () => handleDeleteClick(khat.id!) : undefined}
+                            showView={true}
+                            showEdit={false}
+                            showDelete={!isSuperAdmin}
+                            align="right"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -689,6 +700,19 @@ const AdminKhatListPage = () => {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Delete Khat"
+          message="Are you sure you want to delete this khat record? This action cannot be undone."
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setKhatToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleting}
+        />
       </div>
     </div>
   );

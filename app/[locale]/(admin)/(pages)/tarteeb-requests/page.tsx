@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +10,9 @@ import { PERMISSIONS } from "@/types/permission";
 import TarteebRequestService, {
   TarteebRequest,
 } from "@/services/TarteebRequests";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
+import { useRouter } from "next/navigation";
 
 interface Zone {
   id: number;
@@ -37,6 +39,7 @@ const statusOptions: { value: StatusValue; label: string }[] = [
 const AdminTarteebRequestsPage = () => {
   const { user } = useAuth();
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<TarteebRequest[]>([]);
@@ -59,6 +62,11 @@ const AdminTarteebRequestsPage = () => {
   const [linkExpiryHours, setLinkExpiryHours] = useState(24);
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatingLink, setGeneratingLink] = useState(false);
+
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<TarteebRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const canFilterZones = useMemo(
     () =>
@@ -294,21 +302,28 @@ const AdminTarteebRequestsPage = () => {
     }
   };
 
-  const handleDelete = async (requestId: number | undefined) => {
-    if (!requestId) return;
-    if (!confirm("Are you sure you want to delete this tarteeb request?")) {
-      return;
-    }
+  const handleDeleteClick = (request: TarteebRequest) => {
+    setRequestToDelete(request);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete?.id) return;
 
     try {
-      await TarteebRequestService.deleteTarteebRequest(requestId);
+      setDeleting(true);
+      await TarteebRequestService.deleteTarteebRequest(requestToDelete.id);
       toast.success("Tarteeb request deleted successfully");
+      setShowDeleteDialog(false);
+      setRequestToDelete(null);
       await loadRequests();
     } catch (error: any) {
       console.error("Failed to delete request", error);
       toast.error(
         error?.response?.data?.message || "Failed to delete tarteeb request"
       );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -591,29 +606,16 @@ const AdminTarteebRequestsPage = () => {
                             : "—"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                          <div className="flex justify-center gap-3">
-                            <Link
-                              href={`/tarteeb-requests/${request.id}`}
-                              className="text-indigo-600 hover:text-indigo-800"
-                            >
-                              Edit
-                            </Link>
-                            <Link
-                              href={`/karkun-portal/tarteeb-requests/${request.id}`}
-                              className="text-blue-600 hover:text-blue-800"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              View Portal
-                            </Link>
-                            {!isSuperAdmin && (
-                              <button
-                                onClick={() => handleDelete(request.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                Delete
-                              </button>
-                            )}
+                          <div className="flex justify-center">
+                            <ActionsDropdown
+                              onEdit={() => router.push(`/tarteeb-requests/${request.id}/edit`)}
+                              onView={() => router.push(`/tarteeb-requests/${request.id}`)}
+                              onDelete={!isSuperAdmin ? () => handleDeleteClick(request) : undefined}
+                              showView={true}
+                              showEdit={true}
+                              showDelete={!isSuperAdmin}
+                              align="right"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -771,6 +773,19 @@ const AdminTarteebRequestsPage = () => {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Delete Tarteeb Request"
+          message="Are you sure you want to delete this tarteeb request? This action cannot be undone."
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setRequestToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleting}
+        />
       </div>
     </PermissionWrapper>
   );

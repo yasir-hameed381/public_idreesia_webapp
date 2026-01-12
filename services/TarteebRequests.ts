@@ -85,6 +85,7 @@ export interface TarteebRequest {
   };
   jawab?: string;
   notes?: string;
+  jawab_links?: Array<{ title: string; url: string }>;
 }
 
 export interface TarteebRequestListResponse {

@@ -6,6 +6,10 @@ import {
   PaginatedKhatResponse,
   ZoneSummary,
   MehfilSummary,
+  KhatQuestion,
+  ResponseTemplate,
+  SearchResource,
+  JawabLink,
 } from "@/types/khat";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/+$/, "");
@@ -135,6 +139,18 @@ class KhatService {
     await apiClient.put(`/khat/update/${id}`, payload);
   }
 
+  async updateJawab(
+    id: number,
+    payload: {
+      status?: KhatStatus;
+      jawab?: string;
+      jawab_links?: JawabLink[];
+      notes?: string;
+    }
+  ): Promise<void> {
+    await apiClient.patch(`/khat/${id}/jawab`, payload);
+  }
+
   async deleteKhat(id: number): Promise<void> {
     await apiClient.delete(`/khat/${id}`);
   }
@@ -205,6 +221,85 @@ class KhatService {
       params,
     });
     return response.data.data || [];
+  }
+
+  // Question management methods
+  async addQuestion(khatId: number, question: string): Promise<KhatQuestion> {
+    const response = await apiClient.post<{ success: boolean; data: KhatQuestion }>(
+      `/khat/${khatId}/questions`,
+      { question }
+    );
+    return response.data.data;
+  }
+
+  async getQuestions(khatId: number): Promise<KhatQuestion[]> {
+    const response = await apiClient.get<{ success: boolean; data: KhatQuestion[] }>(
+      `/khat/${khatId}/questions`
+    );
+    return response.data.data;
+  }
+
+  async sendQuestions(khatId: number, questionIds?: number[]): Promise<void> {
+    await apiClient.post(`/khat/${khatId}/questions/send`, {
+      question_ids: questionIds,
+    });
+  }
+
+  async deleteQuestion(questionId: number): Promise<void> {
+    await apiClient.delete(`/khat/questions/${questionId}`);
+  }
+
+  // Resource search methods
+  async searchTaleemat(search?: string, offset = 0, limit = 50): Promise<SearchResource[]> {
+    const params: Record<string, string | number> = {
+      offset,
+      limit,
+    };
+    if (search) params.search = search;
+
+    const response = await apiClient.get<{ data: SearchResource[] }>(`/taleem`, { params });
+    return response.data.data || [];
+  }
+
+  async searchWazaif(search?: string, offset = 0, limit = 50): Promise<SearchResource[]> {
+    const params: Record<string, string | number> = {
+      offset,
+      limit,
+    };
+    if (search) params.search = search;
+
+    const response = await apiClient.get<{ data: SearchResource[] }>(`/wazaifs`, { params });
+    return response.data.data || [];
+  }
+
+  async searchMehfils(search?: string, offset = 0, limit = 50): Promise<SearchResource[]> {
+    const params: Record<string, string | number> = {
+      offset,
+      limit,
+    };
+    if (search) params.search = search;
+
+    const response = await apiClient.get<{ data: SearchResource[] }>(`/mehfils`, { params });
+    return response.data.data || [];
+  }
+
+  // Response template methods
+  async getResponseTemplates(): Promise<ResponseTemplate[]> {
+    const response = await apiClient.get<{ data: ResponseTemplate[] }>(`/response-templates`);
+    return response.data.data || [];
+  }
+
+  async createResponseTemplate(
+    title: string,
+    jawab?: string,
+    jawab_links?: JawabLink[]
+  ): Promise<ResponseTemplate> {
+    const response = await apiClient.post<{ data: ResponseTemplate }>(`/response-templates/add`, {
+      title,
+      jawab,
+      jawab_links,
+    });
+    return response.data.data;
   }
 }
 

@@ -8,6 +8,8 @@ import { usePermissions } from "@/context/PermissionContext";
 import { PermissionWrapper } from "@/components/PermissionWrapper";
 import { PERMISSIONS } from "@/types/permission";
 import ResponseTemplatesService, { ResponseTemplate } from "@/services/ResponseTemplates";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
+import ActionsDropdown from "@/components/ActionsDropdown";
 
 const ResponseTemplatesPage = () => {
   const router = useRouter();
@@ -21,6 +23,9 @@ const ResponseTemplatesPage = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [sortField, setSortField] = useState<"id" | "title" | "created_at" | "updated_at">("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<ResponseTemplate | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -51,18 +56,26 @@ const ResponseTemplatesPage = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this template? This action cannot be undone.")) {
-      return;
-    }
+  const handleDeleteClick = (template: ResponseTemplate) => {
+    setTemplateToDelete(template);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!templateToDelete) return;
 
     try {
-      await ResponseTemplatesService.deleteResponseTemplate(id);
+      setDeleting(true);
+      await ResponseTemplatesService.deleteResponseTemplate(templateToDelete.id);
       toast.success("Template deleted successfully");
+      setShowDeleteDialog(false);
+      setTemplateToDelete(null);
       await loadTemplates();
     } catch (error: any) {
       console.error("Failed to delete template", error);
       toast.error(error?.response?.data?.message || "Failed to delete template");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -235,23 +248,18 @@ const ResponseTemplatesPage = () => {
                             : "—"}
                         </td>
                         <td className="px-6 py-4 text-right text-sm">
-                          <div className="flex items-center justify-end gap-3">
-                            {canEdit && (
-                              <Link
-                                href={`/response-templates/${template.id}/edit`}
-                                className="text-blue-600 hover:text-blue-800 font-medium"
-                              >
-                                Edit
-                              </Link>
-                            )}
-                            {canDelete && (
-                              <button
-                                onClick={() => handleDelete(template.id)}
-                                className="text-red-600 hover:text-red-800 font-medium"
-                              >
-                                Delete
-                              </button>
-                            )}
+                          <div className="flex items-center justify-end">
+                            <ActionsDropdown
+                              onEdit={
+                                canEdit
+                                  ? () => router.push(`/response-templates/${template.id}/edit`)
+                                  : undefined
+                              }
+                              onDelete={canDelete ? () => handleDeleteClick(template) : undefined}
+                              showEdit={canEdit}
+                              showDelete={canDelete}
+                              align="right"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -296,6 +304,19 @@ const ResponseTemplatesPage = () => {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Delete Template"
+          message="Are you sure you want to delete this template? This action cannot be undone."
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setTemplateToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleting}
+        />
       </div>
     </PermissionWrapper>
   );
