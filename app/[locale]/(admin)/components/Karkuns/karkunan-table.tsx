@@ -53,20 +53,20 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
   const { hasPermission, isSuperAdmin } = usePermissions();
 
   // Fetch zones for filter dropdown
-  const { 
-    data: zonesData, 
-    isLoading: zonesLoading, 
-    error: zonesError 
+  const {
+    data: zonesData,
+    isLoading: zonesLoading,
+    error: zonesError
   } = useFetchZonesQuery({
     page: 1,
     per_page: 1000,
   });
 
   // Fetch mehfils for filter dropdown (filtered by selected zone)
-  const { 
-    data: mehfilsData, 
-    isLoading: mehfilsLoading, 
-    error: mehfilsError 
+  const {
+    data: mehfilsData,
+    isLoading: mehfilsLoading,
+    error: mehfilsError
   } = useFetchAddressQuery({
     page: 1,
     size: 1000,
@@ -128,7 +128,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
     // Ensure data is an array
     const dataArray = Array.isArray(apiResponse.data) ? apiResponse.data : [];
     setFilteredData(dataArray);
-    
+
     // Debug logging
     if (dataArray.length > 0) {
       console.log("✅ Loaded users:", dataArray.length, "users");
@@ -313,7 +313,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
               Error loading data
             </div>
             <p className="text-gray-600 mt-2">
-              {fetchError?.data?.message || fetchError?.message || "Please try refreshing the page"}
+              {(fetchError as any)?.data?.message || (fetchError as any)?.message || "Please try refreshing the page"}
             </p>
             <button
               onClick={() => refetch()}
@@ -354,61 +354,55 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
           <div className="flex space-x-8 border-b border-gray-200 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab("karkun")}
-              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-                activeTab === "karkun"
+              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === "karkun"
                   ? "border-gray-900 text-gray-900"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               Karkuns
             </button>
             <button
               onClick={() => setActiveTab("ehad_karkun")}
-              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-                activeTab === "ehad_karkun"
+              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === "ehad_karkun"
                   ? "border-gray-900 text-gray-900"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               Ehad Karkuns
             </button>
             <button
               onClick={() => setActiveTab("all_region_admin")}
-              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-                activeTab === "all_region_admin"
+              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === "all_region_admin"
                   ? "border-gray-900 text-gray-900"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               All Region Admin
             </button>
             <button
               onClick={() => setActiveTab("region_admin")}
-              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-                activeTab === "region_admin"
+              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === "region_admin"
                   ? "border-gray-900 text-gray-900"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               Region Admin
             </button>
             <button
               onClick={() => setActiveTab("mehfil_admin")}
-              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-                activeTab === "mehfil_admin"
+              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === "mehfil_admin"
                   ? "border-gray-900 text-gray-900"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               Mehfil Admin
             </button>
             <button
               onClick={() => setActiveTab("zone_admin")}
-              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${
-                activeTab === "zone_admin"
+              className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === "zone_admin"
                   ? "border-gray-900 text-gray-900"
                   : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               Zone Admin
             </button>
@@ -435,7 +429,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              
+
               {/* Filters Row */}
               <div className="flex gap-4 items-center justify-end w-full md:w-auto">
                 <div className="relative w-full md:w-48">
@@ -462,7 +456,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                     <ChevronDown className="h-4 w-4 text-gray-400" />
                   </div>
                 </div>
-                
+
                 <div className="relative w-full md:w-48">
                   <select
                     value={selectedMehfilId}
@@ -487,7 +481,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                     <ChevronDown className="h-4 w-4 text-gray-400" />
                   </div>
                 </div>
-                
+
                 <div className="relative w-full md:w-auto">
                   <select
                     value={perPage}
@@ -528,7 +522,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Avatar
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         onClick={() => handleSortChange("name")}
                       >
@@ -558,7 +552,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Father Name (Urdu)
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         onClick={() => handleSortChange("email")}
                       >
@@ -606,7 +600,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ehad Year
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         onClick={() => handleSortChange("created_at")}
                       >
@@ -662,7 +656,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                         const fullAddress = [user.address, user.city, user.country]
                           .filter(Boolean)
                           .join(" ") || "—";
-                        
+
                         return (
                           <tr key={user.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -735,12 +729,12 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                               {user.is_all_region_admin
                                 ? "All Region Admin"
                                 : user.is_region_admin
-                                ? "Region Admin"
-                                : user.is_zone_admin
-                                ? "Zone Admin"
-                                : user.is_mehfil_admin
-                                ? "Mehfil Admin"
-                                : "Karkun"}
+                                  ? "Region Admin"
+                                  : user.is_zone_admin
+                                    ? "Zone Admin"
+                                    : user.is_mehfil_admin
+                                      ? "Mehfil Admin"
+                                      : "Karkun"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {user.zone?.title_en || "—"}
@@ -822,11 +816,10 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                               <button
                                 key={pageNum}
                                 onClick={() => handleTablePageChange(pageNum)}
-                                className={`px-3 py-1 rounded-md text-sm ${
-                                  currentPage === pageNum
+                                className={`px-3 py-1 rounded-md text-sm ${currentPage === pageNum
                                     ? "bg-gray-900 text-white"
                                     : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                                }`}
+                                  }`}
                               >
                                 {pageNum}
                               </button>
