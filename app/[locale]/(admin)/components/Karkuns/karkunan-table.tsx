@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/useToast";
 import {
@@ -12,112 +13,85 @@ import {
   User,
   ChevronDown,
 } from "lucide-react";
-import { AdminUsersService } from "@/services/AdminUser/admin-user-service";
+import {
+  useFetchAdminUsersQuery,
+  useDeleteAdminUserMutation,
+  AdminUser,
+} from "../../../../../store/slicers/adminUserApi";
+import { useFetchZonesQuery } from "../../../../../store/slicers/zoneApi";
+import { useFetchAddressQuery } from "../../../../../store/slicers/mehfildirectoryApi";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
-type TabType = "karkuns" | "ehad-karkuns" | "zone-admin" | "mehfil-admin";
-
-interface UserData {
-  id: number;
-  zone_id: number | null;
-  name: string;
-  name_ur: string | null;
-  email: string;
-  father_name: string | null;
-  father_name_ur: string | null;
-  phone_number: string | null;
-  id_card_number: string | null;
-  address: string | null;
-  birth_year: number | null;
-  ehad_year: number | null;
-  mehfil_directory_id: number | null;
-  duty_days: string | null;
-  duty_type: string | null;
-  avatar: string;
-  city: string | null;
-  country: string | null;
-  is_zone_admin: boolean;
-  is_mehfil_admin: boolean;
-  is_super_admin: boolean;
-  role_id: number | null;
-  user_type: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ApiResponse {
-  data: UserData[];
-  links: {
-    first: string;
-    last: string;
-    prev: string | null;
-    next: string | null;
-  };
-  meta: {
-    current_page: number;
-    from: number;
-    last_page: number;
-    path: string;
-    per_page: string;
-    to: number;
-    total: number;
-  };
-}
+type TabType = "karkuns" | "ehad-karkuns" | "zone-admin" | "mehfil-admin" | "all-region-admin" | "region-admin";
 
 interface KarkunanTableProps {
-  onEdit: (user: UserData) => void;
+  onEdit: (user: AdminUser) => void;
   onAdd: () => void;
 }
 
 export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { hasPermission, isSuperAdmin } = usePermissions();
-  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
-  const [filteredData, setFilteredData] = useState<UserData[]>([]);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [filteredData, setFilteredData] = useState<AdminUser[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("karkuns");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const debouncedSearch = useDebounce(search, 500);
-  const { showError, showSuccess } = useToast();
-
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [sortField, setSortField] = useState<"id" | "name" | "created_at">("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [deleting, setDeleting] = useState(false);
+  const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
+  const [selectedMehfilId, setSelectedMehfilId] = useState<string>("all");
+  const debouncedSearch = useDebounce(search, 500);
+  const { showError, showSuccess } = useToast();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
-  // Function to refresh data
-  const refreshData = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
+  // Fetch zones for filter dropdown
+  const { data: zonesData } = useFetchZonesQuery({
+    page: 1,
+    per_page: 1000,
+  });
 
-  // Fetch all admin users data
+  // Fetch mehfils for filter dropdown (filtered by selected zone)
+  const { data: mehfilsData } = useFetchAddressQuery({
+    page: 1,
+    size: 1000,
+    zoneId: selectedZoneId === "all" ? "" : selectedZoneId,
+    search: "",
+  });
+
+  // Calculate effective page size - if filters are active, fetch more data for proper filtering
+  const hasActiveFilters = selectedZoneId !== "all" || selectedMehfilId !== "all";
+  const effectiveSize = hasActiveFilters ? 1000 : perPage; // Fetch more when filtering
+
+  // Fetch all admin users data using RTK Query
+  const {
+    data: apiResponse,
+    isLoading: loading,
+    error: fetchError,
+    refetch,
+  } = useFetchAdminUsersQuery({
+    page: hasActiveFilters ? 1 : currentPage, // Always fetch page 1 when filtering, then paginate filtered results
+    size: effectiveSize,
+    search: debouncedSearch.trim(),
+    sortField,
+    sortDirection,
+  });
+
+  const [deleteAdminUser, { isLoading: isDeleting }] = useDeleteAdminUserMutation();
+
+  // Reset to first page when search, tab, sort, or filters change
   useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    setCurrentPage(1);
+  }, [debouncedSearch, activeTab, sortField, sortDirection, selectedZoneId, selectedMehfilId]);
 
-        const response = await AdminUsersService.getAll({
-          page: currentPage,
-          size: perPage,
-          search: debouncedSearch.trim(),
-        });
-
-        setApiResponse(response);
-      } catch (err) {
-        setError("Failed to load users data");
-        console.error("Error fetching users:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllUsers();
-  }, [debouncedSearch, currentPage, perPage, refreshTrigger]);
-
-  // Filter data based on active tab
+  // Filter and sort data based on active tab and filters
   useEffect(() => {
     if (!apiResponse?.data) {
       setFilteredData([]);
@@ -126,12 +100,15 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
 
     let filtered = [...apiResponse.data];
 
+    // Apply tab filter
     switch (activeTab) {
       case "karkuns":
         filtered = apiResponse.data.filter(
           (user) =>
             !user.is_zone_admin &&
             !user.is_mehfil_admin &&
+            !user.is_region_admin &&
+            !user.is_all_region_admin &&
             (user.user_type === "karkun" || !user.user_type)
         );
         break;
@@ -151,30 +128,167 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
           (user) => user.is_mehfil_admin === true
         );
         break;
+      case "all-region-admin":
+        filtered = apiResponse.data.filter(
+          (user) => user.is_all_region_admin === true
+        );
+        break;
+      case "region-admin":
+        filtered = apiResponse.data.filter(
+          (user) => user.is_region_admin === true && !user.is_all_region_admin
+        );
+        break;
       default:
         break;
     }
 
+    // Apply zone filter
+    if (selectedZoneId !== "all" && selectedZoneId) {
+      const zoneIdNum = Number(selectedZoneId);
+      const zoneIdStr = selectedZoneId;
+      filtered = filtered.filter((user) => {
+        // Handle both string and number comparisons
+        if (user.zone_id === null || user.zone_id === undefined) {
+          return false;
+        }
+        // Compare as both number and string to handle type mismatches
+        return (
+          user.zone_id === zoneIdNum ||
+          user.zone_id === zoneIdStr ||
+          user.zone_id.toString() === zoneIdStr ||
+          user.zone_id.toString() === zoneIdNum.toString()
+        );
+      });
+    }
+
+    // Apply mehfil filter
+    if (selectedMehfilId !== "all" && selectedMehfilId) {
+      const mehfilIdNum = Number(selectedMehfilId);
+      const mehfilIdStr = selectedMehfilId;
+      filtered = filtered.filter((user) => {
+        // Handle both string and number comparisons
+        if (user.mehfil_directory_id === null || user.mehfil_directory_id === undefined) {
+          return false;
+        }
+        // Compare as both number and string to handle type mismatches
+        return (
+          user.mehfil_directory_id === mehfilIdNum ||
+          user.mehfil_directory_id === mehfilIdStr ||
+          user.mehfil_directory_id.toString() === mehfilIdStr ||
+          user.mehfil_directory_id.toString() === mehfilIdNum.toString()
+        );
+      });
+    }
+
+    // Client-side sorting
+    filtered = getSortedData(filtered);
+    
+    // If filters are active, paginate the filtered results client-side
+    if (hasActiveFilters && filtered.length > 0) {
+      const startIndex = (currentPage - 1) * perPage;
+      const endIndex = startIndex + perPage;
+      filtered = filtered.slice(startIndex, endIndex);
+    }
+    
     setFilteredData(filtered);
-  }, [apiResponse, activeTab]);
+  }, [apiResponse, activeTab, sortField, sortDirection, selectedZoneId, selectedMehfilId, currentPage, perPage, hasActiveFilters]);
+
+  const handleSortChange = (field: "id" | "name" | "created_at") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection(field === "created_at" ? "desc" : "asc");
+    }
+  };
+
+  // Client-side sorting function
+  const getSortedData = (data: AdminUser[]) => {
+    if (!data || data.length === 0) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      // Handle null/undefined values
+      if (aValue == null) aValue = "";
+      if (bValue == null) bValue = "";
+      
+      // Handle number comparison (for ID)
+      if (sortField === "id") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      // Handle date comparison
+      if (sortField === "created_at") {
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+        return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+      }
+      
+      // Convert to string and compare
+      return sortDirection === "asc"
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+  };
+
+  const handleDeleteClick = (user: AdminUser) => {
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_KARKUNS))) {
+      showError("You don't have permission to delete karkuns");
+      return;
+    }
+    setSelectedUser(user);
+    setShowDeleteDialog(true);
+  };
 
   const handleDelete = async () => {
     if (!selectedUser) return;
 
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_KARKUNS))) {
+      showError("You don't have permission to delete karkuns");
+      setShowDeleteDialog(false);
+      setSelectedUser(null);
+      return;
+    }
+
     try {
-      await AdminUsersService.delete(selectedUser.id);
+      setDeleting(true);
+      await deleteAdminUser(selectedUser.id).unwrap();
       showSuccess("User deleted successfully.");
       setShowDeleteDialog(false);
       setSelectedUser(null);
-      refreshData();
-    } catch {
-      showError("Failed to delete user.");
+      // RTK Query will automatically refetch due to invalidated tags
+      await refetch();
+    } catch (err: any) {
+      const errorMessage = err?.data?.message || err?.message || "Failed to delete user. Please try again.";
+      showError(errorMessage);
+      console.error("Error deleting user:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
-  // Handle edit button click
-  const handleEditClick = (user: UserData) => {
-    onEdit(user);
+  const handleEdit = (user: AdminUser) => {
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.EDIT_KARKUNS))) {
+      showError("You don't have permission to edit karkuns");
+      return;
+    }
+    if (onEdit) {
+      onEdit(user);
+    }
+  };
+
+  const handleView = (user: AdminUser) => {
+    // Navigate to detail page if it exists
+    // router.push(`/${locale}/karkuns/${user.id}`);
   };
 
   // Helper function to get display name for tabs
@@ -188,20 +302,21 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
         return "Zone Admin";
       case "mehfil-admin":
         return "Mehfil Admin";
+      case "all-region-admin":
+        return "All Region Admin";
+      case "region-admin":
+        return "Region Admin";
       default:
         return "User";
     }
   };
 
-  // Reset to first page when search or tab changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, activeTab]);
-
-  const confirmDelete = (user: UserData) => {
-    setSelectedUser(user);
-    setShowDeleteDialog(true);
+  // Reset mehfil filter when zone changes
+  const handleZoneChange = (zoneId: string) => {
+    setSelectedZoneId(zoneId);
+    setSelectedMehfilId("all"); // Reset mehfil filter when zone changes
   };
+
 
   const handlePerPageChange = (newPerPage: number) => {
     setPerPage(newPerPage);
@@ -212,13 +327,99 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
     setCurrentPage(newPage);
   };
 
-  // Use API meta data for pagination
-  const totalPages = apiResponse?.meta?.last_page || 1;
-  const currentTotal = apiResponse?.meta?.total || 0;
-  const from = apiResponse?.meta?.from || 0;
-  const to = apiResponse?.meta?.to || 0;
+  // Calculate pagination based on filtered data when filters are active
+  const totalFilteredCount = hasActiveFilters && apiResponse?.data 
+    ? (() => {
+        let count = [...apiResponse.data];
+        
+        // Apply tab filter
+        switch (activeTab) {
+          case "karkuns":
+            count = count.filter(
+              (user) =>
+                !user.is_zone_admin &&
+                !user.is_mehfil_admin &&
+                !user.is_region_admin &&
+                !user.is_all_region_admin &&
+                (user.user_type === "karkun" || !user.user_type)
+            );
+            break;
+          case "ehad-karkuns":
+            count = count.filter(
+              (user) =>
+                user.user_type === "ehad_karkun" || user.user_type === "ehad-karkun"
+            );
+            break;
+          case "zone-admin":
+            count = count.filter((user) => user.is_zone_admin === true);
+            break;
+          case "mehfil-admin":
+            count = count.filter((user) => user.is_mehfil_admin === true);
+            break;
+          case "all-region-admin":
+            count = count.filter((user) => user.is_all_region_admin === true);
+            break;
+          case "region-admin":
+            count = count.filter(
+              (user) => user.is_region_admin === true && !user.is_all_region_admin
+            );
+            break;
+        }
+        
+        // Apply zone filter
+        if (selectedZoneId !== "all" && selectedZoneId) {
+          const zoneIdNum = Number(selectedZoneId);
+          const zoneIdStr = selectedZoneId;
+          count = count.filter((user) => {
+            if (user.zone_id === null || user.zone_id === undefined) return false;
+            return (
+              user.zone_id === zoneIdNum ||
+              user.zone_id === zoneIdStr ||
+              user.zone_id.toString() === zoneIdStr ||
+              user.zone_id.toString() === zoneIdNum.toString()
+            );
+          });
+        }
+        
+        // Apply mehfil filter
+        if (selectedMehfilId !== "all" && selectedMehfilId) {
+          const mehfilIdNum = Number(selectedMehfilId);
+          const mehfilIdStr = selectedMehfilId;
+          count = count.filter((user) => {
+            if (user.mehfil_directory_id === null || user.mehfil_directory_id === undefined) return false;
+            return (
+              user.mehfil_directory_id === mehfilIdNum ||
+              user.mehfil_directory_id === mehfilIdStr ||
+              user.mehfil_directory_id.toString() === mehfilIdStr ||
+              user.mehfil_directory_id.toString() === mehfilIdNum.toString()
+            );
+          });
+        }
+        
+        return count.length;
+      })()
+    : apiResponse?.meta?.total || 0;
 
-  if (error) {
+  const totalPages = hasActiveFilters 
+    ? Math.ceil(totalFilteredCount / perPage)
+    : apiResponse?.meta?.last_page || 1;
+  
+  const from = hasActiveFilters
+    ? (currentPage - 1) * perPage + 1
+    : apiResponse?.meta?.from || 0;
+  
+  const to = hasActiveFilters
+    ? Math.min(currentPage * perPage, totalFilteredCount)
+    : apiResponse?.meta?.to || 0;
+  
+  const currentTotal = totalFilteredCount;
+
+  // Permission checks
+  const canEditKarkuns = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_KARKUNS);
+  const canDeleteKarkuns = isSuperAdmin || hasPermission(PERMISSIONS.DELETE_KARKUNS);
+  const canCreateKarkuns = isSuperAdmin || hasPermission(PERMISSIONS.CREATE_KARKUNS);
+
+  if (fetchError) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-7xl mx-auto">
@@ -228,7 +429,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
             </div>
             <p className="text-gray-600 mt-2">Please try refreshing the page</p>
             <button
-              onClick={refreshData}
+              onClick={() => refetch()}
               className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
             >
               Retry
@@ -249,13 +450,15 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
             <p className="text-gray-600 mt-1">Manage karkuns accounts</p>
           </div>
           <div>
-            <button
-              onClick={onAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            >
-              <Plus size={16} />
-              Add Karkun
-            </button>
+            {canCreateKarkuns && (
+              <button
+                onClick={onAdd}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                <Plus size={16} />
+                Create Karkun
+              </button>
+            )}
           </div>
         </div>
 
@@ -302,43 +505,106 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
             >
               Mehfil Admin
             </button>
+            <button
+              onClick={() => setActiveTab("all-region-admin")}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                activeTab === "all-region-admin"
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              All Region Admin
+            </button>
+            <button
+              onClick={() => setActiveTab("region-admin")}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                activeTab === "region-admin"
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Region Admin
+            </button>
           </div>
         </div>
 
         {/* Actions Bar */}
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="relative max-w-sm w-full">
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={16}
-                />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={`Search ${getTabDisplayName(
-                    activeTab
-                  ).toLowerCase()}s...`}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            <div className="flex flex-col gap-4">
+              {/* First Row: Search and Per Page */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative max-w-sm w-full">
+                  <Search
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    size={16}
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={`Search ${getTabDisplayName(
+                      activeTab
+                    ).toLowerCase()}s...`}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Show:</span>
+                  <div className="relative">
+                    <select
+                      value={perPage}
+                      onChange={(e) =>
+                        handlePerPageChange(Number(e.target.value))
+                      }
+                      className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Show:</span>
-                <div className="relative">
+              
+              {/* Second Row: Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative w-full sm:w-auto">
                   <select
-                    value={perPage}
-                    onChange={(e) =>
-                      handlePerPageChange(Number(e.target.value))
-                    }
-                    className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={selectedZoneId}
+                    onChange={(e) => handleZoneChange(e.target.value)}
+                    className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-48"
                   >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
+                    <option value="all">All Zones</option>
+                    {zonesData?.data?.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.title_en || zone.id}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+                
+                <div className="relative w-full sm:w-auto">
+                  <select
+                    value={selectedMehfilId}
+                    onChange={(e) => setSelectedMehfilId(e.target.value)}
+                    disabled={selectedZoneId === "all"}
+                    className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-48 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="all">All Mehfils</option>
+                    {mehfilsData?.data?.map((mehfil: any) => (
+                      <option key={mehfil.id} value={mehfil.id}>
+                        {mehfil.name_en || mehfil.name || mehfil.id}
+                      </option>
+                    ))}
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                     <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -361,11 +627,47 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        User ID
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("id")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>User ID</span>
+                          {sortField === "id" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("name")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Name</span>
+                          {sortField === "name" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Father Name
@@ -391,10 +693,28 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ehad Year
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created At
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("created_at")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Created At</span>
+                          {sortField === "created_at" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -417,7 +737,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                         </td>
                       </tr>
                     ) : (
-                      filteredData.map((user: UserData) => (
+                      filteredData.map((user: AdminUser) => (
                         <tr key={user.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
@@ -519,27 +839,16 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2">
-                              {(isSuperAdmin ||
-                                hasPermission(PERMISSIONS.EDIT_KARKUNAN)) && (
-                                <button
-                                  onClick={() => handleEditClick(user)}
-                                  className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                                  title="Edit"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                              )}
-                              {(isSuperAdmin ||
-                                hasPermission(PERMISSIONS.DELETE_KARKUNAN)) && (
-                                <button
-                                  onClick={() => confirmDelete(user)}
-                                  className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
+                            <div className="flex items-center justify-end">
+                              <ActionsDropdown
+                                onView={() => handleView(user)}
+                                onEdit={() => handleEdit(user)}
+                                onDelete={canDeleteKarkuns ? () => handleDeleteClick(user) : undefined}
+                                showView={true}
+                                showEdit={canEditKarkuns}
+                                showDelete={canDeleteKarkuns}
+                                align="right"
+                              />
                             </div>
                           </td>
                         </tr>
@@ -614,47 +923,17 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <Trash2 className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  Delete User
-                </h3>
-                <p className="text-sm text-gray-500">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete{" "}
-              <strong>{selectedUser?.name}</strong>? This will permanently
-              remove their record from the system.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteDialog(false);
-                  setSelectedUser(null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Delete User"
+        message={`Are you sure you want to delete "${selectedUser?.name}" (ID: ${selectedUser?.id})? This action cannot be undone.`}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={handleDelete}
+        isLoading={deleting}
+      />
     </div>
   );
 }

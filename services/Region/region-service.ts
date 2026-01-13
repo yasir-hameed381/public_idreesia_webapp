@@ -42,12 +42,16 @@ export class RegionService {
     page?: number;
     size?: number;
     search?: string;
+    sortField?: string;
+    sortDirection?: "asc" | "desc";
   }): Promise<RegionListResponse> {
     try {
       const url = new URL(`${API_BASE_URL}/region`);
       if (params?.page) url.searchParams.append("page", params.page.toString());
       if (params?.size) url.searchParams.append("size", params.size.toString());
       if (params?.search) url.searchParams.append("search", params.search);
+      if (params?.sortField) url.searchParams.append("sortField", params.sortField);
+      if (params?.sortDirection) url.searchParams.append("sortDirection", params.sortDirection);
 
       const response = await fetch(url.toString(), {
         headers: getAuthHeaders(),

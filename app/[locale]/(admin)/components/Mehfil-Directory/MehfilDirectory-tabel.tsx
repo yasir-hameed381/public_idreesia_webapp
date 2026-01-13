@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
+import { useRouter, useParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   useDeleteMehfilDirectoryMutation,
@@ -21,9 +22,14 @@ import {
   ChevronDown,
   Building,
 } from "lucide-react";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
-  const { hasPermission } = usePermissions();
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
@@ -34,6 +40,9 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [sortField, setSortField] = useState<"mehfil_number" | "name_en" | "created_at">("mehfil_number");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [deleting, setDeleting] = useState(false);
   const debouncedSearch = useDebounce(search, 500);
   const { showError, showSuccess } = useToast();
 
@@ -70,37 +79,121 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
     }
   }, [apiError]);
 
-  // Reset to first page when search changes
+  // Reset to first page when search or sort changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, sortField, sortDirection]);
 
-  // Filter data when search changes
+  // Filter and sort data when search or sort changes
   useEffect(() => {
     if (allData.length > 0) {
-      const filteredData = getFilteredData(allData, debouncedSearch);
+      let filteredData = getFilteredData(allData, debouncedSearch);
+      filteredData = getSortedData(filteredData);
       setData(filteredData);
     }
-  }, [debouncedSearch, allData]);
+  }, [debouncedSearch, allData, sortField, sortDirection]);
+
+  const handleSortChange = (field: "mehfil_number" | "name_en" | "created_at") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Client-side sorting
+  const getSortedData = (data: any[]) => {
+    if (!data || data.length === 0) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      // Handle null/undefined values
+      if (aValue == null) aValue = "";
+      if (bValue == null) bValue = "";
+      
+      // Handle mehfil_number as string comparison
+      if (sortField === "mehfil_number") {
+        return sortDirection === "asc"
+          ? String(aValue).localeCompare(String(bValue))
+          : String(bValue).localeCompare(String(aValue));
+      }
+      
+      // Handle string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      // Handle date comparison
+      if (sortField === "created_at") {
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+        return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+      }
+      
+      // Convert to string and compare
+      return sortDirection === "asc"
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+  };
+
+  const handleDeleteClick = (address: any) => {
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_MEHFIL_DIRECTORY))) {
+      showError("You don't have permission to delete mehfil directories");
+      return;
+    }
+    setSelectedAddress(address);
+    setShowDeleteDialog(true);
+  };
 
   const handleDelete = async () => {
     if (!selectedAddress) return;
 
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_MEHFIL_DIRECTORY))) {
+      showError("You don't have permission to delete mehfil directories");
+      setShowDeleteDialog(false);
+      setSelectedAddress(null);
+      return;
+    }
+
     try {
-      await deleteMehfilDirectory(selectedAddress.id).unwrap();
+      setDeleting(true);
+      // Convert ID to string if needed (API expects string)
+      const addressId = String(selectedAddress.id);
+      await deleteMehfilDirectory(addressId).unwrap();
       showSuccess("Mehfil directory deleted successfully.");
       setShowDeleteDialog(false);
       setSelectedAddress(null);
       // Refresh the data after deletion
-      window.location.reload(); // Simple refresh for now
-    } catch (err) {
-      showError("Failed to delete mehfil directory. Please try again.");
+      await refetch();
+    } catch (err: any) {
+      const errorMessage = err?.data?.message || err?.message || "Failed to delete mehfil directory. Please try again.";
+      showError(errorMessage);
+      console.error("Error deleting mehfil directory:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const confirmDelete = (address: any) => {
-    setSelectedAddress(address);
-    setShowDeleteDialog(true);
+  const handleEdit = (address: any) => {
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.EDIT_MEHFIL_DIRECTORY))) {
+      showError("You don't have permission to edit mehfil directories");
+      return;
+    }
+    if (onEdit) {
+      onEdit(address.id);
+    } else {
+      router.push(`/${locale}/mehfildirectary/${address.id}`);
+    }
+  };
+
+  const handleView = (address: any) => {
+    router.push(`/${locale}/mehfildirectary/${address.id}`);
   };
 
   const handleTablePageChange = (newPage: number) => {
@@ -166,8 +259,8 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
                 onClick={onAdd}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
               >
-                <Plus size={16} />
-                Add New Address
+                {/* <Plus size={16} /> */}
+                Create Mehfil Directory
               </button>
             )}
           </div>
@@ -234,11 +327,47 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mehfil #
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("mehfil_number")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Mehfil #</span>
+                          {sortField === "mehfil_number" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("name_en")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Name</span>
+                          {sortField === "name_en" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Address
@@ -249,10 +378,28 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Contact
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created At
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("created_at")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Created At</span>
+                          {sortField === "created_at" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -328,39 +475,14 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2">
-                              {hasPermission(
-                                PERMISSIONS.EDIT_MEHFIL_DIRECTORY
-                              ) && (
-                                <button
-                                  onClick={() => onEdit(address.id)}
-                                  className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                                  title="Edit"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                              )}
-                              {hasPermission(
-                                PERMISSIONS.DELETE_MEHFIL_DIRECTORY
-                              ) && (
-                                <button
-                                  onClick={() => confirmDelete(address)}
-                                  className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                              {!hasPermission(
-                                PERMISSIONS.EDIT_MEHFIL_DIRECTORY
-                              ) &&
-                                !hasPermission(
-                                  PERMISSIONS.DELETE_MEHFIL_DIRECTORY
-                                ) && (
-                                  <span className="text-sm text-gray-400 italic">
-                                    No actions available
-                                  </span>
-                                )}
+                            <div className="flex items-center justify-end">
+                              <ActionsDropdown
+                                onEdit={isSuperAdmin || hasPermission(PERMISSIONS.EDIT_MEHFIL_DIRECTORY) ? () => handleEdit(address) : undefined  }
+                                onDelete={(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_MEHFIL_DIRECTORY)) ? () => handleDeleteClick(address) : undefined}
+                                showEdit={isSuperAdmin || hasPermission(PERMISSIONS.EDIT_MEHFIL_DIRECTORY)}
+                                showDelete={isSuperAdmin || hasPermission(PERMISSIONS.DELETE_MEHFIL_DIRECTORY)}
+                                align="right"
+                              />
                             </div>
                           </td>
                         </tr>
@@ -435,34 +557,17 @@ export function MehfilDirectoryTable({ onEdit, onAdd }: AddressTableProps) {
         </div>
 
         {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Confirm Delete
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete{" "}
-                <span className="font-medium">{selectedAddress?.name_en}</span>?
-                This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDeleteDialog(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Delete Mehfil Directory"
+          message={`Are you sure you want to delete "${selectedAddress?.name_en}" (Mehfil #${selectedAddress?.mehfil_number})? This action cannot be undone.`}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setSelectedAddress(null);
+          }}
+          onConfirm={handleDelete}
+          isLoading={deleting}
+        />
       </div>
     </div>
   );

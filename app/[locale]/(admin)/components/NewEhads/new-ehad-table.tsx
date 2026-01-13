@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/useToast";
 import {
@@ -17,6 +18,14 @@ import {
 } from "lucide-react";
 import { useFetchZonesQuery } from "../../../../../store/slicers/zoneApi";
 import { useFetchAddressQuery } from "../../../../../store/slicers/mehfildirectoryApi";
+import {
+  useFetchNewEhadsQuery,
+  useDeleteNewEhadMutation,
+} from "../../../../../store/slicers/newEhadApi";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/types/permission";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 interface NewEhadData {
   id: number;
@@ -51,19 +60,22 @@ interface NewEhadTableProps {
 }
 
 export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const [search, setSearch] = useState("");
   const [selectedZone, setSelectedZone] = useState("");
   const [selectedMehfil, setSelectedMehfil] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedEhad, setSelectedEhad] = useState<NewEhadData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<"id" | "name" | "created_at">("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [deleting, setDeleting] = useState(false);
   const debouncedSearch = useDebounce(search, 500);
   const { showError, showSuccess } = useToast();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
   // Fetch zones and mehfils for filters
   const { data: zonesData } = useFetchZonesQuery({ per_page: 1000 });
@@ -74,101 +86,124 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
     search: "",
   });
 
-  // Fetch new ehads data
+  // Fetch new ehads data using RTK Query
+  const {
+    data: apiResponse,
+    isLoading: loading,
+    error: fetchError,
+    refetch,
+  } = useFetchNewEhadsQuery({
+    page: currentPage,
+    per_page: perPage,
+    search: debouncedSearch.trim(),
+    zone_id: selectedZone || undefined,
+    mehfil_directory_id: selectedMehfil || undefined,
+  });
+
+  const [deleteNewEhad, { isLoading: isDeleting }] = useDeleteNewEhadMutation();
+
+  // Reset to first page when search, filters, or sort changes
   useEffect(() => {
-    const fetchNewEhads = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedZone, selectedMehfil, sortField, sortDirection]);
 
-        const params = new URLSearchParams({
-          page: currentPage.toString(),
-          per_page: perPage.toString(),
-          search: debouncedSearch.trim(),
-          ...(selectedZone && { zone_id: selectedZone }),
-          ...(selectedMehfil && { mehfil_directory_id: selectedMehfil }),
-        });
+  const handleSortChange = (field: "id" | "name" | "created_at") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection(field === "created_at" ? "desc" : "asc");
+    }
+  };
 
-        const response = await fetch(
-          `http://localhost:3000/api/new-karkun?${params}`
-        );
-
-        console.log("new karkun fetch response:", response);
-        if (!response.ok) {
-          throw new Error("Failed to fetch new ehads");
-        }
-
-        const data = await response.json();
-        setApiResponse(data);
-      } catch (err) {
-        setError("Failed to load new ehads data");
-        console.error("Error fetching new ehads:", err);
-      } finally {
-        setLoading(false);
+  // Client-side sorting
+  const getSortedData = (data: NewEhadData[]) => {
+    if (!data || data.length === 0) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      // Handle null/undefined values
+      if (aValue == null) aValue = "";
+      if (bValue == null) bValue = "";
+      
+      // Handle number comparison (for ID)
+      if (sortField === "id") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
       }
-    };
-
-    fetchNewEhads();
-  }, [debouncedSearch, currentPage, perPage, selectedZone, selectedMehfil]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest(".dropdown-container")) {
-        setOpenDropdown(null);
+      
+      // Handle string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
       }
-    };
+      
+      // Handle date comparison
+      if (sortField === "created_at") {
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+        return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+      }
+      
+      // Convert to string and compare
+      return sortDirection === "asc"
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+  };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const handleDeleteClick = (ehad: NewEhadData) => {
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_NEW_EHADS))) {
+      showError("You don't have permission to delete new ehads");
+      return;
+    }
+    setSelectedEhad(ehad);
+    setShowDeleteDialog(true);
+  };
 
   const handleDelete = async () => {
     if (!selectedEhad) return;
 
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_NEW_EHADS))) {
+      showError("You don't have permission to delete new ehads");
+      setShowDeleteDialog(false);
+      setSelectedEhad(null);
+      return;
+    }
+
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/new-karkun/${selectedEhad.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete new ehad");
-      }
-
+      setDeleting(true);
+      await deleteNewEhad(selectedEhad.id).unwrap();
       showSuccess("New Ehad deleted successfully.");
       setShowDeleteDialog(false);
       setSelectedEhad(null);
-
-      // Refresh data
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        per_page: perPage.toString(),
-        search: debouncedSearch.trim(),
-        ...(selectedZone && { zone_id: selectedZone }),
-        ...(selectedMehfil && { mehfil_directory_id: selectedMehfil }),
-      });
-
-      const refreshResponse = await fetch(
-        `http://localhost:3000/api/new-karkun?${params}`
-      );
-      if (refreshResponse.ok) {
-        const data = await refreshResponse.json();
-        setApiResponse(data);
-      }
-    } catch {
-      showError("Failed to delete new ehad.");
+      // Refresh data - RTK Query will automatically refetch due to invalidated tags
+      await refetch();
+    } catch (err: any) {
+      const errorMessage = err?.data?.message || err?.message || "Failed to delete new ehad. Please try again.";
+      showError(errorMessage);
+      console.error("Error deleting new ehad:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const confirmDelete = (ehad: NewEhadData) => {
-    setSelectedEhad(ehad);
-    setShowDeleteDialog(true);
+  const handleEdit = (ehad: NewEhadData) => {
+    if (!(isSuperAdmin || hasPermission(PERMISSIONS.EDIT_NEW_EHADS))) {
+      showError("You don't have permission to edit new ehads");
+      return;
+    }
+    if (onEdit) {
+      onEdit(ehad);
+    }
+  };
+
+  const handleView = (ehad: NewEhadData) => {
+    if (onView) {
+      onView(ehad);
+    }
   };
 
   const handlePerPageChange = (newPerPage: number) => {
@@ -185,7 +220,12 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
   const startRecord = (currentPage - 1) * perPage + 1;
   const endRecord = Math.min(startRecord + perPage - 1, currentTotal);
 
-  if (error) {
+  // Permission checks
+  const canEditNewEhads = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_NEW_EHADS);
+  const canDeleteNewEhads = isSuperAdmin || hasPermission(PERMISSIONS.DELETE_NEW_EHADS);
+  const canCreateNewEhads = isSuperAdmin || hasPermission(PERMISSIONS.CREATE_NEW_EHADS);
+
+  if (fetchError) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-7xl mx-auto">
@@ -210,13 +250,15 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
             <p className="text-gray-600 mt-1">Manage new ehad entries</p>
           </div>
           <div>
-            <button
-              onClick={onAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            >
-              <Plus size={16} />
-              Create New Ehad
-            </button>
+            {canCreateNewEhads && (
+              <button
+                onClick={onAdd}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                {/* <Plus size={16} /> */}
+                Create New Ehad
+              </button>
+            )}
           </div>
         </div>
 
@@ -294,28 +336,79 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("id")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>ID</span>
+                          {sortField === "id" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("name")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Name</span>
+                          {sortField === "name" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Father Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Zone
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mehfil
+                        Zone / Mehfil
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Phone
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created At
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSortChange("created_at")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>Created At</span>
+                          {sortField === "created_at" && (
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              {sortDirection === "asc" ? (
+                                <path d="M10 5l-5 6h10l-5-6z" />
+                              ) : (
+                                <path d="M10 15l5-6H5l5 6z" />
+                              )}
+                            </svg>
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -336,7 +429,7 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                         </td>
                       </tr>
                     ) : (
-                      apiResponse?.data?.map((ehad: NewEhadData) => (
+                      getSortedData(apiResponse?.data || []).map((ehad: NewEhadData) => (
                         <tr key={ehad.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
@@ -355,14 +448,14 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {zonesData?.data?.find(
-                                (zone: any) => zone.id === ehad.zone_id
-                              )?.title_en || `Zone ${ehad.zone_id}`}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              Mehfil #{ehad.mehfil_directory_id}
+                              <div>
+                                {zonesData?.data?.find(
+                                  (zone: any) => zone.id === ehad.zone_id
+                                )?.title_en || `Zone ${ehad.zone_id}`}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Mehfil #{ehad.mehfil_directory_id}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -383,56 +476,16 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="relative dropdown-container">
-                              <button
-                                className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50"
-                                title="More options"
-                                onClick={() => {
-                                  setOpenDropdown(
-                                    openDropdown === ehad.id.toString()
-                                      ? null
-                                      : ehad.id.toString()
-                                  );
-                                }}
-                              >
-                                <MoreHorizontal size={16} />
-                              </button>
-                              {openDropdown === ehad.id.toString() && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-                                  <div className="py-1">
-                                    <button
-                                      onClick={() => {
-                                        onView(ehad);
-                                        setOpenDropdown(null);
-                                      }}
-                                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    >
-                                      <Eye size={16} />
-                                      View
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        onEdit(ehad);
-                                        setOpenDropdown(null);
-                                      }}
-                                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
-                                    >
-                                      <Edit size={16} />
-                                      Edit
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        confirmDelete(ehad);
-                                        setOpenDropdown(null);
-                                      }}
-                                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                    >
-                                      <Trash2 size={16} />
-                                      Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
+                            <div className="flex items-center justify-end">
+                              <ActionsDropdown
+                                // onView={() => handleView(ehad)}
+                                onEdit={canEditNewEhads ? () => handleEdit(ehad) : undefined}
+                                onDelete={canDeleteNewEhads ? () => handleDeleteClick(ehad) : undefined}
+                                // showView={true}
+                                showEdit={canEditNewEhads}
+                                showDelete={canDeleteNewEhads}
+                                align="right"
+                              />
                             </div>
                           </td>
                         </tr>
@@ -508,47 +561,17 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <Trash2 className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  Delete New Ehad
-                </h3>
-                <p className="text-sm text-gray-500">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete{" "}
-              <strong>{selectedEhad?.name}</strong>? This will permanently
-              remove the new ehad from the system.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteDialog(false);
-                  setSelectedEhad(null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Delete New Ehad"
+        message={`Are you sure you want to delete "${selectedEhad?.name}" (ID: ${selectedEhad?.id})? This action cannot be undone.`}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setSelectedEhad(null);
+        }}
+        onConfirm={handleDelete}
+        isLoading={deleting}
+      />
     </div>
   );
 }

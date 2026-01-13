@@ -33,6 +33,7 @@ import { mehfilReportsApi } from "./slicers/mehfilReportsApi";
 import { dashboardStatsApi } from "./slicers/dashboardStatsApi";
 import { karkunJoinRequestsApi } from "./slicers/karkunJoinRequestsApi";
 import { feedbackApi } from "./slicers/feedbackApi";
+import { adminUserApi } from "./slicers/adminUserApi";
 import karkunJoinRequestsReducer from "./slicers/karkunJoinRequestsSlice";
 import newEhadFollowUpsReducer from "./slicers/newEhadFollowUpsSlice";
 import dutyTypesReducer from "./slicers/dutyTypesSlice";
@@ -170,6 +171,7 @@ export const store = configureStore({
     [feedbackApi.reducerPath]: feedbackApi.reducer,
     [karkunanApi.reducerPath]: karkunanApi.reducer,
     [newEhadApi.reducerPath]: newEhadApi.reducer,
+    [adminUserApi.reducerPath]: adminUserApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -208,6 +210,7 @@ export const store = configureStore({
           'feedbackApi',
           'karkunanApi',
           'newEhadApi',
+          'adminUserApi',
         ],
         warnAfter: 128,
       },
@@ -229,7 +232,8 @@ export const store = configureStore({
     .concat(karkunJoinRequestsApi.middleware)
     .concat(feedbackApi.middleware)
     .concat(karkunanApi.middleware)
-    .concat(newEhadApi.middleware),
+    .concat(newEhadApi.middleware)
+    .concat(adminUserApi.middleware),
   // Enable devTools only in development
   devTools: process.env.NODE_ENV !== 'production',
 });
