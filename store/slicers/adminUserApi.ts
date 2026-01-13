@@ -17,7 +17,7 @@ export interface AdminUser {
   mehfil_directory_id: number | null;
   duty_days: string | null;
   duty_type: string | null;
-  avatar: string;
+  avatar: string | null;
   city: string | null;
   country: string | null;
   is_zone_admin: boolean;
@@ -25,10 +25,33 @@ export interface AdminUser {
   is_super_admin: boolean;
   is_region_admin?: boolean;
   is_all_region_admin?: boolean;
+  is_active?: boolean;
+  has_affidavit_form?: boolean;
+  affidavit_form_file?: string | null;
   role_id: number | null;
   user_type: string;
   created_at: string;
   updated_at: string;
+  created_by?: number | null;
+  updated_by?: number | null;
+  zone?: {
+    id: number;
+    title_en: string;
+    title_ur?: string;
+  } | null;
+  mehfilDirectory?: {
+    id: number;
+    name_en: string;
+    name_ur?: string;
+  } | null;
+  creator?: {
+    id: number;
+    name: string;
+  } | null;
+  updater?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 export interface AdminUserResponse {
@@ -56,6 +79,9 @@ export interface AdminUserQueryParams {
   search?: string;
   sortField?: string;
   sortDirection?: "asc" | "desc";
+  zone_id?: string | number | null;
+  mehfil_directory_id?: string | number | null;
+  activeTab?: string | null;
 }
 
 export const adminUserApi = createApi({
@@ -67,7 +93,7 @@ export const adminUserApi = createApi({
   tagTypes: ["AdminUser"],
   endpoints: (builder) => ({
     fetchAdminUsers: builder.query<AdminUserResponse, AdminUserQueryParams>({
-      query: ({ page = 1, size = 10, search = "", sortField, sortDirection }) => {
+      query: ({ page = 1, size = 10, search = "", sortField, sortDirection, zone_id, mehfil_directory_id, activeTab }) => {
         const params = new URLSearchParams({
           page: page.toString(),
           size: size.toString(),
@@ -83,6 +109,18 @@ export const adminUserApi = createApi({
 
         if (sortDirection) {
           params.append("sortDirection", sortDirection);
+        }
+
+        if (zone_id) {
+          params.append("zone_id", zone_id.toString());
+        }
+
+        if (mehfil_directory_id) {
+          params.append("mehfil_directory_id", mehfil_directory_id.toString());
+        }
+
+        if (activeTab) {
+          params.append("activeTab", activeTab);
         }
 
         return `adminusers?${params.toString()}`;

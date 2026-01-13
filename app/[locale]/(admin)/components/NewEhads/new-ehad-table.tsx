@@ -32,10 +32,14 @@ interface NewEhadData {
   name: string;
   father_name: string;
   marfat: string;
-  phone_no: string;
+  phone_number?: string;
+  phone_no?: string;
   address: string;
+  is_multan_ehad?: boolean;
   mehfil_directory_id: number;
   zone_id: number;
+  created_by?: number | null;
+  updated_by?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,8 +85,8 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
   const { data: zonesData } = useFetchZonesQuery({ per_page: 1000 });
   const { data: mehfilData } = useFetchAddressQuery({
     page: 1,
-    size: 1000,
-    zoneId: selectedZone,
+    size: 10000,
+    zoneId: selectedZone || "",
     search: "",
   });
 
@@ -265,9 +269,10 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
         {/* Actions Bar */}
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="p-4 sm:p-6">
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            {/* Single horizontal row: Search + Zone + Mehfil + Records Per Page */}
+            <div className="flex flex-col sm:flex-row gap-3">
               {/* Search Bar */}
-              <div className="relative w-full lg:max-w-md">
+              <div className="relative flex-1 min-w-0">
                 <Search
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={16}
@@ -281,38 +286,72 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                 />
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+              {/* Zone Dropdown */}
+              <div className="flex-1 min-w-0">
                 <select
                   value={selectedZone}
-                  onChange={(e) => setSelectedZone(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px]"
+                  onChange={(e) => {
+                    setSelectedZone(e.target.value);
+                    setSelectedMehfil(""); // Reset mehfil when zone changes
+                    setCurrentPage(1); // Reset to first page
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                 >
                   <option value="">All Zones</option>
-                  {zonesData?.data?.map((zone: any) => (
-                    <option key={zone.id} value={zone.id}>
-                      {zone.title_en}
-                    </option>
-                  ))}
+                  {zonesData?.data
+                    ?.slice()
+                    .sort((a: any, b: any) => 
+                      (a.title_en || "").localeCompare(b.title_en || "", undefined, { sensitivity: "base" })
+                    )
+                    .map((zone: any) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.title_en}
+                      </option>
+                    ))}
                 </select>
+              </div>
 
+              {/* Mehfil Dropdown */}
+              <div className="flex-1 min-w-0">
                 <select
                   value={selectedMehfil}
-                  onChange={(e) => setSelectedMehfil(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px]"
+                  onChange={(e) => {
+                    setSelectedMehfil(e.target.value);
+                    setCurrentPage(1); // Reset to first page
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                 >
                   <option value="">All Mehfils</option>
-                  {mehfilData?.data?.map((mehfil: any) => (
-                    <option key={mehfil.id} value={mehfil.id}>
-                      {mehfil.address_en}
-                    </option>
-                  ))}
+                  {mehfilData?.data
+                    ?.filter((mehfil: any) => 
+                      !selectedZone || mehfil.zone_id === parseInt(selectedZone)
+                    )
+                    .slice()
+                    .sort((a: any, b: any) => {
+                      // Sort by mehfil_number first, then by city_en
+                      const aNumber = a.mehfil_number || a.id || 0;
+                      const bNumber = b.mehfil_number || b.id || 0;
+                      if (aNumber !== bNumber) {
+                        return aNumber - bNumber;
+                      }
+                      const aCity = (a.city_en || a.name_en || a.address_en || "").toLowerCase();
+                      const bCity = (b.city_en || b.name_en || b.address_en || "").toLowerCase();
+                      return aCity.localeCompare(bCity, undefined, { sensitivity: "base" });
+                    })
+                    .map((mehfil: any) => (
+                      <option key={mehfil.id} value={mehfil.id}>
+                        #{mehfil.mehfil_number || mehfil.id} - {mehfil.city_en || mehfil.name_en || mehfil.address_en || ""}
+                      </option>
+                    ))}
                 </select>
+              </div>
 
+              {/* Records Per Page */}
+              <div className="flex-shrink-0">
                 <select
                   value={perPage}
                   onChange={(e) => handlePerPageChange(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px] max-w-[120px]"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px] appearance-none bg-white"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -334,7 +373,7 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
             <>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="bg-gray-50 border-b sticky top-0">
                     <tr>
                       <th 
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -379,13 +418,13 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                         </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Father Name
+                        PHONE
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Zone / Mehfil
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Phone
+                        CREATED BY
                       </th>
                       <th 
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -416,7 +455,7 @@ export function NewEhadTable({ onEdit, onAdd, onView }: NewEhadTableProps) {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {apiResponse?.data?.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-6 py-12 text-center">
+                        <td colSpan={10} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center">
                             <User className="h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">

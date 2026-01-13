@@ -60,4 +60,5 @@ export interface MehfilReportsQueryParams {
   zone?: string;
   month?: string;
   year?: string;
+  mehfil?: string;
 } 

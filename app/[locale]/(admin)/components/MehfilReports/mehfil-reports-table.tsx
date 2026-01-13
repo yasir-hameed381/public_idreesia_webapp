@@ -14,6 +14,8 @@ import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { useFetchMehfilsDataQuery } from "@/store/slicers/mehfilApi";
+import { useGetKarkunByIdQuery } from "@/store/slicers/EhadKarkunApi";
+import { useFetchAddressQuery } from "../../../../../store/slicers/mehfildirectoryApi";
 import {
   Search,
   Plus,
@@ -31,6 +33,27 @@ interface MehfilReportsTableProps {
   onAdd: () => void;
 }
 
+// Component to fetch and display Ehad Karkun name
+function EhadKarkunCell({ ehadKarkunId }: { ehadKarkunId: number | null }) {
+  const { data: karkunData, isLoading } = useGetKarkunByIdQuery(ehadKarkunId || 0, {
+    skip: !ehadKarkunId,
+  });
+
+  if (!ehadKarkunId) {
+    return <div className="text-sm text-gray-500">N/A</div>;
+  }
+
+  if (isLoading) {
+    return <div className="text-sm text-gray-400">Loading...</div>;
+  }
+
+  return (
+    <div className="text-sm text-gray-900">
+      {karkunData?.data?.name_en || `Ehad Karkun ${ehadKarkunId}`}
+    </div>
+  );
+}
+
 export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
   const { hasPermission } = usePermissions();
   const [search, setSearch] = useState("");
@@ -43,8 +66,6 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
   const debouncedSearch = useDebounce(search, 500);
   const { showError, showSuccess } = useToast();
   const dispatch = useDispatch();
-  const [selectedMehfil, setSelectedMehfil] = useState("");
-  const router = useRouter();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,6 +97,22 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
 
   // Fetch zones for filter
   const { data: zonesData } = useFetchZonesQuery({ per_page: 1000 });
+
+  // Fetch mehfil directories for display
+  const { data: mehfilDirectoriesData } = useFetchAddressQuery({
+    page: 1,
+    size: 10000,
+    zoneId: "",
+    search: "",
+  });
+
+  // Fetch ehad karkuns for display (we'll need to fetch all or create a batch endpoint)
+  // For now, we'll create a component that fetches individually
+
+  // Helper function to get mehfil directory by ID
+  const getMehfilDirectory = (id: number) => {
+    return mehfilDirectoriesData?.data?.find((m: any) => m.id === id);
+  };
 
   // Helper function to format report period
   const formatReportPeriod = (month: number, year: number) => {
@@ -109,14 +146,54 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
     });
   };
 
+  // Generate months and years for filters
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+  // Convert month name to number (1-12)
+  const getMonthNumber = (monthName: string): string => {
+    if (!monthName) return "";
+    const monthIndex = months.findIndex((m) => m === monthName);
+    return monthIndex >= 0 ? String(monthIndex + 1) : "";
+  };
+
+  // Convert zone title to zone ID
+  const getZoneId = (zoneTitle: string): string => {
+    if (!zoneTitle) return "";
+    const zone = zonesData?.data?.find((z: any) => z.title_en === zoneTitle);
+    return zone ? String(zone.id) : "";
+  };
+
+  // Convert mehfil title to mehfil directory ID
+  const getMehfilDirectoryId = (mehfilTitle: string): string => {
+    if (!mehfilTitle) return "";
+    const mehfil = mehfilData?.data?.find((m: any) => m.title_en === mehfilTitle);
+    return mehfil ? String(mehfil.id) : "";
+  };
+
   // Fetch data with pagination and search parameters
   const { data, isLoading, error } = useFetchMehfilReportsQuery({
     page: pagination.page,
     size: pagination.per_page,
-    search: debouncedSearch,
-    zone: selectedZone,
-    month: selectedMonth,
-    year: selectedYear,
+    search: debouncedSearch || undefined,
+    zone: getZoneId(selectedZone) || undefined,
+    month: getMonthNumber(selectedMonth) || undefined,
+    year: selectedYear || undefined,
   });
 
   const [deleteReport] = useDeleteMehfilReportMutation();
@@ -230,25 +307,6 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
     data?.meta?.total || 0
   );
 
-  // Generate months and years for filters
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
-
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -268,9 +326,8 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 Mehfil Reports
@@ -280,7 +337,7 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
               </p>
             </div>
 
-            {/* Action Buttons */}
+            {/* Export Button */}
             <div className="flex items-center gap-3">
               <button
                 onClick={exportToExcel}
@@ -301,107 +358,96 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Actions Bar */}
-        <div className="bg-white rounded-lg shadow-sm border mb-6">
-          <div className="p-4 sm:p-6">
-            {/* Line 1: Search + Zone + Mehfil */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-3">
-              <div className="relative flex-1 min-w-0">
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={16}
-                />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search reports..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={16}
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search reports..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
 
-              <div className="flex-1 min-w-0">
-                <select
-                  value={selectedZone}
-                  onChange={(e) => setSelectedZone(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Zones</option>
-                  {zonesData?.data?.map((zone: any) => (
-                    <option key={zone.id} value={zone.title_en}>
-                      {zone.title_en}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <select
-                  value={selectedMehfil}
-                  onChange={(e) => setSelectedMehfil(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Mehfil</option>
-                  {mehfilData?.data?.map((mehfil: any) => (
-                    <option key={mehfil.id} value={mehfil.title_en}>
-                      {mehfil.title_en}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Filters Row: Zone + Month + Year + Records Per Page */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 min-w-0">
+              <select
+                value={selectedZone}
+                onChange={(e) => {
+                  setSelectedZone(e.target.value);
+                  handlePageChange({ first: 0, rows: pagination.per_page });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+              >
+                <option value="">All Zones</option>
+                {zonesData?.data?.map((zone: any) => (
+                  <option key={zone.id} value={zone.title_en}>
+                    {zone.title_en}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Line 2: Month + Year + Records Per Page */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 min-w-0">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Months</option>
-                  {months.map((month, index) => (
-                    <option key={index} value={month}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex-1 min-w-0">
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  handlePageChange({ first: 0, rows: pagination.per_page });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+              >
+                <option value="">All Months</option>
+                {months.map((month, index) => (
+                  <option key={index} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="flex-1 min-w-0">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Years</option>
-                  {years.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex-1 min-w-0">
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  handlePageChange({ first: 0, rows: pagination.per_page });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+              >
+                <option value="">All Years</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="flex-shrink-0">
-                <select
-                  value={pagination.per_page}
-                  onChange={(e) =>
-                    handlePageChange({
-                      first: 0,
-                      rows: parseInt(e.target.value),
-                    })
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px]"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
+            <div className="flex-shrink-0">
+              <select
+                value={pagination.per_page}
+                onChange={(e) =>
+                  handlePageChange({
+                    first: 0,
+                    rows: parseInt(e.target.value),
+                  })
+                }
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px] appearance-none bg-white"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
             </div>
           </div>
         </div>
@@ -440,6 +486,12 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                         Submitted At
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created By
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Updated By
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -447,7 +499,7 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {data?.data?.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-6 py-12 text-center">
+                        <td colSpan={10} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center">
                             <FileText className="h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -484,16 +536,18 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
-                              Mehfil #{report.mehfile_directory_id}
+                              #{getMehfilDirectory(report.mehfil_directory_id)?.mehfil_number || report.mehfil_directory_id}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {getMehfilDirectory(report.mehfil_directory_id)?.city_en || ""}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              Coordinator {report.coordinator_name}
+                              {report.coordinator_name}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {report.coordinator_monthly_attendance_days} days
-                              attendance
+                              {report.coordinator_monthly_attendance_days} days attendance
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -502,28 +556,29 @@ export function MehfilReportsTable({ onView, onAdd }: MehfilReportsTableProps) {
                                 Total Duty Karkuns: {report.total_duty_karkuns}
                               </div>
                               <div>
-                                Low Attendance:{" "}
-                                {report.attendance_below_50_percent_karkuns}
+                                Low Attendance: {report.attendance_below_50_percent_karkuns}
                               </div>
                               <div>
-                                Consistently Absent:{" "}
-                                {report.consistently_absent_karkuns}
+                                New Ehads: {report.new_ehads_in_month}
                               </div>
-                              <div>New Ehads: {report.new_ehads_in_months}</div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              Ehad Karkun {report.ehad_karkun_id}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {report.ehad_karkuns_monthly_attendance_days} days
-                              attendance
-                            </div>
+                            <EhadKarkunCell ehadKarkunId={report.ehad_karkun_id} />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {formatSubmittedDate(report.created_at)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {report.created_by ? `User ${report.created_by}` : "N/A"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {report.updated_by ? `User ${report.updated_by}` : "N/A"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

@@ -42,6 +42,7 @@ import {
   Home,
   LogOut,
   Files,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
@@ -65,6 +66,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { hasPermission, isSuperAdmin } = usePermissions();
@@ -84,8 +86,26 @@ export function AppSidebar({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showUserMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.user-menu-container')) {
+          setShowUserMenu(false);
+        }
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserMenu]);
+
   // Clean the pathname to match the navigation items
   const cleanedPathname = pathname.replace(/^\/[a-z]{2}\//, "");
+  const locale = pathname.split('/')[1] || 'en';
 
   // Define navigation structure matching Laravel's sidebar layout
   // Only including items that exist in React
@@ -160,7 +180,12 @@ export function AppSidebar({
         href: "/new-ehads",
         icon: <UserPlus size={18} />,
         permission: PERMISSIONS.VIEW_NEW_EHADS,
-      },
+      },      
+    ],
+  };
+  const Group803: NavGroup = {
+    heading: "803",
+    items: [
       {
         name: "Tarteeb Requests",
         href: "/tarteeb-requests",
@@ -171,7 +196,7 @@ export function AppSidebar({
         name: "Khatoot / Masail",
         href: "/khatoot",
         icon: <BookOutlined />,
-        permission: null,
+        permission: PERMISSIONS.VIEW_KHATOOT,
       },
       {
         name: "Response Templates",
@@ -181,7 +206,6 @@ export function AppSidebar({
       },
     ],
   };
-
   // CMS Group (matching Laravel structure)
   const cmsGroup: NavGroup = {
     heading: "CMS",
@@ -271,6 +295,7 @@ export function AppSidebar({
   const allNavigationItems: NavItem[] = [
     homeItem,
     ...mccGroup.items,
+    ...Group803.items,
     ...cmsGroup.items,
   ];
 
@@ -358,6 +383,11 @@ export function AppSidebar({
     items: filterGroupItems(cmsGroup.items),
   };
 
+  const filteredGroup803 = {
+    ...Group803,
+    items: filterGroupItems(Group803.items),
+  };
+
   // Check if home item should be shown
   const showHome =
     homeItem.permission === null || isSuperAdmin || hasPermission(homeItem.permission);
@@ -383,6 +413,19 @@ export function AppSidebar({
         type: "group",
         label: mccGroup.heading,
         children: filteredMccGroup.items.map((item) => ({
+          key: item.href,
+          icon: item.icon,
+          label: <NavigationLink href={item.href}>{item.name}</NavigationLink>,
+        })),
+      });
+    }
+
+    // Group803 (CMS - Tarteeb Requests, Khatoot, Response Templates)
+    if (filteredGroup803.items.length > 0) {
+      items.push({
+        type: "group",
+        label: Group803.heading,
+        children: filteredGroup803.items.map((item) => ({
           key: item.href,
           icon: item.icon,
           label: <NavigationLink href={item.href}>{item.name}</NavigationLink>,
@@ -435,6 +478,8 @@ export function AppSidebar({
         bottom: 0,
         zIndex: 1000, // Ensure the sidebar is above other content
         transition: "all 0.2s",
+        display: "flex",
+        flexDirection: "column",
       }}
       className={isMobile && isCollapsed ? "hidden" : ""}
     >
@@ -474,21 +519,123 @@ export function AppSidebar({
           )}
         </div>
       </div>
-      <Menu
-        theme="dark"
-        mode="inline"
-       // selectedKeys={[selectedKey]}
-        items={menuItems}
-        // Important: This ensures icons remain visible in collapsed state
-        inlineCollapsed={isCollapsed}
-        style={{
-          backgroundColor: "#001529", // Dark background
-        }}
-        // Custom styles for selected items
-        className="custom-sidebar-menu"
-        // Force re-render when pathname changes
-        key={`menu-${pathname}`}
-      />
+      <div className="flex-1 overflow-auto">
+        <Menu
+          theme="dark"
+          mode="inline"
+         // selectedKeys={[selectedKey]}
+          items={menuItems}
+          // Important: This ensures icons remain visible in collapsed state
+          inlineCollapsed={isCollapsed}
+          style={{
+            backgroundColor: "#001529", // Dark background
+          }}
+          // Custom styles for selected items
+          className="custom-sidebar-menu"
+          // Force re-render when pathname changes
+          key={`menu-${pathname}`}
+        />
+      </div>
+
+      {/* User Profile Section at Bottom - With Popup Menu */}
+      {!isCollapsed && (
+        <div className="border-t border-gray-700 mt-auto bg-gray-800 relative user-menu-container">
+          <div
+            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-700 transition-colors"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+          >
+            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm flex-shrink-0">
+              {user?.name 
+                ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                : 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-semibold text-sm truncate">
+                {user?.name || "User"}...
+              </div>
+            </div>
+            <svg
+              className="w-4 h-4 text-gray-400 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 9l4-4 4 4m0 6l-4 4-4-4"
+              />
+            </svg>
+          </div>
+
+          {/* User Menu Popup */}
+          {showUserMenu && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden z-50">
+              {/* Profile Info */}
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm flex-shrink-0">
+                    {user?.name 
+                      ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                      : 'U'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-gray-900 font-semibold text-sm truncate">
+                      {user?.name || "User"}
+                    </div>
+                    <div className="text-gray-500 text-xs truncate">
+                      {user?.email || ""}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Settings Link */}
+              <div className="border-b border-gray-200">
+                <Link
+                  href={`/${locale}/settings`}
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <Settings size={18} className="text-gray-500" />
+                  <span className="text-sm font-medium">Settings</span>
+                </Link>
+              </div>
+
+              {/* Log Out Link */}
+              <div className="border-b border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <LogOut size={18} className="text-gray-500" />
+                  <span className="text-sm font-medium">Log Out</span>
+                </button>
+              </div>
+
+            
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Collapsed Sidebar - Show only avatar */}
+      {isCollapsed && (
+        <div className="border-t border-gray-700 mt-auto p-4">
+          <Link
+            href={`/${locale}/settings`}
+            className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm mx-auto hover:bg-gray-300 transition-colors block"
+          >
+            {user?.name 
+              ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+              : 'U'}
+          </Link>
+        </div>
+      )}
     </Sider>
   );
 }

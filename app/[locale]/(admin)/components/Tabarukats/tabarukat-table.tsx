@@ -12,12 +12,12 @@ import {
   Package,
   X,
   ChevronDown,
-  Eye,
   MoreHorizontal,
 } from "lucide-react";
 import { useFetchZonesQuery } from "../../../../../store/slicers/zoneApi";
 import KhatService from "@/services/KhatService";
 import { MehfilSummary } from "@/types/khat";
+import { useFetchAddressQuery } from "@/store/slicers/mehfilApi";
 
 interface TabarukatData {
   id: number;
@@ -80,6 +80,17 @@ export function TabarukatTable({
 
   // Fetch zones for filters
   const { data: zonesData } = useFetchZonesQuery({ per_page: 1000 });
+  const { data: mehfilData } = useFetchAddressQuery({
+    page: 1,
+    size: 10000,
+    zoneId: selectedZone ? selectedZone.toString() : "",
+    search: "",
+  });
+
+  // Helper function to get mehfil directory by ID
+  const getMehfilDirectory = (id: number) => {
+    return mehfilData?.data?.find((m: any) => m.id === id);
+  };
 
   // Fetch mehfils when zone is selected
   useEffect(() => {
@@ -111,8 +122,8 @@ export function TabarukatTable({
 
         const params = new URLSearchParams({
           page: currentPage.toString(),
-          per_page: perPage.toString(),
-          search: debouncedSearch.trim(),
+          size: perPage.toString(),
+          ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
           ...(selectedZone && { zone_id: selectedZone.toString() }),
           ...(selectedMehfil && { mehfil_directory_id: selectedMehfil.toString() }),
         });
@@ -171,13 +182,13 @@ export function TabarukatTable({
       setSelectedTabarukat(null);
 
       // Refresh data
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        per_page: perPage.toString(),
-        search: debouncedSearch.trim(),
-        ...(selectedZone && { zone_id: selectedZone.toString() }),
-        ...(selectedMehfil && { mehfil_directory_id: selectedMehfil.toString() }),
-      });
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          size: perPage.toString(),
+          ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
+          ...(selectedZone && { zone_id: selectedZone.toString() }),
+          ...(selectedMehfil && { mehfil_directory_id: selectedMehfil.toString() }),
+        });
 
       const refreshResponse = await fetch(`/api/tabarukat?${params}`);
       if (refreshResponse.ok) {
@@ -252,9 +263,10 @@ export function TabarukatTable({
         {/* Actions Bar */}
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="p-4 sm:p-6">
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            {/* Single horizontal row: Search + Zone + Mehfil + Records Per Page */}
+            <div className="flex flex-col sm:flex-row gap-3">
               {/* Search Bar */}
-              <div className="relative w-full lg:max-w-md">
+              <div className="relative flex-1 min-w-0">
                 <Search
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={16}
@@ -268,8 +280,8 @@ export function TabarukatTable({
                 />
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+              {/* Zone Dropdown */}
+              <div className="flex-1 min-w-0">
                 <select
                   value={selectedZone || ""}
                   onChange={(e) => {
@@ -278,16 +290,24 @@ export function TabarukatTable({
                     setSelectedMehfil(null); // Reset mehfil when zone changes
                     setCurrentPage(1); // Reset to first page
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                 >
                   <option value="">All Zones</option>
-                  {zonesData?.data?.map((zone: any) => (
-                    <option key={zone.id} value={zone.id}>
-                      {zone.title_en}
-                    </option>
-                  ))}
+                  {zonesData?.data
+                    ?.slice()
+                    .sort((a: any, b: any) => 
+                      (a.title_en || "").localeCompare(b.title_en || "", undefined, { sensitivity: "base" })
+                    )
+                    .map((zone: any) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.title_en}
+                      </option>
+                    ))}
                 </select>
+              </div>
 
+              {/* Mehfil Dropdown */}
+              <div className="flex-1 min-w-0">
                 <select
                   value={selectedMehfil || ""}
                   onChange={(e) => {
@@ -296,22 +316,41 @@ export function TabarukatTable({
                     setCurrentPage(1); // Reset to first page
                   }}
                   disabled={!selectedZone}
-                  className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[120px] max-w-[200px] ${
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white ${
                     !selectedZone ? "opacity-50 cursor-not-allowed bg-gray-50" : ""
                   }`}
                 >
                   <option value="">All Mehfils</option>
-                  {mehfils.map((mehfil) => (
-                    <option key={mehfil.id} value={mehfil.id}>
-                      #{mehfil.mehfil_number} - {mehfil.name_en}
-                    </option>
-                  ))}
+                  {mehfilData?.data
+                    ?.filter((mehfil: any) => 
+                      !selectedZone || mehfil.zone_id === selectedZone
+                    )
+                    .slice()
+                    .sort((a: any, b: any) => {
+                      // Sort by mehfil_number first, then by name
+                      const aNumber = a.mehfil_number || a.id || 0;
+                      const bNumber = b.mehfil_number || b.id || 0;
+                      if (aNumber !== bNumber) {
+                        return aNumber - bNumber;
+                      }
+                      const aName = (a.name_en || a.address_en || "").toLowerCase();
+                      const bName = (b.name_en || b.address_en || "").toLowerCase();
+                      return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+                    })
+                    .map((mehfil: any) => (
+                      <option key={mehfil.id} value={mehfil.id}>
+                        #{mehfil.mehfil_number || mehfil.id} - {mehfil.name_en || mehfil.address_en || ""}
+                      </option>
+                    ))}
                 </select>
+              </div>
 
+              {/* Records Per Page */}
+              <div className="flex-shrink-0">
                 <select
                   value={perPage}
                   onChange={(e) => handlePerPageChange(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px] max-w-[120px]"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px] appearance-none bg-white"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -391,7 +430,8 @@ export function TabarukatTable({
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              Mehfil #{tabarukat.mehfil_directory_id}
+                              {getMehfilDirectory(tabarukat.mehfil_directory_id)?.name_en || 
+                               `Mehfil ${tabarukat.mehfil_directory_id}`}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -433,16 +473,6 @@ export function TabarukatTable({
                               {openDropdown === tabarukat.id.toString() && (
                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
                                   <div className="py-1">
-                                    <button
-                                      onClick={() => {
-                                        onView(tabarukat);
-                                        setOpenDropdown(null);
-                                      }}
-                                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    >
-                                      <Eye size={16} />
-                                      View
-                                    </button>
                                     {!hideEdit && (
                                       <button
                                         onClick={() => {

@@ -79,6 +79,16 @@ export const zoneSlice = createApi({
 
         return `zone?${params.toString()}`;
       },
+      transformResponse: (response: any) => {
+        // Handle different response structures
+        if (response?.data) {
+          return response;
+        }
+        if (Array.isArray(response)) {
+          return { data: response, meta: { total: response.length } };
+        }
+        return { data: [], meta: { total: 0 } };
+      },
       providesTags: ['zone'],
     }),
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { usePermissions } from "@/context/PermissionContext";
 import { PermissionWrapper } from "@/components/PermissionWrapper";
@@ -13,6 +13,8 @@ import ActionsDropdown from "@/components/ActionsDropdown";
 
 const ResponseTemplatesPage = () => {
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const { hasPermission, isSuperAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<ResponseTemplate[]>([]);
@@ -103,7 +105,7 @@ const ResponseTemplatesPage = () => {
             </div>
             {canCreate && (
               <Link
-                href="/response-templates/create"
+                href={`/${locale}/response-templates/create`}
                 className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 + Create Template
@@ -252,7 +254,7 @@ const ResponseTemplatesPage = () => {
                             <ActionsDropdown
                               onEdit={
                                 canEdit
-                                  ? () => router.push(`/response-templates/${template.id}/edit`)
+                                  ? () => router.push(`/${locale}/response-templates/${template.id}/edit`)
                                   : undefined
                               }
                               onDelete={canDelete ? () => handleDeleteClick(template) : undefined}

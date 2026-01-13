@@ -58,6 +58,16 @@ fetchAddress: builder.query({
     if (zoneId) params.set("zoneId", zoneId);
     return `mehfil-directory?${params.toString()}`;
   },
+  transformResponse: (response: any) => {
+    // Handle different response structures
+    if (response?.data) {
+      return response;
+    }
+    if (Array.isArray(response)) {
+      return { data: response, meta: { total: response.length } };
+    }
+    return { data: [], meta: { total: 0 } };
+  },
   providesTags: ['mehfilDirtory']
 }),
 

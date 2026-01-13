@@ -36,7 +36,7 @@ export const mehfilReportsApi = createApi({
   tagTypes: ['MehfilReports'],
   endpoints: (builder) => ({
     fetchMehfilReports: builder.query<MehfilReportsResponse, MehfilReportsQueryParams>({
-      query: ({ page, size, search = '', zone = '', month = '', year = '' }) => {
+      query: ({ page, size, search = '', zone = '', month = '', year = '', mehfil = '' }) => {
         const params = buildQueryParams({
           page,
           size,
@@ -44,6 +44,7 @@ export const mehfilReportsApi = createApi({
           zone,
           month,
           year,
+          mehfil_directory_id: mehfil,
         });
         return `${API_ENDPOINTS.MEHFIL_REPORTS.LIST}?${params}`;
       },

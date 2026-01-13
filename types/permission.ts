@@ -128,6 +128,11 @@ export const PERMISSIONS = {
   VIEW_TARTEEB_REQUESTS: "view tarteeb requests",
   UPDATE_TARTEEB_REQUESTS: "update tarteeb requests",
 
+  // Khatoot / Masail
+  VIEW_KHATOOT: "view khatoot",
+  UPDATE_KHATOOT: "update khatoot",
+  DELETE_KHATOOT: "delete khatoot",
+
   // Response Templates
   VIEW_RESPONSE_TEMPLATES: "view response templates",
   CREATE_RESPONSE_TEMPLATES: "create response templates",
