@@ -54,20 +54,35 @@ export default function LatestMessage() {
           <Image src={image} alt="image" className="max-w-full h-auto" />
         </div>
 
-        <div className="w-1/2 flex flex-col justify-center items-start px-8">
+        <div className="w-1/2 flex flex-col justify-center items-start px-5">
           <Image
             src={image2}
             alt="second image"
             className="max-w-full h-auto rounded-md"
           />
 
-          <div className="flex flex-col items-center">
+          <div className="flex flex-row items-center w-full overflow-x-auto">
             {latestMessage.map((item) => {
               const localizedContent = getLocalizedContent(item);
+              
+              // Format date to ISO 8601 format
+              const formatDateToISO = (dateString: string) => {
+                if (!dateString) return "";
+                try {
+                  const date = new Date(dateString);
+                  // Return in ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ
+                  return date.toISOString();
+                } catch (error) {
+                  return dateString;
+                }
+              };
+
+              const formattedDate = formatDateToISO(item.created_at);
+
               return (
                 <div
                   key={item.id}
-                  className=" w-full p-2  mb-5  border-b border-gray-300"
+                  className="w-full border-b border-gray-300"
                 >
                   <h2
                     className={`text-xl font-bold text-[#026419] ${
@@ -77,11 +92,11 @@ export default function LatestMessage() {
                     {localizedContent.title}
                   </h2>
                   <p
-                    className={`mt-4 text-base text-[#026419] ${
+                    className={`mt-4 text-base text-[#026419] whitespace-nowrap overflow-hidden text-ellipsis ${
                       locale === "ur" ? "font-urdu text-right" : ""
                     }`}
                   >
-                    {item.created_at}
+                    {formattedDate}
                   </p>
                 </div>
               );
