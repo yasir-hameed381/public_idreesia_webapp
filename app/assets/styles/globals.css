@@ -7,6 +7,16 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
