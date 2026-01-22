@@ -133,8 +133,8 @@ const PublicKhatFormPage = () => {
         dua_e_talluq_quantity: parseInt(formData.dua_e_talluq_quantity) || 0,
         dua_e_waswasey_quantity: parseInt(formData.dua_e_waswasey_quantity) || 0,
         age: parseInt(formData.age) || 0,
-        type: "khat",
-        status: "pending",
+        // type: "khat",
+        // status: "pending",
       };
 
       // Submit with token - the service will handle token validation
