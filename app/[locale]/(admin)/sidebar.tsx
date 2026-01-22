@@ -476,7 +476,7 @@ export function AppSidebar({
         left: 0,
         top: 0,
         bottom: 0,
-        zIndex: 1000, // Ensure the sidebar is above other content
+        zIndex: 1000,
         transition: "all 0.2s",
         display: "flex",
         flexDirection: "column",
