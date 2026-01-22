@@ -59,11 +59,6 @@ export function TaleematTable() {
 
   const categoryOptions = [
     { label: "All Categories", value: "all" },
-    { label: "Ethics", value: "Ethics" },
-    { label: "Aqeedah", value: "Aqeedah" },
-    { label: "Quran", value: "Quran" },
-    { label: "Fiqh", value: "Fiqh" },
-    { label: "Seerah", value: "Seerah" },
     ...(categoryData?.data?.map((cat) => ({
       label: cat.title_en,
       value: cat.id,

@@ -64,7 +64,7 @@ const WazaifList = () => {
 
   const { data, isLoading, error } = useGetWazaifQuery({
     page: currentPage,
-    size: itemsPerPage,
+    limit: itemsPerPage,
     search: debouncedSearchQuery,
     category: activeCategory,
   });

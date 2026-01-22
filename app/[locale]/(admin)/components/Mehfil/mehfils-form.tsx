@@ -34,7 +34,16 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
   const [fileUploaded, setFileUploaded] = useState<boolean>(false);
   const [dragOver, setDragOver] = useState<boolean>(false);
 
-  const timeOptions = ["تہجد", "فجر", "ظہر", "عصر", "مغرب", "عشا", "اشراق"];
+  const timeOptions = [
+    "تہجد",
+    "فجر", // Replaced with reference from Laravel Enums
+    "ظہر",
+    "عصر",
+    "مغرب",
+    "عشا",
+    "اشراق",
+    "جمعہ", // Added Jumma as seen in Laravel Enum
+  ];
   const mehfilType = [
     "محفل",
     "عيد الاضحی محفل",
@@ -65,6 +74,9 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
       old: "",
       date: "",
       is_published: true,
+      is_for_karkun: false,
+      is_for_ehad_karkun: false,
+      is_sticky: false,
       type: "",
       filepath: "",
       filename: "",
@@ -87,6 +99,9 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
         old: mehfil.old || "",
         date: mehfil.date || "",
         is_published: mehfil.is_published,
+        is_for_karkun: mehfil.is_for_karkun,
+        is_for_ehad_karkun: mehfil.is_for_ehad_karkun,
+        is_sticky: mehfil.is_sticky,
         type: mehfil.type || "",
         filepath: mehfil.filepath || "",
         filename: mehfil.filename || "filename",
@@ -101,6 +116,9 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
         time: "",
         old: "",
         is_published: true,
+        is_for_karkun: false,
+        is_for_ehad_karkun: false,
+        is_sticky: false,
         date: "",
         type: "",
         filepath: "",
@@ -191,7 +209,7 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
       console.error("Error:", error?.data?.message);
       showError(
         error?.data?.message ||
-          `Failed to ${mehfil ? "update" : "create"} mehfil. Please try again.`
+        `Failed to ${mehfil ? "update" : "create"} mehfil. Please try again.`
       );
     }
   };
@@ -228,8 +246,8 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
             {/* Status Toggle */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Status</h3>
-              <div className="flex items-center justify-start gap-4">
-                <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
                   <label className="text-sm font-medium text-gray-700">
                     Published
                   </label>
@@ -240,14 +258,81 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                       <button
                         type="button"
                         onClick={() => field.onChange(!field.value)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          field.value ? "bg-gray-900" : "bg-gray-200"
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${field.value ? "bg-gray-900" : "bg-gray-200"
+                          }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            field.value ? "translate-x-6" : "translate-x-1"
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${field.value ? "translate-x-6" : "translate-x-1"
+                            }`}
+                        />
+                      </button>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    For Karkun
+                  </label>
+                  <Controller
+                    name="is_for_karkun"
+                    control={control}
+                    render={({ field }) => (
+                      <button
+                        type="button"
+                        onClick={() => field.onChange(!field.value)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${field.value ? "bg-gray-900" : "bg-gray-200"
                           }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${field.value ? "translate-x-6" : "translate-x-1"
+                            }`}
+                        />
+                      </button>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    For Ehad Karkun
+                  </label>
+                  <Controller
+                    name="is_for_ehad_karkun"
+                    control={control}
+                    render={({ field }) => (
+                      <button
+                        type="button"
+                        onClick={() => field.onChange(!field.value)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${field.value ? "bg-gray-900" : "bg-gray-200"
+                          }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${field.value ? "translate-x-6" : "translate-x-1"
+                            }`}
+                        />
+                      </button>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Sticky
+                  </label>
+                  <Controller
+                    name="is_sticky"
+                    control={control}
+                    render={({ field }) => (
+                      <button
+                        type="button"
+                        onClick={() => field.onChange(!field.value)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${field.value ? "bg-gray-900" : "bg-gray-200"
+                          }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${field.value ? "translate-x-6" : "translate-x-1"
+                            }`}
                         />
                       </button>
                     )}
@@ -273,11 +358,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                         <input
                           {...field}
                           type="date"
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            fieldState.invalid
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldState.invalid
+                            ? "border-red-500"
+                            : "border-gray-300"
+                            }`}
                         />
                         <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
                       </div>
@@ -301,11 +385,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                     render={({ field, fieldState }) => (
                       <select
                         {...field}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                       >
                         <option value="">Select a time</option>
                         {timeOptions.map((time) => (
@@ -338,11 +421,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                       <input
                         {...field}
                         type="text"
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                         placeholder="Enter title in English"
                       />
                     )}
@@ -366,11 +448,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                       <input
                         {...field}
                         type="text"
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                         placeholder="Enter title in Urdu"
                         dir="rtl"
                       />
@@ -397,11 +478,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                     render={({ field, fieldState }) => (
                       <select
                         {...field}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                       >
                         <option value="">Select Mehfil Type</option>
                         {mehfilType.map((type) => (
@@ -430,11 +510,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                     render={({ field, fieldState }) => (
                       <select
                         {...field}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                       >
                         <option value="">Select Yes or No</option>
                         <option value="1">Yes</option>
@@ -463,11 +542,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                       <textarea
                         {...field}
                         rows={4}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                         placeholder="Enter description in English"
                       />
                     )}
@@ -486,11 +564,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                       <textarea
                         {...field}
                         rows={4}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                          fieldState.invalid
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${fieldState.invalid
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          }`}
                         placeholder="Enter description in Urdu"
                         dir="rtl"
                       />
@@ -519,11 +596,10 @@ export function MehfilForm({ mehfil, visible, onHide }: MehfilFormProps) {
                   rules={{ required: "Audio file is required" }}
                   render={({ field }) => (
                     <div
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        dragOver
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300"
-                      }`}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragOver
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-300"
+                        }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}

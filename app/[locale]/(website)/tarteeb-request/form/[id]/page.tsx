@@ -79,13 +79,13 @@ const PublicTarteebRequestFormPage = () => {
         if (result.success && result.valid) {
           setTokenValid(true);
           // Set zone and mehfil from token if available
-          if (result.data?.zone_id) {
-            setFormData((prev) => ({ ...prev, zone_id: result.data.zone_id }));
-          }
-          if (result.data?.mehfil_directory_id) {
+          const zoneId = result.data?.zone_id;
+          const mehfilId = result.data?.mehfil_directory_id;
+          if (zoneId != null || mehfilId != null) {
             setFormData((prev) => ({
               ...prev,
-              mehfil_directory_id: result.data.mehfil_directory_id,
+              ...(zoneId != null && { zone_id: zoneId }),
+              ...(mehfilId != null && { mehfil_directory_id: mehfilId }),
             }));
           }
         } else {

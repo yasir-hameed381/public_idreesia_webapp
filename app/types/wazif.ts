@@ -5,11 +5,18 @@ export interface Wazaif {
   title_en: string;
   title_ur: string;
   slug: string;
-  description: string;
-  images: string | string[]; 
-  is_published?: number;
-  created_at?: string; 
-  updated_at?: string; 
+  description?: string;
+  description_en?: string;
+  images?: string | string[];
+  category?: string;
+  is_published?: number | boolean;
+  is_admin_favorite?: number | boolean;
+  is_for_karkun?: number | boolean;
+  is_for_ehad_karkun?: number | boolean;
+  is_sticky?: number | boolean;
+  wazaif_number?: string;
+  created_at?: string;
+  updated_at?: string;
   created_by?: number;
   updated_by?: number;
 }

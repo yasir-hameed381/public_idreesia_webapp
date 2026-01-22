@@ -45,30 +45,58 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
     title_en: "",
     title_ur: "",
     description: "",
+    description_en: "",
     images: [],
     slug: "",
     is_published: 1,
+    is_admin_favorite: 0,
+    is_for_karkun: 0,
+    is_for_ehad_karkun: 0,
+    is_sticky: 0,
+    wazaif_number: "",
+    category: "",
   });
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [fileUploaded, setFileUploaded] = useState<boolean>(false);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const categoryOptions = [
+    { label: "Bunyadi Wazaif", value: "bunyadi" },
+    { label: "Notice Bord Taleem", value: "notice_board_taleem" },
+    { label: "Parhaiyan", value: "parhaiyan" },
+    { label: "Wazaif", value: "wazaif" },
+  ];
+
   useEffect(() => {
     if (editingItem) {
       setFormData({
         ...editingItem,
         images: normalizeImages(editingItem.images),
-        is_published: editingItem.is_published || 1,
+        is_published: editingItem.is_published !== undefined ? (editingItem.is_published ? 1 : 0) : 1,
+        is_admin_favorite: editingItem.is_admin_favorite ? 1 : 0,
+        is_for_karkun: editingItem.is_for_karkun ? 1 : 0,
+        is_for_ehad_karkun: editingItem.is_for_ehad_karkun ? 1 : 0,
+        is_sticky: editingItem.is_sticky ? 1 : 0,
+        category: editingItem.category || "",
+        wazaif_number: editingItem.wazaif_number || "",
+        description_en: editingItem.description_en || "",
       });
     } else {
       setFormData({
         title_en: "",
         title_ur: "",
         description: "",
+        description_en: "",
         images: [],
         slug: "",
         is_published: 1,
+        is_admin_favorite: 0,
+        is_for_karkun: 0,
+        is_for_ehad_karkun: 0,
+        is_sticky: 0,
+        wazaif_number: "",
+        category: "",
       });
     }
     setUploadedImages([]);
@@ -76,12 +104,19 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
   }, [editingItem]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleToggle = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: prev[name] === 1 ? 0 : 1,
     }));
   };
 
@@ -93,42 +128,37 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
       // Check permissions before submission
       const canCreate = isSuperAdmin || hasPermission(PERMISSIONS.CREATE_WAZAIFS);
       const canEdit = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_WAZAIFS);
-      
+
       if (editingItem && !canEdit) {
         showError("You don't have permission to edit wazaifs.");
         return;
       }
-      
+
       if (!editingItem && !canCreate) {
         showError("You don't have permission to create wazaifs.");
         return;
       }
 
-      if (!formData.title_en || !formData.title_ur || !formData.description) {
-        showError("Please fill in all required fields");
+      if (!formData.title_en || !formData.title_ur || !formData.category) {
+        showError("Please fill in all required fields (Titles and Category)");
         return;
       }
 
-      const slug = generateSlug(formData.title_en);
+      const slug = editingItem ? formData.slug : generateSlug(formData.title_en);
       const normalizedImages = normalizeImages(formData.images);
 
       const payload = {
-        title_en: formData.title_en,
-        title_ur: formData.title_ur,
-        description: formData.description,
+        ...formData,
         slug,
-        is_published: formData.is_published,
         images: normalizedImages.length > 0 ? normalizedImages.join(",") : "",
       };
 
-      // console.log("Wazaif payload being sent:", payload);
-
       if (editingItem) {
-        const updateData = { ...payload, updated_by: 1 }; // Add user ID
+        const updateData = { ...payload, id: editingItem.id, updated_by: 1 };
         await onUpdateData?.(updateData);
         showSuccess("Wazaif updated successfully!");
       } else {
-        const addData = { ...payload, created_by: 1 }; // Add user ID
+        const addData = { ...payload, created_by: 1 };
         await onAddNewData?.(addData);
         showSuccess("Wazaif created successfully!");
       }
@@ -140,7 +170,6 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
       onCancel();
     } catch (error: any) {
       console.error("Error submitting form:", error);
-      console.error("Error details:", error?.data || error?.message);
       showError(
         error?.data?.message || "Failed to save wazaif. Please try again."
       );
@@ -149,54 +178,53 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const fileNames = Array.from(files).map((file) => file.name);
-      setUploadedImages((prev) => [...prev, ...fileNames]);
-      setFormData((prev) => ({
-        ...prev,
-        images: normalizeImages(prev.images).concat(fileNames),
-      }));
-      setFileUploaded(true);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDragOver(true);
   };
 
-  const handleDragLeave = (event: React.DragEvent) => {
-    event.preventDefault();
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
   };
 
-  const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
-    const files = event.dataTransfer.files;
-    if (files && files.length > 0) {
-      const fileNames = Array.from(files).map((file) => file.name);
-      setUploadedImages((prev) => [...prev, ...fileNames]);
-      setFormData((prev) => ({
-        ...prev,
-        images: normalizeImages(prev.images).concat(fileNames),
-      }));
-      setFileUploaded(true);
-    }
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      /^image\/(jpeg|jpg|png|gif)$/i.test(f.type)
+    );
+    if (files.length === 0) return;
+    const names = files.map((f) => f.name);
+    setFormData((prev) => ({
+      ...prev,
+      images: [...normalizeImages(prev.images), ...names],
+    }));
+    setFileUploaded(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    const valid = files.filter((f) =>
+      /^image\/(jpeg|jpg|png|gif)$/i.test(f.type)
+    );
+    if (valid.length === 0) return;
+    const names = valid.map((f) => f.name);
+    setFormData((prev) => ({
+      ...prev,
+      images: [...normalizeImages(prev.images), ...names],
+    }));
+    setFileUploaded(true);
+    e.target.value = "";
   };
 
   const removeImage = (index: number) => {
-    setFormData((prev) => {
-      const currentImages = normalizeImages(prev.images);
-      const updatedImages = [...currentImages];
-      updatedImages.splice(index, 1);
-      return {
-        ...prev,
-        images: updatedImages,
-      };
-    });
+    const current = normalizeImages(formData.images);
+    const next = current.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, images: next }));
   };
 
   return (
@@ -207,11 +235,11 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {type || "Create Wazaif"}
+                {type || (editingItem ? "Edit Wazaif" : "Create Wazaif")}
               </h1>
               <p className="text-gray-600 mt-1">
                 {editingItem
-                  ? "Edit wazaif details"
+                  ? "Update wazaif details"
                   : "Add a new Islamic supplication"}
               </p>
             </div>
@@ -228,34 +256,91 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
         {/* Form */}
         <div className="bg-white rounded-lg shadow-sm border p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Status Toggle */}
+            {/* Status Toggles */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Status</h3>
-              <div className="flex items-center justify-start gap-4">
-                <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-medium text-gray-900">Settings</h3>
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
                   <label className="text-sm font-medium text-gray-700">
                     Published
                   </label>
                   <button
                     type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        is_published: prev.is_published === 1 ? 0 : 1,
-                      }))
-                    }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      formData.is_published === 1
-                        ? "bg-gray-900"
-                        : "bg-gray-200"
-                    }`}
+                    onClick={() => handleToggle("is_published")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_published === 1 ? "bg-gray-900" : "bg-gray-200"
+                      }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.is_published === 1
-                          ? "translate-x-6"
-                          : "translate-x-1"
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_published === 1 ? "translate-x-6" : "translate-x-1"
+                        }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    For Karkun Only
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle("is_for_karkun")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_for_karkun === 1 ? "bg-gray-900" : "bg-gray-200"
                       }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_for_karkun === 1 ? "translate-x-6" : "translate-x-1"
+                        }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    For Ehad Karkuns
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle("is_for_ehad_karkun")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_for_ehad_karkun === 1 ? "bg-gray-900" : "bg-gray-200"
+                      }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_for_ehad_karkun === 1 ? "translate-x-6" : "translate-x-1"
+                        }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Sticky
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle("is_sticky")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_sticky === 1 ? "bg-gray-900" : "bg-gray-200"
+                      }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_sticky === 1 ? "translate-x-6" : "translate-x-1"
+                        }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Favorite
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle("is_admin_favorite")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_admin_favorite === 1 ? "bg-gray-900" : "bg-gray-200"
+                      }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_admin_favorite === 1 ? "translate-x-6" : "translate-x-1"
+                        }`}
                     />
                   </button>
                 </div>
@@ -264,6 +349,20 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
 
             {/* Form Fields */}
             <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Wazaif Number
+                </label>
+                <input
+                  type="text"
+                  name="wazaif_number"
+                  value={formData.wazaif_number}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. W-001"
+                />
+              </div>
+
               {/* Title Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -298,35 +397,70 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
                 </div>
               </div>
 
-              {/* Description */}
+              {/* Descriptions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (English)
+                  </label>
+                  <textarea
+                    name="description_en"
+                    value={formData.description_en}
+                    onChange={handleInputChange}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Enter English description"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (Urdu)
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Enter Urdu description"
+                    dir="rtl"
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
+                  Category *
                 </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
+                <select
+                  name="category"
+                  value={formData.category}
                   onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  placeholder="Enter description"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                />
+                >
+                  <option value="">Select Category</option>
+                  {categoryOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Images
+                  Files (Images/PDFs)
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
                   Upload images for this wazaif. Only JPG, PNG, and GIF files
                   are allowed.
                 </p>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    dragOver ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                  }`}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragOver ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                    }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}

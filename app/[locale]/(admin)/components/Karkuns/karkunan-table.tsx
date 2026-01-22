@@ -313,7 +313,10 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
               Error loading data
             </div>
             <p className="text-gray-600 mt-2">
-              {fetchError?.data?.message || fetchError?.message || "Please try refreshing the page"}
+              {(fetchError as { data?: { message?: string }; message?: string })
+                .data?.message ??
+                (fetchError as { message?: string }).message ??
+                "Please try refreshing the page"}
             </p>
             <button
               onClick={() => refetch()}
