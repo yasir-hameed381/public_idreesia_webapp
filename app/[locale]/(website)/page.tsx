@@ -12,6 +12,8 @@ import IslamicCards from "@/components/IslamicCards";
 import MobileAppShowcase from "@/components/MainPageCards/MobileAppShowCase";
 import LatestMessage from "@/components/MainPageCards/LatestMessage";
 import SearchInterface from "@/components/SearchInterface";
+import ScrollToTop from "@/components/ScrollToTop";
+
 export default function HomePage() {
   const t = useTranslations(TranslationKeys.HOME_PAGE);
   const dashboard_t = useTranslations(TranslationKeys.DASHBOARD_CARDS);
@@ -133,6 +135,9 @@ export default function HomePage() {
         <LatestMessage />
         <MehfilAddressCard />
       </div>
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </>
   );
 }

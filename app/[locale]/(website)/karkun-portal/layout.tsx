@@ -426,7 +426,7 @@ export default function KarkunPortalLayout({
                       <span>Home</span>
                     </Link>
 
-                    <button
+                    {/* <button
                       onClick={() => {
                         handleLogout();
                         setIsVisible(false);
@@ -435,7 +435,7 @@ export default function KarkunPortalLayout({
                     >
                       <FiLogOut className="text-lg" />
                       <span>Log Out</span>
-                    </button>
+                    </button> */}
                   </div>
                 )}
               </div>

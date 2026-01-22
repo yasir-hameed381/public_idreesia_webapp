@@ -355,19 +355,19 @@ export function AppSidebar({
 
   // Filter navigation groups based on user permissions
   // In Laravel, super_admin users still need roles with permissions
+  // Only show items that the user has explicit permission to access
   const filterGroupItems = (items: NavItem[]): NavItem[] => {
     return items.filter((item) => {
-      // If no permission required, always show
+      // If no permission is specified, don't show the item
+      // This ensures strict permission-based access control
       if (item.permission === null) {
-        return true;
+        return false;
       }
       
-      // For super admin, show all items (they have all permissions)
-      if (isSuperAdmin) {
-        return true;
-      }
-      
-      // Check permission for non-super-admin users
+      // Even super admins need to have the permission in their roles
+      // Check permission for all users (including super admins)
+      // This ensures that if a user gets "access denied" on a page,
+      // they won't see that item in the sidebar either
       return hasPermission(item.permission);
     });
   };
@@ -389,8 +389,8 @@ export function AppSidebar({
   };
 
   // Check if home item should be shown
-  const showHome =
-    homeItem.permission === null || isSuperAdmin || hasPermission(homeItem.permission);
+  // Only show if user has explicit permission (strict permission checking)
+  const showHome = homeItem.permission !== null && hasPermission(homeItem.permission);
 
   // Build menu items with groups (matching Laravel structure)
   const buildMenuItems = () => {
@@ -446,14 +446,7 @@ export function AppSidebar({
       });
     }
 
-    // Add logout item
-    items.push({
-      key: "logout",
-      icon: <LogOut size={18} />,
-      label: <span onClick={handleLogout}>Logout</span>,
-      href: "/logout",
-      onClick: handleLogout,
-    });
+    // Logout is available in the user menu popup at the bottom, so we don't add it here
 
     return items;
   };
@@ -483,7 +476,7 @@ export function AppSidebar({
       }}
       className={isMobile && isCollapsed ? "hidden" : ""}
     >
-      <div className="p-4  z-50">
+      <div className="p-4 z-50 flex-shrink-0">
         <div className="flex justify-between items-center mb-4">
           {!isCollapsed && (
             <span className="text-white text-lg">Silsila Idreesia</span>
@@ -519,7 +512,7 @@ export function AppSidebar({
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto min-h-0">
         <Menu
           theme="dark"
           mode="inline"
@@ -539,7 +532,7 @@ export function AppSidebar({
 
       {/* User Profile Section at Bottom - With Popup Menu */}
       {!isCollapsed && (
-        <div className="border-t border-gray-700 mt-auto bg-gray-800 relative user-menu-container">
+        <div className="border-t border-gray-700 bg-gray-800 relative user-menu-container flex-shrink-0">
           <div
             className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-700 transition-colors"
             onClick={() => setShowUserMenu(!showUserMenu)}
@@ -625,7 +618,7 @@ export function AppSidebar({
 
       {/* Collapsed Sidebar - Show only avatar */}
       {isCollapsed && (
-        <div className="border-t border-gray-700 mt-auto p-4">
+        <div className="border-t border-gray-700 p-4 flex-shrink-0">
           <Link
             href={`/${locale}/settings`}
             className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm mx-auto hover:bg-gray-300 transition-colors block"
