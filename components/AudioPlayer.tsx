@@ -120,6 +120,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, className = "" }) => {
       <div className="flex items-center gap-4">
         {/* Play/Pause Button */}
         <button
+          type="button"
           onClick={togglePlayPause}
           disabled={isLoading}
           className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
@@ -162,6 +163,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, className = "" }) => {
         {/* Volume Control */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
+            type="button"
             onClick={toggleMute}
             className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded transition-colors"
           >

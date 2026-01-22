@@ -73,7 +73,7 @@ export default function DashboardPage() {
     useGetTaleematQuery({ page: 1, size: 1, search: "" });
   const { data: wazaifData, isLoading: isWazaifLoading } = useGetWazaifQuery({
     page: 1,
-    size: 1,
+    limit: 1,
     search: "",
   });
   const { data: messagesData, isLoading: isMessagesLoading } =

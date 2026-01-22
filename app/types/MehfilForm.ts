@@ -27,6 +27,9 @@ export interface MehfilTables {
   old?: string
   type?: string
   is_published?: boolean
+  is_for_karkun?: boolean
+  is_for_ehad_karkun?: boolean
+  is_sticky?: boolean
   filename: string
   filepath?: string
   created_at?: string

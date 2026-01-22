@@ -42,7 +42,7 @@ export const mehfilApi = createApi({
         // Build query parameters dynamically
         const params = new URLSearchParams({
           page: page.toString(),
-          size: size.toString(),
+          limit: size.toString(), // Map size in frontend to limit in backend
           category: "all",
         });
 

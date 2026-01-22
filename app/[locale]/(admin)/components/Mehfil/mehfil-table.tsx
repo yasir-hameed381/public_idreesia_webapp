@@ -10,6 +10,8 @@ import {
   ChevronRight,
   ChevronDown,
   Calendar,
+  MoreHorizontal,
+  Play,
 } from "lucide-react";
 import type { MehfilTables } from "@/app/types/MehfilForm";
 import {
@@ -33,6 +35,39 @@ export function MehfilTable() {
   const { showError, showSuccess } = useToast();
   const debouncedSearch = useDebounce(search, 500);
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const [activeDropdownId, setActiveDropdownId] = useState<
+    string | number | null
+  >(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        activeDropdownId &&
+        !(event.target as Element).closest(".actions-dropdown")
+      ) {
+        setActiveDropdownId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [activeDropdownId]);
+
+  const toggleDropdown = (id: string | number) => {
+    setActiveDropdownId(activeDropdownId === id ? null : id);
+  };
+
+  const handlePlay = (filepath: string | undefined) => {
+    if (filepath) {
+      window.open(filepath, "_blank");
+    } else {
+      showError("Audio file not available.");
+    }
+    setActiveDropdownId(null);
+  };
 
   // RTK Query hook
   const { data, error, isLoading, isFetching } = useFetchMehfilsDataQuery({
@@ -106,11 +141,10 @@ export function MehfilTable() {
       rowData.is_published === 1 || rowData.is_published === "1";
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isPublished
-            ? "bg-green-100 text-green-800"
-            : "bg-gray-100 text-gray-800"
-        }`}
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isPublished
+          ? "bg-green-100 text-green-800"
+          : "bg-gray-100 text-gray-800"
+          }`}
       >
         {isPublished ? "Published" : "Unpublished"}
       </span>
@@ -350,27 +384,55 @@ export function MehfilTable() {
                               {formatDate(mehfil.updated_at)}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2">
-                              {(isSuperAdmin ||
-                                hasPermission(PERMISSIONS.EDIT_MEHFILS)) && (
-                                <button
-                                  onClick={() => onEdit(mehfil)}
-                                  className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                                  title="Edit"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                              )}
-                              {(isSuperAdmin ||
-                                hasPermission(PERMISSIONS.DELETE_MEHFILS)) && (
-                                <button
-                                  onClick={() => confirmDelete(mehfil)}
-                                  className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative">
+                            <div className="relative actions-dropdown">
+                              <button
+                                onClick={() => toggleDropdown(mehfil.id)}
+                                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                              >
+                                <MoreHorizontal size={20} />
+                              </button>
+
+                              {activeDropdownId === mehfil.id && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 py-1">
+                                  <button
+                                    onClick={() => handlePlay(mehfil.filepath)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    <Play size={14} />
+                                    Play
+                                  </button>
+
+                                  {(isSuperAdmin ||
+                                    hasPermission(PERMISSIONS.EDIT_MEHFILS)) && (
+                                      <button
+                                        onClick={() => {
+                                          onEdit(mehfil);
+                                          setActiveDropdownId(null);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                      >
+                                        <Edit size={14} />
+                                        Edit
+                                      </button>
+                                    )}
+
+                                  {(isSuperAdmin ||
+                                    hasPermission(
+                                      PERMISSIONS.DELETE_MEHFILS
+                                    )) && (
+                                      <button
+                                        onClick={() => {
+                                          confirmDelete(mehfil);
+                                          setActiveDropdownId(null);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                      >
+                                        <Trash2 size={14} />
+                                        Delete
+                                      </button>
+                                    )}
+                                </div>
                               )}
                             </div>
                           </td>
@@ -417,11 +479,10 @@ export function MehfilTable() {
                               <button
                                 key={pageNum}
                                 onClick={() => handleTablePageChange(pageNum)}
-                                className={`px-3 py-1 rounded-md text-sm ${
-                                  currentPage === pageNum
-                                    ? "bg-gray-900 text-white"
-                                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                                }`}
+                                className={`px-3 py-1 rounded-md text-sm ${currentPage === pageNum
+                                  ? "bg-gray-900 text-white"
+                                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  }`}
                               >
                                 {pageNum}
                               </button>

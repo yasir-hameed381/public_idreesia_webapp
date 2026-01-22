@@ -58,7 +58,7 @@ export function MessagesForm({
 
   const { data: wazaifData } = useGetWazaifQuery({
     page: 1,
-    size: 100,
+    limit: 100,
     search: "",
   });
 

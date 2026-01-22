@@ -10,13 +10,16 @@ export const wazaifApi = createApi({
   }),
   tagTypes: ['Wazaif'],
   endpoints: (builder) => ({
-    getWazaif: builder.query<WazaifResponse, { page: number; size: number; search?: string; category?: string }>({
-      query: ({ page, size, search, category }) => {
-        let url = `wazaifs-data?page=${page}&size=${size}`;
-        if (search && search.trim() !== '') {
+    getWazaif: builder.query<
+      WazaifResponse,
+      { page: number; limit: number; search?: string; category?: string }
+    >({
+      query: ({ page, limit, search, category }) => {
+        let url = `wazaifs-data?page=${page}&limit=${limit}`;
+        if (search && search.trim() !== "") {
           url += `&search=${encodeURIComponent(search)}`;
         }
-        if (category && category !== 'all') {
+        if (category && category !== "all") {
           url += `&category=${encodeURIComponent(category)}`;
         }
         return url;

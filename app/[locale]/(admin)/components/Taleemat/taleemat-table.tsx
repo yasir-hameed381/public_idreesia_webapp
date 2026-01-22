@@ -5,8 +5,6 @@ import { format } from "date-fns";
 import {
   Search,
   Plus,
-  Edit,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -25,10 +23,15 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/useToast";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 export function TaleematTable() {
   const { showError, showSuccess } = useToast();
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const canPlayTaleemat = isSuperAdmin || hasPermission(PERMISSIONS.VIEW_TALEEMAT);
+  const canEditTaleemat = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_TALEEMAT);
+  const canDeleteTaleemat = isSuperAdmin || hasPermission(PERMISSIONS.DELETE_TALEEMAT);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<Taleemat | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -59,11 +62,6 @@ export function TaleematTable() {
 
   const categoryOptions = [
     { label: "All Categories", value: "all" },
-    { label: "Ethics", value: "Ethics" },
-    { label: "Aqeedah", value: "Aqeedah" },
-    { label: "Quran", value: "Quran" },
-    { label: "Fiqh", value: "Fiqh" },
-    { label: "Seerah", value: "Seerah" },
     ...(categoryData?.data?.map((cat) => ({
       label: cat.title_en,
       value: cat.id,
@@ -137,12 +135,18 @@ export function TaleematTable() {
     setShowForm(true);
   };
 
+  const handlePlay = (taleemat: Taleemat) => {
+    if (taleemat.filepath) {
+      window.open(taleemat.filepath, "_blank", "noopener,noreferrer");
+    }
+  };
+
   const handleEdit = (taleemat: Taleemat) => {
     setEditingItem(taleemat);
     setShowForm(true);
   };
 
-  const confirmDelete = (taleemat: Taleemat) => {
+  const handleDeleteClick = (taleemat: Taleemat) => {
     setSelectedTaleemat(taleemat);
     setShowDeleteDialog(true);
   };
@@ -392,25 +396,16 @@ export function TaleematTable() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2">
-                              {(isSuperAdmin || hasPermission(PERMISSIONS.EDIT_TALEEMAT)) && (
-                                <button
-                                  onClick={() => handleEdit(taleemat)}
-                                  className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                                  title="Edit"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                              )}
-                              {(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_TALEEMAT)) && (
-                                <button
-                                  onClick={() => confirmDelete(taleemat)}
-                                  className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
+                            <div className="flex items-center justify-end">
+                              <ActionsDropdown
+                                onPlay={canPlayTaleemat && taleemat.filepath ? () => handlePlay(taleemat) : undefined}
+                                onEdit={canEditTaleemat ? () => handleEdit(taleemat) : undefined}
+                                onDelete={canDeleteTaleemat ? () => handleDeleteClick(taleemat) : undefined}
+                                showPlay={!!(canPlayTaleemat && taleemat.filepath)}
+                                showEdit={canEditTaleemat}
+                                showDelete={canDeleteTaleemat}
+                                align="right"
+                              />
                             </div>
                           </td>
                         </tr>
@@ -484,37 +479,23 @@ export function TaleematTable() {
           )}
         </div>
 
-        {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Confirm Delete
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete{" "}
-                <span className="font-medium">
-                  {selectedTaleemat?.title_en}
-                </span>
-                ? This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDeleteDialog(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Confirm Delete"
+          message={
+            selectedTaleemat
+              ? `Are you sure you want to delete "${selectedTaleemat.title_en}"? This action cannot be undone.`
+              : ""
+          }
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setSelectedTaleemat(null);
+          }}
+          onConfirm={handleDelete}
+          isLoading={isDeleting}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
       </div>
     </div>
   );

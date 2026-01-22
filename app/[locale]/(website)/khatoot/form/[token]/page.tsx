@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import KhatService from "@/services/KhatService";
+import type { Khat } from "@/types/khat";
 
 const PublicKhatFormPage = () => {
   const router = useRouter();
@@ -119,7 +120,7 @@ const PublicKhatFormPage = () => {
     try {
       setSubmitting(true);
       
-      const payload = {
+      const payload: Partial<Khat> = {
         ...formData,
         zone_id: tokenData?.zone_id || null,
         mehfil_directory_id: tokenData?.mehfil_directory_id || null,

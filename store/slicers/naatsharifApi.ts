@@ -51,10 +51,10 @@ export const naatsharifApi = createApi({
     fetchNaatSharifData: builder.query<NaatSharifResponse, NaatSharifQueryParams>({
       query: ({ page, size, search, category }) => {
         // Validate the category parameter
-        const validCategory = category && VALID_CATEGORIES.includes(category) 
-        ? category 
-        : 'all';
-        return `naatshareefs-data?page=${page}&size=${size}&search=${search}&category=${validCategory}`;
+        // const validCategory = category && VALID_CATEGORIES.includes(category) 
+        // ? category 
+        // : 'all';
+        return `naatshareefs-data?page=${page}&size=${size}&search=${search}&category=${category}`;
       },
       transformResponse: (response: any) => {
         

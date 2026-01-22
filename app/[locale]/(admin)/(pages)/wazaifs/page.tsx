@@ -17,6 +17,10 @@ const WazaifPage = () => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [selectedWazaif, setSelectedWazaif] = useState<Wazaif | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const debouncedSearch = useDebounce(search, 500);
 
   const { showError, showSuccess } = useToast();
 
@@ -27,13 +31,19 @@ const WazaifPage = () => {
     error,
   } = useGetWazaifQuery({
     page: page + 1,
-    size: pageSize,
-    search: "",
+    limit: pageSize,
+    search: debouncedSearch,
+    category: selectedCategory,
   });
 
   const [createWazaif, { isLoading: isCreating }] = useCreateWazaifMutation();
   const [updateWazaif, { isLoading: isUpdating }] = useUpdateWazaifMutation();
   const [deleteWazaif, { isLoading: isDeleting }] = useDeleteWazaifMutation();
+
+  // Reset to first page when search or category changes
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, selectedCategory]);
 
   // Helper functions
   const editWazaif = async (wazaif: Wazaif) => {
@@ -83,6 +93,10 @@ const WazaifPage = () => {
         isDeleting={isDeleting}
         selectedWazaif={selectedWazaif}
         onSelectionChange={setSelectedWazaif}
+        search={search}
+        selectedCategory={selectedCategory}
+        onSearchChange={setSearch}
+        onCategoryChange={setSelectedCategory}
       />
     </PermissionWrapper>
   );
