@@ -8,6 +8,7 @@ import { ArrowLeft, Upload, ChevronDown, X } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
+import AudioPlayer from "@/components/AudioPlayer";
 
 // Define the Tag interface if not imported
 interface TagType {
@@ -107,8 +108,8 @@ const TaleematForm: React.FC<TaleematFormProps> = ({
         filename:
           initialData.filename ||
           "https://381a.fra1.digitaloceanspaces.com/audio/",
-        category_id: 4,
-        is_published: 1,
+        category_id: initialData.category_id ?? 4,
+        is_published: initialData.is_published ?? 1,
         filepath:
           initialData.filepath ||
           "https://381a.fra1.digitaloceanspaces.com/audio/",
@@ -116,6 +117,7 @@ const TaleematForm: React.FC<TaleematFormProps> = ({
         updated_by: initialData.updated_by || 1,
         updated_at: initialData.updated_at || new Date().toISOString(),
       });
+      setFileUploaded(false);
 
       // We'll set selected tags after the tag data is loaded
     } else {
@@ -132,6 +134,7 @@ const TaleematForm: React.FC<TaleematFormProps> = ({
         slug: "",
       });
       setSelectedTags([]);
+      setFileUploaded(false);
     }
   }, [initialData, visible]);
 
@@ -509,14 +512,33 @@ const TaleematForm: React.FC<TaleematFormProps> = ({
                 </div>
               </div>
 
+              {/* Uploaded Audio File - show when editing with existing audio */}
+              {initialData &&
+                formData.filepath &&
+                formData.filepath !== "https://381a.fra1.digitaloceanspaces.com/audio/" &&
+                !formData.filepath.endsWith("/") && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Uploaded Audio File
+                    </label>
+                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                      <AudioPlayer
+                        src={formData.filepath}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )}
+
               {/* Audio File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Audio File
+                  {initialData ? "Replace Audio File" : "Upload Audio File"}
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
-                  Upload audio file for this taleemat. Only MP3, WAV, and OGG
-                  files are allowed.
+                  {initialData
+                    ? "Upload a new file to replace the current audio."
+                    : "Upload audio file for this taleemat. Only MP3, WAV, and OGG files are allowed."}
                 </p>
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -539,9 +561,10 @@ const TaleematForm: React.FC<TaleematFormProps> = ({
                       />
                     </label>
                   </p>
-                  {formData.filename && (
+                  {fileUploaded && formData.filename && (
                     <p className="text-sm text-green-600 mt-2">
-                      Selected: {formData.filename}
+                      {initialData ? "New file selected: " : "Selected: "}
+                      {formData.filename}
                     </p>
                   )}
                 </div>

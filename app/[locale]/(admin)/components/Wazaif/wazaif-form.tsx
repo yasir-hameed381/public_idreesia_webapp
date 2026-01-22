@@ -26,8 +26,29 @@ const generateSlug = (title: string): string => {
 
 const normalizeImages = (images: string | string[] | undefined): string[] => {
   if (!images) return [];
-  if (typeof images === "string") return [images];
-  return images;
+  if (Array.isArray(images)) {
+    return images
+      .flatMap((x) => (typeof x === "string" ? x.split(",") : []))
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const s = String(images).trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .flatMap((x) => (typeof x === "string" ? x.split(",") : []))
+        .map((x) => String(x).trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // Not JSON, treat as comma-separated
+  }
+  return s
+    .split(",")
+    .map((x) => x.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
 };
 
 const WazaifForm: React.FC<WazaifFormProps> = ({
@@ -60,6 +81,9 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
   const [fileUploaded, setFileUploaded] = useState<boolean>(false);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const categoryOptions = [
     { label: "Bunyadi Wazaif", value: "bunyadi" },
@@ -190,13 +214,14 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
     setDragOver(false);
   };
 
+  const isAllowedFile = (f: File) =>
+    /^image\/(jpeg|jpg|png|gif|webp)$/i.test(f.type) || f.type === "application/pdf";
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) =>
-      /^image\/(jpeg|jpg|png|gif)$/i.test(f.type)
-    );
+    const files = Array.from(e.dataTransfer.files).filter(isAllowedFile);
     if (files.length === 0) return;
     const names = files.map((f) => f.name);
     setFormData((prev) => ({
@@ -208,9 +233,7 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    const valid = files.filter((f) =>
-      /^image\/(jpeg|jpg|png|gif)$/i.test(f.type)
-    );
+    const valid = files.filter(isAllowedFile);
     if (valid.length === 0) return;
     const names = valid.map((f) => f.name);
     setFormData((prev) => ({
@@ -225,7 +248,21 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
     const current = normalizeImages(formData.images);
     const next = current.filter((_, i) => i !== index);
     setFormData((prev) => ({ ...prev, images: next }));
+    const url = current[index];
+    if (url) setFailedImageUrls((prev) => new Set([...prev].filter((u) => u !== url)));
   };
+
+  /** Resolve image src for display. Handles relative paths and escaped slashes. */
+  const getImageSrc = (url: string): string => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    const cleaned = url.replace(/\\\//g, "/").trim();
+    if (!cleaned) return "";
+    if (/^https?:\/\//i.test(cleaned) || cleaned.startsWith("//")) return cleaned;
+    if (cleaned.startsWith("/")) return `${base}${cleaned}`;
+    return `${base}/${cleaned}`;
+  };
+
+  const imageList = normalizeImages(formData.images);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -452,60 +489,106 @@ const WazaifForm: React.FC<WazaifFormProps> = ({
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Files (Images/PDFs)
+                  Upload Files <span className="text-red-500">*</span>
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
-                  Upload images for this wazaif. Only JPG, PNG, and GIF files
-                  are allowed.
+                  Upload PDF documents or images for this wazaif. Only PDF and
+                  image files are allowed.
                 </p>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragOver ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                    }`}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    dragOver ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                  }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
                   <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <p className="text-lg font-medium text-gray-900 mb-2">
-                    Drag & Drop your images or{" "}
+                    Drag & Drop your files or{" "}
                     <label className="text-blue-600 cursor-pointer hover:text-blue-500">
                       browse files
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.pdf"
                         multiple
                         onChange={handleFileSelect}
                         className="hidden"
                       />
                     </label>
                   </p>
-                  {normalizeImages(formData.images).length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Uploaded images:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {normalizeImages(formData.images).map(
-                          (image, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md"
-                            >
-                              {image}
-                              <button
-                                type="button"
-                                onClick={() => removeImage(index)}
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                <X size={14} />
-                              </button>
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Uploaded Files - Image preview cards (Laravel-style) */}
+                {imageList.length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-700 mb-3">
+                      Uploaded Files
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {imageList.map((image, index) => {
+                        const src = getImageSrc(image);
+                        const isPdf =
+                          typeof image === "string" &&
+                          /\.pdf$/i.test(image.split("?")[0]);
+                        return (
+                          <div
+                            key={typeof image === "string" ? `${image}-${index}` : index}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => src && window.open(src, "_blank", "noopener,noreferrer")}
+                            onKeyDown={(e) => {
+                              if ((e.key === "Enter" || e.key === " ") && src) {
+                                e.preventDefault();
+                                window.open(src, "_blank", "noopener,noreferrer");
+                              }
+                            }}
+                            className="relative group bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow min-h-[180px] cursor-pointer"
+                          >
+                            {isPdf ? (
+                              <div className="aspect-[3/4] flex flex-col items-center justify-center bg-gray-100 p-2">
+                                <span className="text-gray-500 text-sm font-medium">
+                                  PDF
+                                </span>
+                                <span className="text-gray-400 text-xs truncate w-full text-center mt-1">
+                                  {image}
+                                </span>
+                              </div>
+                            ) : failedImageUrls.has(image) ? (
+                              <div className="aspect-[3/4] flex items-center justify-center bg-gray-100 px-2">
+                                <span className="text-gray-500 text-xs text-center break-all">
+                                  Could not load image
+                                </span>
+                              </div>
+                            ) : (
+                              <img
+                                src={src}
+                                alt={`Wazaif image ${index + 1}`}
+                                className="w-full aspect-[3/4] object-cover object-center"
+                                onError={() =>
+                                  setFailedImageUrls((prev) =>
+                                    new Set(prev).add(image)
+                                  )
+                                }
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeImage(index);
+                              }}
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 shadow opacity-90 hover:opacity-100 transition-opacity"
+                              title="Remove"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

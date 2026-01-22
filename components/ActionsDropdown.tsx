@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2, Eye, Play } from "lucide-react";
 
 interface ActionsDropdownProps {
   onView?: () => void;
+  onPlay?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   showView?: boolean;
+  showPlay?: boolean;
   showEdit?: boolean;
   showDelete?: boolean;
   align?: "left" | "right";
@@ -15,9 +17,11 @@ interface ActionsDropdownProps {
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
   onView,
+  onPlay,
   onEdit,
   onDelete,
   showView = false,
+  showPlay = false,
   showEdit = true,
   showDelete = true,
   align = "right",
@@ -48,6 +52,13 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     setIsOpen(false);
   };
 
+  const handlePlay = () => {
+    if (onPlay) {
+      onPlay();
+    }
+    setIsOpen(false);
+  };
+
   const handleEdit = () => {
     if (onEdit) {
       onEdit();
@@ -62,7 +73,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     setIsOpen(false);
   };
 
-  if (!showView && !showEdit && !showDelete) {
+  if (!showView && !showPlay && !showEdit && !showDelete) {
     return null;
   }
 
@@ -100,6 +111,15 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
               >
                 <Eye className="w-4 h-4 text-gray-500" />
                 View
+              </button>
+            )}
+            {showPlay && onPlay && (
+              <button
+                onClick={handlePlay}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Play className="w-4 h-4 text-gray-500" />
+                Play
               </button>
             )}
             {showEdit && onEdit && (
