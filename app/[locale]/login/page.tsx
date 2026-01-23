@@ -71,7 +71,7 @@ export default function LoginForm() {
     if (isAuthenticated && user) {
       // Redirect based on user role
       if (authService.isUserAdmin(user)) {
-        console.log("✅ Login successful, redirecting to dashboard");
+        console.log("✅ Login successful, redirecting to admin");
         router.replace("/");
       } else {
         console.log("✅ Login successful, redirecting to home");

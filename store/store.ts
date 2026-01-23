@@ -30,7 +30,7 @@ import { karkunanApi } from "./slicers/karkunanApi";
 import { newEhadApi } from "./slicers/newEhadApi";
 import { parhaiyanApi } from "./slicers/parhaiyanApi";
 import { mehfilReportsApi } from "./slicers/mehfilReportsApi";
-import { dashboardStatsApi } from "./slicers/dashboardStatsApi";
+import { adminStatsApi } from "./slicers/adminStatsApi";
 import { karkunJoinRequestsApi } from "./slicers/karkunJoinRequestsApi";
 import { feedbackApi } from "./slicers/feedbackApi";
 import { adminUserApi } from "./slicers/adminUserApi";
@@ -166,7 +166,7 @@ export const store = configureStore({
     [namazApi.reducerPath]:namazApi.reducer,
 
     [mehfilReportsApi.reducerPath]: mehfilReportsApi.reducer,
-    [dashboardStatsApi.reducerPath]: dashboardStatsApi.reducer,
+    [adminStatsApi.reducerPath]: adminStatsApi.reducer,
     [karkunJoinRequestsApi.reducerPath]: karkunJoinRequestsApi.reducer,
     [feedbackApi.reducerPath]: feedbackApi.reducer,
     [karkunanApi.reducerPath]: karkunanApi.reducer,
@@ -205,7 +205,7 @@ export const store = configureStore({
           'karkunApi',
           'namazApi',
           'mehfilReportsApi',
-          'dashboardStatsApi',
+          'adminStatsApi',
           'karkunJoinRequestsApi',
           'feedbackApi',
           'karkunanApi',
@@ -228,7 +228,7 @@ export const store = configureStore({
     .concat(karkunApi.middleware)  
     .concat(namazApi.middleware)
     .concat(mehfilReportsApi.middleware)
-    .concat(dashboardStatsApi.middleware)
+    .concat(adminStatsApi.middleware)
     .concat(karkunJoinRequestsApi.middleware)
     .concat(feedbackApi.middleware)
     .concat(karkunanApi.middleware)

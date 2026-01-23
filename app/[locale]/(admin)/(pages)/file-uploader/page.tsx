@@ -79,7 +79,7 @@ const page = () => {
   };
 
   const handleBackToDashboard = () => {
-    router.push("/dashboard");
+    router.push("/admin");
   };
 
   return (
@@ -98,7 +98,7 @@ const page = () => {
             onClick={handleBackToDashboard}
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Dashboard
+            Back to Admin
           </button>
         </div>
 

@@ -253,7 +253,7 @@ export default function DutyRosterPage() {
         }
       }
       
-      const response = await apiClient.get("/dashboard/zones");
+      const response = await apiClient.get("/admin/zones");
       setZones(response.data.data || []);
     } catch (error: any) {
       console.error("Error loading zones:", error);

@@ -132,7 +132,7 @@ const MehfilReportsPage = () => {
   useEffect(() => {
     const loadZones = async () => {
       try {
-        const response = await apiClient.get("/dashboard/zones");
+        const response = await apiClient.get("/admin/zones");
         setZones(response.data.data || []);
       } catch (error) {
         console.error("Error loading zones:", error);

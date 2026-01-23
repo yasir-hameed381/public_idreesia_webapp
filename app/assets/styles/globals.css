@@ -1114,7 +1114,7 @@ body {
   background-color: hsl(var(--card)) !important;
 }
 
-/* Custom Sidebar Menu Styles */
+/* Custom Sidebar Menu Styles - Base styles */
 .custom-sidebar-menu .ant-menu-item {
   transition: all 0.3s ease;
   border-radius: 6px;
@@ -1122,17 +1122,13 @@ body {
   width: calc(100% - 16px);
 }
 
-.custom-sidebar-menu .ant-menu-item:hover {
-  background-color: #1890ff !important;
-  color: white !important;
+.custom-sidebar-menu .ant-menu-item-selected {
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
   transform: translateX(4px);
 }
 
-.custom-sidebar-menu .ant-menu-item-selected {
-  background-color: #1890ff !important;
-  color: white !important;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+.custom-sidebar-menu .ant-menu-item:hover {
   transform: translateX(4px);
 }
 
@@ -1146,27 +1142,109 @@ body {
   border-radius: 2px 0 0 2px;
 }
 
-.custom-sidebar-menu .ant-menu-item-selected .ant-menu-item-icon {
-  color: white !important;
+/* Light mode sidebar menu styles */
+.light-menu .ant-menu-item {
+  color: #000 !important;
 }
 
-.custom-sidebar-menu .ant-menu-item:hover .ant-menu-item-icon {
-  color: white !important;
+.light-menu .ant-menu-item:hover {
+  background-color: #f0f0f0 !important;
+  color: #000 !important;
+}
+
+.light-menu .ant-menu-item-selected {
+  background-color: #e6f7ff !important;
+  color: #1890ff !important;
+  font-weight: 600;
+}
+
+.light-menu .ant-menu-item-selected::after {
+  background-color: #1890ff;
+}
+
+.light-menu .ant-menu-item-selected .ant-menu-item-icon {
+  color: #1890ff !important;
+}
+
+.light-menu .ant-menu-item:hover .ant-menu-item-icon {
+  color: #000 !important;
+}
+
+.light-menu .ant-menu-submenu-title {
+  color: #000 !important;
+}
+
+.light-menu .ant-menu-submenu-title:hover {
+  background-color: #f0f0f0 !important;
+  color: #000 !important;
+}
+
+.light-menu .ant-menu-item-group-title {
+  color: #8c8c8c !important;
+}
+
+.light-menu .ant-menu-item-group {
+  color: #000 !important;
 }
 
 /* Dark mode specific sidebar styles */
+.dark-menu .ant-menu-item {
+  color: #fff !important;
+}
+
+.dark-menu .ant-menu-item:hover {
+  background-color: #6bb179 !important;
+  color: white !important;
+}
+
+.dark-menu .ant-menu-item-selected {
+  background-color: #6bb179 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.dark-menu .ant-menu-item-selected::after {
+  background-color: #6bb179;
+}
+
+.dark-menu .ant-menu-item-selected .ant-menu-item-icon {
+  color: white !important;
+}
+
+.dark-menu .ant-menu-item:hover .ant-menu-item-icon {
+  color: white !important;
+}
+
+.dark-menu .ant-menu-submenu-title {
+  color: #fff !important;
+}
+
+.dark-menu .ant-menu-submenu-title:hover {
+  background-color: #6bb179 !important;
+  color: white !important;
+}
+
+.dark-menu .ant-menu-item-group-title {
+  color: #8c8c8c !important;
+}
+
+.dark-menu .ant-menu-item-group {
+  color: #fff !important;
+}
+
+/* Legacy dark mode support */
 .dark .custom-sidebar-menu .ant-menu-item:hover {
-  background-color: #1890ff !important;
+  background-color: #6bb179 !important;
   color: white !important;
 }
 
 .dark .custom-sidebar-menu .ant-menu-item-selected {
-  background-color: #1890ff !important;
+  background-color: #6bb179 !important;
   color: white !important;
 }
 
 .dark .custom-sidebar-menu .ant-menu-item-selected::after {
-  background-color: #52c41a;
+  background-color: #6bb179;
 }
 
 /* Responsive dark mode fixes */

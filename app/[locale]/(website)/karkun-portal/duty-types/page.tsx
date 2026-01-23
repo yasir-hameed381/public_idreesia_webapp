@@ -103,7 +103,7 @@ const DutyTypesPage = () => {
         if (canFilterZones && regionId) {
           // Note: Backend zone endpoint doesn't support region_id filter
           // Using dashboard/zones which filters by user permissions
-          const response = await apiClient.get("/dashboard/zones");
+          const response = await apiClient.get("/admin/zones");
           setZones(response.data.data || []);
         } else if (user?.zone) {
           setZones([user.zone as Zone]);

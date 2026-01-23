@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { TranslationKeys } from "../app/constants/translationKeys";
+import { useTheme } from "@/context/useTheme";
 
 interface SearchResult {
   id: string | number;
@@ -17,6 +18,7 @@ interface SearchResult {
 
 const SearchInterface = () => {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -25,6 +27,8 @@ const SearchInterface = () => {
 
   const t = useTranslations(TranslationKeys.ALL_TITLES);
   const searchPlaceholder = useTranslations(TranslationKeys.SEARCH_PLACEHOLDER);
+  
+  const isDark = resolvedTheme === "dark";
 
   const navItems = [
     { key: "taleem", label: t("taleemat"), color: "#0b2d52" },
@@ -85,16 +89,26 @@ const SearchInterface = () => {
 
   return (
     <div className="flex flex-col">
-      <div className="w-full px-4 py-6" style={{ backgroundColor: "#fcf8f5" }}>
+      <div 
+        className={`w-full px-4 py-6 transition-colors ${
+          isDark ? "bg-[#090909]" : "bg-[#fcf8f5]"
+        }`}
+      >
         <div className="max-w-4xl mx-auto relative">
           {/* Search Icon */}
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${
+            isDark ? "text-gray-400" : "text-gray-400"
+          }`}>
             <Search className="w-5 h-5" />
           </div>
 
           <input
             type="text"
-            className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 transition-all"
+            className={`w-full pl-12 pr-4 py-3 rounded-lg border transition-all ${
+              isDark
+                ? "bg-[#000] border-[#6bb179] text-white placeholder-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500"
+                : "bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:ring-2 focus:ring-green-500"
+            } focus:outline-none`}
             placeholder={searchPlaceholder("title")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -111,6 +125,8 @@ const SearchInterface = () => {
                 className={`px-6 py-2 rounded-lg font-medium transition-all ${
                   selectedCategory === item.key
                     ? "bg-green-600 text-white shadow-md"
+                    : isDark
+                    ? "bg-[#000] text-gray-200 hover:bg-gray-700 border border-[#6bb179]"
                     : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200"
                 }`}
               >
@@ -124,39 +140,61 @@ const SearchInterface = () => {
         <div className="max-w-4xl mx-auto relative mt-4">
           {isLoading && (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+              <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
+                isDark ? "border-green-400" : "border-green-500"
+              }`}></div>
             </div>
           )}
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-200">
+            <div className={`p-4 rounded-lg border ${
+              isDark
+                ? "bg-red-900/20 text-red-400 border-red-800"
+                : "bg-red-50 text-red-600 border-red-200"
+            }`}>
               {error}
             </div>
           )}
 
           {searchResults.length > 0 && searchQuery && (
-            <div className="bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
+            <div className={`border rounded-lg shadow-lg max-h-96 overflow-y-auto z-50 ${
+              isDark
+                ? "bg-[#000] border-[#6bb179]"
+                : "bg-white border-gray-300"
+            }`}>
               {searchResults.map((result: any, index: number) => (
                 <div
                   key={index}
-                  className="px-6 py-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                  className={`px-6 py-4 cursor-pointer border-b last:border-b-0 transition-colors ${
+                    isDark
+                      ? "hover:bg-gray-700 border-[#6bb179]"
+                      : "hover:bg-gray-50 border-gray-100"
+                  }`}
                   onClick={() => handleResultClick(result)}
                 >
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className={`text-lg font-semibold ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}>
                     {result.title_en || "Untitled"}
                   </h3>
                   {result.title_ur && (
-                    <p className="text-sm text-gray-600 mt-1 font-urdu text-right">
+                    <p className={`text-sm mt-1 font-urdu text-right ${
+                      isDark ? "text-gray-300" : "text-gray-600"
+                    }`}>
                       {result.title_ur}
                     </p>
                   )}
                   {result.track && (
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className={`text-sm mt-2 ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    }`}>
                       Track: {result.track}
                     </p>
                   )}
                   {result.description_en && (
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    <p className={`text-sm mt-1 line-clamp-2 ${
+                      isDark ? "text-gray-300" : "text-gray-600"
+                    }`}>
                       {result.description_en}
                     </p>
                   )}
@@ -170,19 +208,29 @@ const SearchInterface = () => {
             selectedCategory &&
             searchResults.length === 0 &&
             searchQuery && (
-              <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
-                <p className="text-gray-500">
+              <div className={`text-center py-8 rounded-lg border ${
+                isDark
+                  ? "bg-[#000] border-[#6bb179]"
+                  : "bg-white border-gray-200"
+              }`}>
+                <p className={isDark ? "text-gray-300" : "text-gray-500"}>
                   {searchPlaceholder("no_results_found")}
                 </p>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className={`text-sm mt-2 ${
+                  isDark ? "text-gray-400" : "text-gray-400"
+                }`}>
                   Try a different search term or category.
                 </p>
               </div>
             )}
 
           {!selectedCategory && searchQuery && (
-            <div className="text-center py-6 bg-white rounded-lg border border-gray-200">
-              <p className="text-gray-500">
+            <div className={`text-center py-6 rounded-lg border ${
+              isDark
+                ? "bg-[#000] border-[#6bb179]"
+                : "bg-white border-gray-200"
+            }`}>
+              <p className={isDark ? "text-gray-300" : "text-gray-500"}>
                 Please select a category to search.
               </p>
             </div>

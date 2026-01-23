@@ -18,7 +18,7 @@ export const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
   children,
   requiredPermission,
   fallback = null,
-  redirectTo = "/dashboard",
+  redirectTo = "/admin",
   showAccessDenied = false,
 }) => {
   const { hasPermission, user } = usePermissions();

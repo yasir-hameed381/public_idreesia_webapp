@@ -23,7 +23,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { PermissionGuard, usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
-import { useGetDashboardStatsQuery } from "@/store/slicers/dashboardStatsApi";
+import { useTheme } from "@/context/useTheme";
+import { useGetAdminStatsQuery } from "@/store/slicers/adminStatsApi";
 import { useFetchZonesQuery } from "@/store/slicers/zoneApi";
 import { useFetchMehfilsDataQuery } from "@/store/slicers/mehfilApi";
 import { useFetchKarkunsQuery } from "@/store/slicers/EhadKarkunApi";
@@ -35,21 +36,24 @@ import { useFetchKarkunJoinRequestsDataQuery } from "@/store/slicers/karkunJoinR
 import { useGetNamazQuery } from "@/store/slicers/NamazApi";
 import { useGetParhaiyanQuery } from "@/store/slicers/parhaiyanApi";
 
-export default function DashboardPage() {
+export default function AdminPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [timePeriod, setTimePeriod] = useState("Last 7 Days");
   const { logout } = useAuth();
   const { hasPermission } = usePermissions();
+  const { resolvedTheme } = useTheme();
   const params = useParams();
   const locale = params.locale as string;
+  
+  const isDark = resolvedTheme === "dark";
 
-  // Fetch dashboard statistics based on time period
+  // Fetch admin statistics based on time period
   const {
     data: statsData,
     isLoading: isStatsLoading,
     error: statsError,
     refetch,
-  } = useGetDashboardStatsQuery({
+  } = useGetAdminStatsQuery({
     timePeriod,
   });
 
@@ -102,7 +106,7 @@ export default function DashboardPage() {
   // Determine if we should use fallback data
   const useFallbackData = !statsData?.data || statsError;
 
-  // Get stats with fallback to individual API data if dashboard stats API is not available
+  // Get stats with fallback to individual API data if admin stats API is not available
   const stats = useFallbackData
     ? {
         zones: zonesData?.meta?.total || 0,
@@ -150,7 +154,7 @@ export default function DashboardPage() {
       isParhaiyanLoading
     : isStatsLoading;
 
-  const dashboardCards = [
+  const adminCards = [
     {
       icon: Globe,
       label: "Zones",
@@ -339,32 +343,46 @@ export default function DashboardPage() {
     <PermissionGuard
       permission={PERMISSIONS.VIEW_DASHBOARD}
       fallback={
-        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className={`flex items-center justify-center min-h-screen transition-colors ${
+          isDark ? "bg-[#000]" : "bg-gray-50"
+        }`}>
           <div className="text-center">
             <div className="text-red-500 text-lg font-medium mb-4">
               Access Denied
             </div>
-            <p className="text-gray-600">
-              You don't have permission to view the dashboard.
+            <p className={isDark ? "text-gray-300" : "text-gray-600"}>
+              You don't have permission to view the admin page.
             </p>
           </div>
         </div>
       }
     >
-      <div className="flex flex-col min-h-screen bg-gray-50">
-        <header className="bg-white shadow-md p-4 flex justify-between items-center border-b border-gray-200">
+      <div className={`flex flex-col min-h-screen transition-colors ${
+        isDark ? "bg-[#000]" : "bg-gray-50"
+      }`}>
+        <header className={`shadow-md p-4 flex justify-between items-center border-b transition-colors ${
+          isDark 
+            ? "bg-[#000] border-[#6bb179]" 
+            : "bg-white border-gray-200"
+        }`}>
           <div className="flex items-center">
             <button
-              className="md:hidden mr-4 text-gray-600 hover:text-gray-800"
+              className={`md:hidden mr-4 transition-colors ${
+                isDark 
+                  ? "text-gray-300 hover:text-gray-100" 
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
               <Menu size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-800">CMS</h1>
+            <h1 className={`text-2xl font-bold ${
+              isDark ? "text-white" : "text-gray-800"
+            }`}>CMS</h1>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center text-red-600 hover:text-red-700"
+            className="flex items-center text-red-600 hover:text-red-700 transition-colors"
           >
             <LogOut className="mr-2 h-5 w-5" />
             <span className="hidden md:inline">Logout</span>
@@ -375,18 +393,26 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Welcome Section - Takes 3 columns */}
             <div className="lg:col-span-3">
-              <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-3xl font-bold text-gray-800 mb-4 text-right">
+              <div className={`shadow-md rounded-lg p-6 mb-6 transition-colors ${
+                isDark ? "bg-[#000]" : "bg-white"
+              }`}>
+                <h2 className={`text-3xl font-bold mb-4 text-right ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}>
                   السَّلَامُ عَلَيْكُمْ وَرَحْمَهُ اللَّهِ وَبَرَكَاتُهُ
                 </h2>
                 <div className="mb-4">
-                  <hr className="border-gray-300" />
+                  <hr className={isDark ? "border-gray-700" : "border-gray-300"} />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                <h3 className={`text-2xl font-bold mb-2 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}>
                   Welcome to CMS
                 </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-gray-600">
+                <div className={`rounded-lg p-4 transition-colors ${
+                  isDark ? "bg-[#000] border border-[#6bb179]" : "bg-gray-50"
+                }`}>
+                  <p className={isDark ? "text-gray-300" : "text-gray-600"}>
                     You can start using the portal by navigating to desired page
                     from sidebar.
                   </p>
@@ -396,10 +422,16 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Access Section */}
-          <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+          <div className={`shadow-md rounded-lg p-6 mb-6 transition-colors ${
+            isDark ? "bg-[#000] border border-[#6bb179]" : "bg-white"
+          }`}>
             <div className="flex items-center gap-2 mb-6">
-              <LinkIcon className="h-6 w-6 text-gray-700" />
-              <h2 className="text-2xl font-bold text-gray-800">Quick Access</h2>
+              <LinkIcon className={`h-6 w-6 transition-colors ${
+                isDark ? "text-gray-300" : "text-gray-700"
+              }`} />
+              <h2 className={`text-2xl font-bold transition-colors ${
+                isDark ? "text-white" : "text-gray-800"
+              }`}>Quick Access</h2>
             </div>
             {quickAccessLinks.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -407,26 +439,40 @@ export default function DashboardPage() {
                   <Link
                     key={index}
                     href={link.href}
-                    className={`${link.bgColor} rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center text-center group cursor-pointer`}
+                    className={`rounded-lg p-4 hover:shadow-lg transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center text-center group cursor-pointer ${
+                      isDark
+                        ? "bg-[#000] hover:bg-[#6bb179] border border-[#6bb179]"
+                        : `${link.bgColor}`
+                    }`}
                   >
                     <link.icon
                       className={`h-10 w-10 ${link.color} mb-3 group-hover:scale-110 transition-transform`}
                     />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                    <span className={`text-sm font-medium transition-colors ${
+                      isDark
+                        ? "text-gray-200 group-hover:text-white"
+                        : "text-gray-700 group-hover:text-gray-900"
+                    }`}>
                       {link.label}
                     </span>
                   </Link>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className={`text-center py-8 transition-colors ${
+                isDark ? "text-gray-400" : "text-gray-500"
+              }`}>
                 <p>No quick access links available based on your permissions.</p>
               </div>
             )}
           </div>
 
           {/* Need Help Section */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
+          <div className={`border rounded-lg p-6 mt-6 transition-colors ${
+            isDark
+              ? "bg-blue-900/20 border-blue-800"
+              : "bg-blue-50 border-blue-200"
+          }`}>
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
@@ -434,10 +480,12 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                <h3 className={`text-xl font-bold mb-2 transition-colors ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}>
                   Need Help?
                 </h3>
-                <p className="text-gray-600">
+                <p className={isDark ? "text-gray-300" : "text-gray-600"}>
                   For technical support, feature requests, or reporting issues,
                   please contact your system administrator.
                 </p>
@@ -449,3 +497,4 @@ export default function DashboardPage() {
     </PermissionGuard>
   );
 }
+

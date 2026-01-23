@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
+import { useTheme } from "@/context/useTheme";
 import { Camera, Save, Trash2, Key, Copy, X, CheckCircle } from "lucide-react";
 
 type TabType = "profile" | "password" | "appearance" | "api-tokens";
@@ -22,6 +23,7 @@ const SettingsPage = () => {
   const locale = params.locale as string;
   const { user } = useAuth();
   const { isSuperAdmin } = usePermissions();
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -35,9 +37,6 @@ const SettingsPage = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  // Appearance state
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
   // API Tokens state
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -121,8 +120,8 @@ const SettingsPage = () => {
   const handleSaveAppearance = async () => {
     try {
       setLoading(true);
-      // TODO: Implement API call to save appearance settings
-      localStorage.setItem("theme", theme);
+      // Theme is already saved via setTheme in the context (saved to localStorage immediately)
+      // Just show success message
       toast.success("Appearance settings saved");
     } catch (error: any) {
       console.error("Failed to save appearance", error);
@@ -130,6 +129,11 @@ const SettingsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+    setTheme(newTheme);
+    // Theme is applied immediately via context, no need to save separately
   };
 
   const handleDeleteAccount = async () => {
@@ -459,13 +463,18 @@ const SettingsPage = () => {
                   </label>
                   <select
                     value={theme}
-                    onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
+                    onChange={(e) => handleThemeChange(e.target.value as "light" | "dark" | "system")}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                   >
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                     <option value="system">System</option>
                   </select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {theme === "system" 
+                      ? "Theme will match your system preference"
+                      : `Theme is set to ${theme}`}
+                  </p>
                 </div>
 
                 <button
