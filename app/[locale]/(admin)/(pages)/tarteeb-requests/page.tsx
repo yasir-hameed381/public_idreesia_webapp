@@ -99,20 +99,6 @@ const AdminTarteebRequestsPage = () => {
   );
 
   useEffect(() => {
-    if (user?.zone_id && !selectedZoneId) {
-      setSelectedZoneId(user.zone_id);
-    }
-    if (user?.mehfil_directory_id && !selectedMehfilId) {
-      setSelectedMehfilId(user.mehfil_directory_id);
-    }
-  }, [
-    selectedZoneId,
-    selectedMehfilId,
-    user?.zone_id,
-    user?.mehfil_directory_id,
-  ]);
-
-  useEffect(() => {
     const fetchZones = async () => {
       try {
         const zoneList = await TarteebRequestService.getZones(500);
@@ -505,12 +491,16 @@ const AdminTarteebRequestsPage = () => {
                     );
                     setPage(1);
                   }}
-                  disabled={!canFilterMehfils}
+                  disabled={!canFilterMehfils || !selectedZoneId}
                   className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${
-                    !canFilterMehfils ? "opacity-50 cursor-not-allowed" : ""
+                    !canFilterMehfils || !selectedZoneId
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
                 >
-                  <option value="">All Mehfils</option>
+                  <option value="">
+                    {!selectedZoneId ? "Select Zone First" : "All Mehfils"}
+                  </option>
                   {mehfils.map((mehfil) => (
                     <option key={mehfil.id} value={mehfil.id}>
                       #{mehfil.mehfil_number} - {mehfil.name_en}

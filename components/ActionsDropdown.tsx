@@ -1,17 +1,21 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Edit, Trash2, Eye, Play } from "lucide-react";
+import { Edit, Trash2, Eye, Play, Clock, Copy } from "lucide-react";
 
 interface ActionsDropdownProps {
   onView?: () => void;
   onPlay?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onSchedule?: () => void;
+  onDuplicate?: () => void;
   showView?: boolean;
   showPlay?: boolean;
   showEdit?: boolean;
   showDelete?: boolean;
+  showSchedule?: boolean;
+  showDuplicate?: boolean;
   align?: "left" | "right";
 }
 
@@ -20,10 +24,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
   onPlay,
   onEdit,
   onDelete,
+  onSchedule,
+  onDuplicate,
   showView = false,
   showPlay = false,
   showEdit = true,
   showDelete = true,
+  showSchedule = false,
+  showDuplicate = false,
   align = "right",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,7 +81,21 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     setIsOpen(false);
   };
 
-  if (!showView && !showPlay && !showEdit && !showDelete) {
+  const handleSchedule = () => {
+    if (onSchedule) {
+      onSchedule();
+    }
+    setIsOpen(false);
+  };
+
+  const handleDuplicate = () => {
+    if (onDuplicate) {
+      onDuplicate();
+    }
+    setIsOpen(false);
+  };
+
+  if (!showView && !showPlay && !showEdit && !showDelete && !showSchedule && !showDuplicate) {
     return null;
   }
 
@@ -129,6 +151,24 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
               >
                 <Edit className="w-4 h-4 text-gray-500" />
                 Edit
+              </button>
+            )}
+            {showSchedule && onSchedule && (
+              <button
+                onClick={handleSchedule}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Clock className="w-4 h-4 text-gray-500" />
+                Schedule Message
+              </button>
+            )}
+            {showDuplicate && onDuplicate && (
+              <button
+                onClick={handleDuplicate}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Copy className="w-4 h-4 text-gray-500" />
+                Duplicate
               </button>
             )}
             {showDelete && onDelete && (

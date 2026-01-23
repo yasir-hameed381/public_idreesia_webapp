@@ -49,12 +49,13 @@ export const naatsharifApi = createApi({
   tagTypes: ['NaatSharif'],
   endpoints: (builder) => ({
     fetchNaatSharifData: builder.query<NaatSharifResponse, NaatSharifQueryParams>({
-      query: ({ page, size, search, category }) => {
-        // Validate the category parameter
-        // const validCategory = category && VALID_CATEGORIES.includes(category) 
-        // ? category 
-        // : 'all';
-        return `naatshareefs-data?page=${page}&size=${size}&search=${search}&category=${category}`;
+      query: ({ page, size, search = "", category = "" }) => {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("size", String(size));
+        params.set("search", String(search));
+        params.set("category", String(category));
+        return `naatshareefs-data?${params.toString()}`;
       },
       transformResponse: (response: any) => {
         

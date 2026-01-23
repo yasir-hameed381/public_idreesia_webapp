@@ -1,33 +1,44 @@
 "use client";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { useRouter, useParams } from "next/navigation";
 import {
   Search,
   Plus,
-  Edit,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   Clock,
-  Calendar,
-  Copy,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   useFetchMessagesDataQuery,
   useDeleteMessageMutation,
+  useCreateMessageMutation,
 } from "@/store/slicers/messagesApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/useToast";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/types/permission";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import { MessagesForm } from "./messages-form";
 
 export function MessagesTable() {
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [sortField, setSortField] = useState<"id" | "title_en" | "title_ur" | "created_at">("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { showError, showSuccess } = useToast();
   const debouncedSearch = useDebounce(search, 500);
 
@@ -36,10 +47,20 @@ export function MessagesTable() {
     useFetchMessagesDataQuery({
       page: currentPage,
       size: perPage,
-      search: debouncedSearch,
+      search: debouncedSearch || "",
+    }, {
+      // Refetch when parameters change
+      refetchOnMountOrArgChange: true,
     });
 
   const [deleteMessage, { isLoading: isDeleting }] = useDeleteMessageMutation();
+  const [createMessage, { isLoading: isCreating }] = useCreateMessageMutation();
+
+  // Permission checks
+  const canViewMessages = isSuperAdmin || hasPermission(PERMISSIONS.VIEW_MESSAGES);
+  const canEditMessages = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_MESSAGES);
+  const canDeleteMessages = isSuperAdmin || hasPermission(PERMISSIONS.DELETE_MESSAGES);
+  const canCreateMessages = isSuperAdmin || hasPermission(PERMISSIONS.CREATE_MESSAGES);
 
   // Show error notification
   useEffect(() => {
@@ -48,14 +69,85 @@ export function MessagesTable() {
     }
   }, [error]);
 
+  // Reset to first page when search or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, sortField, sortDirection]);
+
+  // Client-side sorting
+  const getSortedData = (data: any[]) => {
+    if (!data || data.length === 0) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      // Handle null/undefined values
+      if (aValue == null) aValue = "";
+      if (bValue == null) bValue = "";
+      
+      // Handle string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      // Handle number comparison
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle date comparison
+      if (sortField === "created_at") {
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+        return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+      }
+      
+      // Convert to string and compare
+      return sortDirection === "asc"
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+  };
+
+  const handleSortChange = (field: "id" | "title_en" | "title_ur" | "created_at") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: "id" | "title_en" | "title_ur" | "created_at") => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="h-3 w-3 text-gray-600" />
+    ) : (
+      <ArrowDown className="h-3 w-3 text-gray-600" />
+    );
+  };
+
   // Handle edit
-  const onEdit = (message: any) => {
+  const handleEdit = (message: any) => {
+    if (!canEditMessages) {
+      showError("You don't have permission to edit messages.");
+      return;
+    }
     setSelectedMessage(message);
     setShowForm(true);
   };
 
   // Handle add
   const onAdd = () => {
+    if (!canCreateMessages) {
+      showError("You don't have permission to create messages.");
+      return;
+    }
     setSelectedMessage(null);
     setShowForm(true);
   };
@@ -71,8 +163,12 @@ export function MessagesTable() {
     refetch(); // Refresh the table data
   };
 
-  // Handle delete confirmation
-  const confirmDelete = (message: any) => {
+  // Handle delete click
+  const handleDeleteClick = (message: any) => {
+    if (!canDeleteMessages) {
+      showError("You don't have permission to delete messages.");
+      return;
+    }
     setSelectedMessage(message);
     setShowDeleteDialog(true);
   };
@@ -92,24 +188,47 @@ export function MessagesTable() {
     }
   };
 
-  // Handle schedule message
-  const onSchedule = (message: any) => {
-    // TODO: Implement schedule message functionality
-    showSuccess("Schedule message functionality will be implemented");
+  // Handle schedule message - navigate to schedule page
+  const handleSchedule = (message: any) => {
+    if (!canCreateMessages) {
+      showError("You don't have permission to schedule messages.");
+      return;
+    }
+    router.push(`/${locale}/admin/messages/schedule/${message.id}`);
   };
 
+
   // Handle duplicate message
-  const onDuplicate = (message: any) => {
-    // Create a copy of the message with modified title
-    const duplicatedMessage = {
-      ...message,
-      id: undefined, // Remove ID so it creates a new message
-      title_en: `${message.title_en} (Copy)`,
-      title_ur: `${message.title_ur} (Copy)`,
-      slug: `${message.slug}-copy-${Date.now()}`,
-    };
-    setSelectedMessage(duplicatedMessage);
-    setShowForm(true);
+  const handleDuplicate = async (message: any) => {
+    if (!canCreateMessages) {
+      showError("You don't have permission to create messages.");
+      return;
+    }
+
+    try {
+      // Prepare duplicate message data
+      const duplicateData = {
+        title_en: `${message.title_en} (Copy)`,
+        title_ur: `${message.title_ur} (Copy)`,
+        description_en: message.description_en || "",
+        description_ur: message.description_ur || "",
+        is_published: 0, // Set as draft by default
+        category_id: message.category_id,
+        filename: message.filename,
+        filepath: message.filepath,
+        tags: message.tags,
+        track: message.track,
+        track_date: message.track_date,
+        for_karkuns: message.for_karkuns || false,
+        for_ehad_karkuns: message.for_ehad_karkuns || false,
+      };
+
+      await createMessage(duplicateData).unwrap();
+      showSuccess("Message duplicated successfully");
+      refetch(); // Refresh the table data
+    } catch (error: any) {
+      showError(error?.data?.message || "Failed to duplicate message. Please try again.");
+    }
   };
 
   // Handle per page change
@@ -164,6 +283,9 @@ export function MessagesTable() {
     );
   }
 
+  // Get sorted data
+  const sortedData = data?.data ? getSortedData(data.data) : [];
+  
   const totalPages = Math.ceil((data?.meta?.total || 0) / perPage);
   const startRecord = (currentPage - 1) * perPage + 1;
   const endRecord = Math.min(startRecord + perPage - 1, data?.meta?.total || 0);
@@ -180,24 +302,26 @@ export function MessagesTable() {
                 Manage messages and their details
               </p>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  /* Handle scheduled messages */
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                <Clock size={16} />
-                Scheduled Messages
-              </button>
-              <button
-                onClick={onAdd}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
-              >
-                <Plus size={16} />
-                Create Message
-              </button>
-            </div>
+            {canCreateMessages && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    /* Handle scheduled messages */
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  <Clock size={16} />
+                  Scheduled Messages
+                </button>
+                <button
+                  onClick={onAdd}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
+                >
+                  <Plus size={16} />
+                  Create Message
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -217,7 +341,7 @@ export function MessagesTable() {
               </div>
               {search.trim() && (
                 <div className="mt-2 text-sm text-gray-600">
-                  Searching for: "{search}" • Found {data?.data?.length || 0}{" "}
+                  Searching for: "{search}" • Found {sortedData?.length || 0}{" "}
                   results
                 </div>
               )}
@@ -256,22 +380,43 @@ export function MessagesTable() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("id")}
+                  >
+                    <div className="flex items-center gap-1">
+                      ID
+                      {getSortIcon("id")}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    TITLE (EN)
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("title_en")}
+                  >
+                    <div className="flex items-center gap-1">
+                      TITLE (EN)
+                      {getSortIcon("title_en")}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    TITLE (UR)
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("title_ur")}
+                  >
+                    <div className="flex items-center gap-1">
+                      TITLE (UR)
+                      {getSortIcon("title_ur")}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     STATUS
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("created_at")}
+                  >
                     <div className="flex items-center gap-1">
                       CREATED AT
-                      <ChevronDown className="h-3 w-3" />
+                      {getSortIcon("created_at")}
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -280,7 +425,7 @@ export function MessagesTable() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data?.data?.map((message, index) => (
+                {sortedData?.map((message, index) => (
                   <tr
                     key={message.id}
                     className={`hover:bg-gray-50 ${
@@ -306,37 +451,16 @@ export function MessagesTable() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onEdit(message)}
-                          className="text-blue-600 hover:text-blue-900 p-1.5 rounded hover:bg-blue-50 transition-colors"
-                          title="Edit message"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => onSchedule(message)}
-                          className="text-purple-600 hover:text-purple-900 p-1.5 rounded hover:bg-purple-50 transition-colors"
-                          title="Schedule message"
-                        >
-                          <Clock size={16} />
-                        </button>
-                        <button
-                          onClick={() => onDuplicate(message)}
-                          className="text-green-600 hover:text-green-900 p-1.5 rounded hover:bg-green-50 transition-colors"
-                          title="Duplicate message"
-                        >
-                          <Copy size={16} />
-                        </button>
-                        <button
-                          onClick={() => confirmDelete(message)}
-                          className="text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50 transition-colors"
-                          disabled={isDeleting}
-                          title="Delete message"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      <ActionsDropdown
+                        onEdit={canEditMessages ? () => handleEdit(message) : undefined}
+                        onSchedule={canCreateMessages ? () => handleSchedule(message) : undefined}
+                        onDuplicate={canCreateMessages ? () => handleDuplicate(message) : undefined}
+                        onDelete={canDeleteMessages ? () => handleDeleteClick(message) : undefined}
+                        showEdit={canEditMessages}
+                        showSchedule={canCreateMessages}
+                        showDuplicate={canCreateMessages}
+                        showDelete={canDeleteMessages}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -446,44 +570,18 @@ export function MessagesTable() {
         </div>
 
         {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3 text-center">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                  <Trash2 className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mt-4">
-                  Delete Message
-                </h3>
-                <div className="mt-2 px-7 py-3">
-                  <p className="text-sm text-gray-500">
-                    Are you sure you want to delete this message? This action
-                    cannot be undone.
-                  </p>
-                </div>
-                <div className="items-center px-4 py-3">
-                  <button
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
-                  >
-                    {isDeleting ? "Deleting..." : "Delete"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDeleteDialog(false);
-                      setSelectedMessage(null);
-                    }}
-                    className="mt-3 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Delete Message"
+          message={`Are you sure you want to delete "${selectedMessage?.title_en || "this message"}"? This action cannot be undone.`}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setSelectedMessage(null);
+          }}
+          onConfirm={handleDelete}
+          isLoading={isDeleting}
+        />
+
       </div>
     </div>
   );

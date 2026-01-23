@@ -43,7 +43,7 @@ const ContentCards: React.FC<ContentCardsProps> = ({ locale = "en" }) => {
     category: "all",
   });
 
-  const { data: wazaifData, isLoading: loadingWazaif } = useGetWazaifQuery({
+  const { data: wazaifData, isLoading: loadingWazaif } = useGetWazaifQuery({      
     page: 1,
     limit: 12,
     category: "bunyadi",

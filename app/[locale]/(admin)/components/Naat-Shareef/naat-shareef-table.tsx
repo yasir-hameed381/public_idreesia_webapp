@@ -4,8 +4,6 @@ import { useToast } from "@/hooks/useToast";
 import {
   Search,
   Plus,
-  Edit,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -24,6 +22,8 @@ import { useGetCategoriesQuery } from "@/store/slicers/categoryApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 export function NaatShareefTable() {
   // State
@@ -37,10 +37,16 @@ export function NaatShareefTable() {
   const [perPage, setPerPage] = useState(10);
   const debouncedSearch = useDebounce(search, 500);
   const { user, hasPermission, isSuperAdmin } = usePermissions();
-
-  console.log("Current User in NaatShareefTable:", user);
+  const canPlayNaats = isSuperAdmin || hasPermission(PERMISSIONS.VIEW_NAATS);
+  const canEditNaats = isSuperAdmin || hasPermission(PERMISSIONS.EDIT_NAATS);
+  const canDeleteNaats = isSuperAdmin || hasPermission(PERMISSIONS.DELETE_NAATS);
 
   const { showError, showSuccess } = useToast();
+
+  // Reset to page 1 when search or category changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedCategory]);
 
   // RTK Query hooks
   const { data, isLoading } = useFetchNaatSharifDataQuery({
@@ -52,7 +58,8 @@ export function NaatShareefTable() {
 
   const [addNaatSharif] = useCreateNaatSharifMutation();
   const [updateNaatSharif] = useUpdateNaatSharifMutation();
-  const [deleteNaatSharif] = useDeleteNaatSharifMutation();
+  const [deleteNaatSharif, { isLoading: isDeleting }] =
+    useDeleteNaatSharifMutation();
 
   const { data: categoryData } = useGetCategoriesQuery({
     page: 1,
@@ -106,12 +113,18 @@ export function NaatShareefTable() {
     }
   };
 
+  const handlePlay = (naat: NaatShareef & { filepath?: string }) => {
+    if (naat.filepath) {
+      window.open(naat.filepath, "_blank", "noopener,noreferrer");
+    }
+  };
+
   const editNaatShareef = (naatShareef: NaatShareef) => {
     setEditingItem(naatShareef);
     setShowForm(true);
   };
 
-  const confirmDeleteNaatShareef = (naatShareef: NaatShareef) => {
+  const handleDeleteClick = (naatShareef: NaatShareef) => {
     setSelectedNaat(naatShareef);
     setShowDeleteDialog(true);
   };
@@ -443,29 +456,28 @@ export function NaatShareefTable() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex items-center gap-2">
-                                {(isSuperAdmin ||
-                                  hasPermission(PERMISSIONS.EDIT_NAATS)) && (
-                                  <button
-                                    onClick={() => editNaatShareef(naat)}
-                                    className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                                    title="Edit"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
-                                )}
-                                {(isSuperAdmin ||
-                                  hasPermission(PERMISSIONS.DELETE_NAATS)) && (
-                                  <button
-                                    onClick={() =>
-                                      confirmDeleteNaatShareef(naat)
-                                    }
-                                    className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                                    title="Delete"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                )}
+                              <div className="flex items-center justify-end">
+                                <ActionsDropdown
+                                  onPlay={
+                                    canPlayNaats && naat.filepath
+                                      ? () => handlePlay(naat)
+                                      : undefined
+                                  }
+                                  onEdit={
+                                    canEditNaats
+                                      ? () => editNaatShareef(naat)
+                                      : undefined
+                                  }
+                                  onDelete={
+                                    canDeleteNaats
+                                      ? () => handleDeleteClick(naat)
+                                      : undefined
+                                  }
+                                  showPlay={!!(canPlayNaats && naat.filepath)}
+                                  showEdit={canEditNaats}
+                                  showDelete={canDeleteNaats}
+                                  align="right"
+                                />
                               </div>
                             </td>
                           </tr>
@@ -540,35 +552,23 @@ export function NaatShareefTable() {
           )}
         </div>
 
-        {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Confirm Delete
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete{" "}
-                <span className="font-medium">{selectedNaat?.title_en}</span>?
-                This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDeleteDialog(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Confirm Delete"
+          message={
+            selectedNaat
+              ? `Are you sure you want to delete "${selectedNaat.title_en}"? This action cannot be undone.`
+              : ""
+          }
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setSelectedNaat(null);
+          }}
+          onConfirm={handleDelete}
+          isLoading={isDeleting}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
       </div>
     </div>
   );

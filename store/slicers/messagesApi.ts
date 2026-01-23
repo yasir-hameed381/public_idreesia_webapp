@@ -55,7 +55,16 @@ export const messagesApi = createApi({
         const validCategory = category && VALID_MESSAGE_CATEGORIES.includes(category) 
         ? category 
         : 'all';
-        return `messages-data?page=${page}&size=${size}&search=${search}&category=${validCategory}`;
+        
+        // Use URLSearchParams for proper encoding
+        const params = new URLSearchParams();
+        params.append('page', String(page));
+        params.append('size', String(size));
+        // Always include search parameter (even if empty) for consistent cache keys
+        params.append('search', search ? search.trim() : '');
+        params.append('category', String(validCategory));
+        
+        return `messages-data?${params.toString()}`;
       },
       transformResponse: (response: any) => {
         
@@ -89,11 +98,14 @@ export const messagesApi = createApi({
             ]
           : [{ type: 'Message', id: 'LIST' }],
     }),
-    getMessageById: builder.query<MessageData, number>({
+    getMessageById: builder.query<{ data: MessageData } | MessageData, number>({
       query: (id) => `messages-data/${id}`,
       transformResponse: (response: any) => {
-        console.log('Get message by ID response:', response);
-        return response;
+        // Handle different response structures
+        if (response?.data) {
+          return response;
+        }
+        return { data: response };
       },
       providesTags: (result, error, id) => [{ type: 'Message', id }],
     }),

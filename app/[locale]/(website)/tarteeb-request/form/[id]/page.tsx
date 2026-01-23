@@ -98,7 +98,7 @@ const PublicTarteebRequestFormPage = () => {
           setTokenValid(false);
           toast.error(result.message || "Invalid or expired link");
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error validating token:", error);
         setTokenValid(false);
         toast.error("Invalid or expired link");

@@ -53,6 +53,18 @@ export function ZoneForm({ editData, onCancel, onSuccess }) {
     reset,
   } = useForm<ZoneFormSchemaType>({
     resolver: yupResolver(zoneSchema),
+    defaultValues: {
+      title_en: "",
+      title_ur: "",
+      description: "",
+      country_en: "",
+      country_ur: "",
+      city_en: "",
+      city_ur: "",
+      ceo: "",
+      primary_phone_number: "",
+      secondary_phone_number: "",
+    },
   });
   useEffect(() => {
     if (editData) {
@@ -87,23 +99,43 @@ export function ZoneForm({ editData, onCancel, onSuccess }) {
         return;
       }
 
+      // Transform snake_case to camelCase for backend API
+      const apiPayload = {
+        titleEn: data.title_en,
+        titleUr: data.title_ur,
+        description: data.description || "",
+        countryEn: data.country_en,
+        countryUr: data.country_ur,
+        cityEn: data.city_en,
+        cityUr: data.city_ur,
+        co: data.ceo || "",
+        primaryPhoneNumber: data.primary_phone_number || "",
+        secondaryPhoneNumber: data.secondary_phone_number || "",
+      };
+
       if (editData?.id) {
         const result = await updateZone({
           id: editData.id,
-          ...data,
+          ...apiPayload,
         }).unwrap();
         reset();
-        onSuccess("Zone added successfully!");
-
-        showSuccess("zone updated successfully.");
+        showSuccess("Zone updated successfully.");
+        onSuccess("Zone updated successfully!");
       } else {
-        const result = await addZone(data).unwrap();
+        const result = await addZone(apiPayload).unwrap();
         reset();
-        onSuccess("Zone added successfully!");
+        showSuccess("Zone created successfully.");
+        onSuccess("Zone created successfully!");
       }
     } catch (err: any) {
       console.error("API error:", err);
-      showError(err?.data?.message || "Operation failed");
+      // Handle RTK Query error formats
+      const errorMessage =
+        (err as { data?: { message?: string } })?.data?.message ||
+        (err as { message?: string })?.message ||
+        (err as { error?: string })?.error ||
+        "Operation failed. Please try again.";
+      showError(errorMessage);
     }
   };
 

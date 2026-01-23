@@ -16,6 +16,7 @@ import { ArrowLeft, Upload, Calendar, ChevronDown, X } from "lucide-react";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
 import { useDebounce } from "@/hooks/useDebounce";
+import AudioPlayer from "@/components/AudioPlayer";
 
 // Updated schema to match the form fields
 const schema: any = yup.object().shape({
@@ -79,6 +80,13 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
 
   const { user, hasPermission, isSuperAdmin } = usePermissions();
 
+  const isPublishedFromItem = (item: typeof editingItem) => {
+    if (!item) return true;
+    const p = item.is_published;
+    // Handle both string and number types - convert to string for comparison
+    return String(p) === "1" || Number(p) === 1;
+  };
+
   // Form configuration
   const {
     handleSubmit,
@@ -90,10 +98,10 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
   } = useForm<any>({
     resolver: yupResolver(schema),
     defaultValues: {
-      is_published: editingItem ? editingItem.is_published === "1" : true,
+      is_published: isPublishedFromItem(editingItem ?? undefined),
       for_karkuns: false,
       for_ehad_karkuns: false,
-      category_id: editingItem?.category_id || "",
+      category_id: editingItem?.category_id != null ? String(editingItem.category_id) : "",
       track: editingItem?.track || "",
       track_date: "",
       tags: editingItem?.tags || "",
@@ -109,10 +117,10 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
   useEffect(() => {
     if (editingItem) {
       reset({
-        is_published: editingItem.is_published === "1",
+        is_published: isPublishedFromItem(editingItem),
         for_karkuns: false,
         for_ehad_karkuns: false,
-        category_id: editingItem.category_id || "",
+        category_id: editingItem.category_id != null ? String(editingItem.category_id) : "",
         track: editingItem.track || "",
         track_date: "",
         tags: editingItem.tags || "",
@@ -123,13 +131,13 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
         audioFile: null,
       });
 
+      setFileUploaded(false);
       // Parse existing tags if they exist
       if (editingItem.tags) {
         const tagNames = editingItem.tags.split(", ");
-        // We'll need to fetch the full tag objects, for now just set the names
         setSelectedTags(
           tagNames.map((name, index) => ({
-            tag_id: index + 1000, // Temporary ID for existing tags
+            tag_id: index + 1000,
             name: name.trim(),
           }))
         );
@@ -137,6 +145,7 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
     } else {
       setSelectedTags([]);
       setTagsSearch("");
+      setFileUploaded(false);
     }
   }, [editingItem, reset]);
 
@@ -294,6 +303,7 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
               </p>
             </div>
             <button
+              type="button"
               onClick={onCancel}
               className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
@@ -677,14 +687,32 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
                 </div>
               </div>
 
+              {/* Uploaded Audio File - show when editing with existing audio */}
+              {editingItem?.filepath &&
+                editingItem.filepath.trim() !== "" &&
+                !editingItem.filepath.endsWith("/") && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Uploaded Audio File
+                    </label>
+                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                      <AudioPlayer
+                        src={editingItem.filepath}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )}
+
               {/* Audio File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Audio File *
+                  {editingItem ? "Replace Audio File" : "Upload Audio File *"}
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
-                  Upload audio file for this naat. Only MP3, WAV, and OGG files
-                  are allowed.
+                  {editingItem
+                    ? "Upload a new file to replace the current audio."
+                    : "Upload audio file for this naat. Only MP3, WAV, and OGG files are allowed."}
                 </p>
                 <Controller
                   name="audioFile"
@@ -713,16 +741,10 @@ const NaatShareefForm: React.FC<NaatShareefFormProps> = ({
                           />
                         </label>
                       </p>
-                      {watch("audioFile") && (
+                      {fileUploaded && watch("audioFile") && (
                         <p className="text-sm text-green-600 mt-2">
-                          Selected: {(watch("audioFile") as File)?.name}
-                        </p>
-                      )}
-                      {editingItem?.filepath && !watch("audioFile") && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          Current file:{" "}
-                          {editingItem.filename ||
-                            editingItem.filepath.split("/").pop()}
+                          {editingItem ? "New file selected: " : "Selected: "}
+                          {(watch("audioFile") as File)?.name}
                         </p>
                       )}
                     </div>
