@@ -543,9 +543,6 @@ export function AppSidebar({
             backgroundColor: isDark ? "#000" : "#fff",
             color: isDark ? "#fff" : "#000",
           }}
-          // Custom styles for selected items
-          className={`custom-sidebar-menu ${isDark ? "dark-menu" : "light-menu"}`}
-          // Force re-render when pathname changes
           key={`menu-${pathname}-${resolvedTheme}`}
         />
       </div>
