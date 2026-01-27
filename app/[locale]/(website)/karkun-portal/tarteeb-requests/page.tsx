@@ -7,6 +7,30 @@ import TarteebRequestService, {
 } from "@/services/TarteebRequests";
 import Link from "next/link";
 import { toast } from "sonner";
+import axios from "axios";
+import { X, Copy, Check } from "lucide-react";
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+).replace(/\/$/, "");
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 interface Zone {
   id: number;
@@ -46,6 +70,13 @@ const TarteebRequestsPage = () => {
   // Modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showGenerateLinkModal, setShowGenerateLinkModal] = useState(false);
+  const [linkExpiryHours, setLinkExpiryHours] = useState(24);
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [linkZoneId, setLinkZoneId] = useState<number | null>(user?.zone_id || null);
+  const [linkMehfilDirectoryId, setLinkMehfilDirectoryId] = useState<number | null>(user?.mehfil_directory_id || null);
+  const [linkMehfils, setLinkMehfils] = useState<Mehfil[]>([]);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   // Permissions
   const canFilterZones = Boolean(
@@ -132,6 +163,30 @@ const TarteebRequestsPage = () => {
 
     fetchMehfils();
   }, [selectedZoneId]);
+
+  // Load mehfils for link generation modal
+  useEffect(() => {
+    const fetchLinkMehfils = async () => {
+      if (!linkZoneId) {
+        setLinkMehfils([]);
+        return;
+      }
+
+      try {
+        const mehfilList = await TarteebRequestService.getMehfilsByZone(
+          linkZoneId,
+          500
+        );
+        setLinkMehfils(mehfilList);
+      } catch (error) {
+        console.error("Failed to load mehfils for link", error);
+      }
+    };
+
+    if (showGenerateLinkModal) {
+      fetchLinkMehfils();
+    }
+  }, [linkZoneId, showGenerateLinkModal]);
 
   const loadRequests = async () => {
     try {
@@ -265,6 +320,64 @@ const TarteebRequestsPage = () => {
         return "bg-red-100 text-red-700";
       default:
         return "bg-yellow-100 text-yellow-700";
+    }
+  };
+
+  const handleOpenGenerateLinkModal = () => {
+    setLinkExpiryHours(24);
+    setGeneratedLink("");
+    setLinkZoneId(user?.zone_id || null);
+    setLinkMehfilDirectoryId(user?.mehfil_directory_id || null);
+    setShowGenerateLinkModal(true);
+  };
+
+  const handleGeneratePublicLink = async () => {
+    if (!linkExpiryHours || linkExpiryHours < 1 || linkExpiryHours > 720) {
+      toast.error("Link expiry hours must be between 1 and 720");
+      return;
+    }
+
+    if (!linkZoneId) {
+      toast.error("Please select a zone");
+      return;
+    }
+
+    if (!linkMehfilDirectoryId) {
+      toast.error("Please select a mehfil");
+      return;
+    }
+
+    setGeneratingLink(true);
+    try {
+      const response = await apiClient.post("/tarteeb-requests/generate-public-link", {
+        linkExpiryHours,
+        zone_id: linkZoneId,
+        mehfil_directory_id: linkMehfilDirectoryId,
+      });
+
+      if (response.data.success) {
+        const fullUrl = `${window.location.origin}${response.data.data.url}`;
+        setGeneratedLink(fullUrl);
+        toast.success("Public link generated successfully");
+      } else {
+        toast.error(response.data.message || "Failed to generate link");
+      }
+    } catch (error: any) {
+      console.error("Error generating link:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to generate public link"
+      );
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Link copied to clipboard");
+    } catch (error) {
+      toast.error("Failed to copy link");
     }
   };
 
@@ -549,6 +662,159 @@ const TarteebRequestsPage = () => {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Generate Public Link Modal */}
+        {showGenerateLinkModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Generate Public Link</h3>
+                <button
+                  onClick={() => {
+                    setShowGenerateLinkModal(false);
+                    setGeneratedLink("");
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {!generatedLink ? (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Link Expiry Hours <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="720"
+                        value={linkExpiryHours}
+                        onChange={(e) =>
+                          setLinkExpiryHours(Number(e.target.value))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="24"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Between 1 and 720 hours
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Zone <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={linkZoneId || ""}
+                        onChange={(e) => {
+                          setLinkZoneId(
+                            e.target.value ? Number(e.target.value) : null
+                          );
+                          setLinkMehfilDirectoryId(null);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select Zone</option>
+                        {zones.map((zone) => (
+                          <option key={zone.id} value={zone.id}>
+                            {zone.title_en}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mehfil <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={linkMehfilDirectoryId || ""}
+                        onChange={(e) =>
+                          setLinkMehfilDirectoryId(
+                            e.target.value ? Number(e.target.value) : null
+                          )
+                        }
+                        disabled={!linkZoneId}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select Mehfil</option>
+                        {linkMehfils.map((mehfil) => (
+                          <option key={mehfil.id} value={mehfil.id}>
+                            #{mehfil.mehfil_number} - {mehfil.name_en}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      onClick={handleGeneratePublicLink}
+                      disabled={generatingLink}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingLink ? "Generating..." : "Generate Link"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowGenerateLinkModal(false);
+                        setGeneratedLink("");
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Generated Link
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={generatedLink}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                        />
+                        <button
+                          onClick={() => copyToClipboard(generatedLink)}
+                          className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                          title="Copy to clipboard"
+                        >
+                          <Copy size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      This link will expire in {linkExpiryHours} hours. Share
+                      this link with members to allow them to submit tarteeb
+                      requests.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      onClick={() => {
+                        setShowGenerateLinkModal(false);
+                        setGeneratedLink("");
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

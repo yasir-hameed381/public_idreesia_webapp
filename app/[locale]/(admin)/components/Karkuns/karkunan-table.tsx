@@ -20,6 +20,11 @@ import {
 } from "../../../../../store/slicers/adminUserApi";
 import { useFetchZonesQuery } from "../../../../../store/slicers/zoneApi";
 import { useFetchAddressQuery } from "../../../../../store/slicers/mehfildirectoryApi";
+import {
+  useFetchKarkunsQuery,
+  useDeleteKarkunMutation,
+  Karkun as EhadKarkun,
+} from "../../../../../store/slicers/EhadKarkunApi";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
 import ActionsDropdown from "@/components/ActionsDropdown";
@@ -43,7 +48,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
   const [activeTab, setActiveTab] = useState<TabType>("karkun");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [sortField, setSortField] = useState<"id" | "name" | "email" | "created_at">("created_at");
+  const [sortField, setSortField] = useState<"id" | "name" | "email" | "created_at" | "phone_number" | "zone_id" | "city" | "country">("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [deleting, setDeleting] = useState(false);
   const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
@@ -94,55 +99,132 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
   const effectivePage = currentPage;
   const effectiveSize = perPage;
 
-  // Fetch admin users data using RTK Query with server-side filtering
+  // Fetch Ehad Karkuns from ehad_karkuns table when activeTab is "ehad_karkun"
+  const {
+    data: ehadKarkunsResponse,
+    isLoading: ehadKarkunsLoading,
+    error: ehadKarkunsError,
+  } = useFetchKarkunsQuery(
+    {
+      page: effectivePage,
+      size: effectiveSize,
+      search: debouncedSearch.trim(),
+      zone_id: selectedZoneId !== "all" ? selectedZoneId : null,
+      sortField: activeTab === "ehad_karkun" ? sortField : undefined,
+      sortDirection: activeTab === "ehad_karkun" ? sortDirection : undefined,
+    },
+    { skip: activeTab !== "ehad_karkun" } // Only fetch when ehad_karkun tab is active
+  );
+
+  // Fetch admin users data using RTK Query with server-side filtering (for other tabs)
   const {
     data: apiResponse,
     isLoading: loading,
     error: fetchError,
     refetch,
-  } = useFetchAdminUsersQuery({
-    page: effectivePage,
-    size: effectiveSize,
-    search: debouncedSearch.trim(),
-    sortField,
-    sortDirection,
-    zone_id: selectedZoneId !== "all" ? selectedZoneId : null,
-    mehfil_directory_id: selectedMehfilId !== "all" ? selectedMehfilId : null,
-    activeTab: activeTab,
-  });
+  } = useFetchAdminUsersQuery(
+    {
+      page: effectivePage,
+      size: effectiveSize,
+      search: debouncedSearch.trim(),
+      sortField,
+      sortDirection,
+      zone_id: selectedZoneId !== "all" ? selectedZoneId : null,
+      mehfil_directory_id: selectedMehfilId !== "all" ? selectedMehfilId : null,
+      activeTab: activeTab,
+    },
+    { skip: activeTab === "ehad_karkun" } // Skip when ehad_karkun tab is active
+  );
 
   const [deleteAdminUser, { isLoading: isDeleting }] = useDeleteAdminUserMutation();
+  const [deleteEhadKarkun, { isLoading: isDeletingEhadKarkun }] = useDeleteKarkunMutation();
 
   // Reset to first page when search, tab, sort, or filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, activeTab, sortField, sortDirection, selectedZoneId, selectedMehfilId]);
 
+  // Get zone data for Ehad Karkuns (need zone title for display)
+  const zones = zonesData?.data || [];
+
   // Update filtered data when API response changes (server-side filtering)
   useEffect(() => {
-    if (!apiResponse?.data) {
-      setFilteredData([]);
-      return;
-    }
-    // Data is already filtered and sorted on the server
-    // Ensure data is an array
-    const dataArray = Array.isArray(apiResponse.data) ? apiResponse.data : [];
-    setFilteredData(dataArray);
-
-    // Debug logging
-    if (dataArray.length > 0) {
-      console.log("✅ Loaded users:", dataArray.length, "users");
-      console.log("Sample user:", dataArray[0]);
+    if (activeTab === "ehad_karkun") {
+      // Handle Ehad Karkuns from ehad_karkuns table
+      if (!ehadKarkunsResponse?.data) {
+        setFilteredData([]);
+        return;
+      }
+      
+      // Convert EhadKarkun to AdminUser format for display
+      const convertedData: AdminUser[] = ehadKarkunsResponse.data.map((ek: EhadKarkun) => {
+        // Find zone for this ehad karkun
+        const zone = zones.find((z: any) => z.id === ek.zone_id);
+        
+        return {
+          id: ek.id,
+          zone_id: ek.zone_id,
+          name: ek.name_en || "",
+          name_ur: ek.name_ur || null,
+          email: "", // Ehad Karkuns don't have email
+          father_name: ek.so_en || null,
+          father_name_ur: ek.so_ur || null,
+          phone_number: ek.mobile_no || null,
+          id_card_number: ek.cnic || null,
+          address: null,
+          birth_year: ek.birth_year || null,
+          ehad_year: ek.ehad_year || null,
+          mehfil_directory_id: null,
+          duty_days: null,
+          duty_type: null,
+          avatar: null,
+          city: ek.city_en || null,
+          country: ek.country_en || null,
+          is_zone_admin: false,
+          is_mehfil_admin: false,
+          is_super_admin: false,
+          is_region_admin: false,
+          is_all_region_admin: false,
+          is_active: true,
+          user_type: "ehad_karkun",
+          role_id: null,
+          created_at: ek.created_at || "",
+          updated_at: ek.updated_at || "",
+          created_by: null,
+          updated_by: null,
+          zone: zone ? { id: Number(zone.id), title_en: zone.title_en, title_ur: zone.title_ur } : null,
+        };
+      });
+      
+      setFilteredData(convertedData);
+      
+      console.log("✅ Loaded Ehad Karkuns:", convertedData.length, "records");
     } else {
-      console.log("⚠️ No users found in response");
-    }
-  }, [apiResponse]);
+      // Handle regular admin users
+      if (!apiResponse?.data) {
+        setFilteredData([]);
+        return;
+      }
+      // Data is already filtered and sorted on the server
+      // Ensure data is an array
+      const dataArray = Array.isArray(apiResponse.data) ? apiResponse.data : [];
+      setFilteredData(dataArray);
 
-  const handleSortChange = (field: "id" | "name" | "email" | "created_at") => {
+      // Debug logging
+      if (dataArray.length > 0) {
+        console.log("✅ Loaded users:", dataArray.length, "users");
+        console.log("Sample user:", dataArray[0]);
+      } else {
+        console.log("⚠️ No users found in response");
+      }
+    }
+  }, [apiResponse, ehadKarkunsResponse, activeTab, zones]);
+
+  const handleSortChange = (field: "id" | "name" | "email" | "created_at" | "phone_number" | "zone_id" | "city" | "country") => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
-      setSortField(field);
+      setSortField(field as any);
       setSortDirection(field === "created_at" ? "desc" : "asc");
     }
   };
@@ -169,16 +251,27 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
 
     try {
       setDeleting(true);
-      await deleteAdminUser(selectedUser.id).unwrap();
-      showSuccess("User deleted successfully.");
+      
+      // Use different API based on active tab
+      if (activeTab === "ehad_karkun") {
+        await deleteEhadKarkun(selectedUser.id).unwrap();
+        showSuccess("Ehad Karkun deleted successfully.");
+      } else {
+        await deleteAdminUser(selectedUser.id).unwrap();
+        showSuccess("User deleted successfully.");
+      }
+      
       setShowDeleteDialog(false);
       setSelectedUser(null);
+      
       // RTK Query will automatically refetch due to invalidated tags
-      await refetch();
+      if (activeTab !== "ehad_karkun") {
+        await refetch();
+      }
     } catch (err: any) {
-      const errorMessage = err?.data?.message || err?.message || "Failed to delete user. Please try again.";
+      const errorMessage = err?.data?.message || err?.message || "Failed to delete. Please try again.";
       showError(errorMessage);
-      console.error("Error deleting user:", err);
+      console.error("Error deleting:", err);
     } finally {
       setDeleting(false);
     }
@@ -279,10 +372,15 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
   };
 
   // Use server-side pagination data
-  const totalFilteredCount = apiResponse?.meta?.total || 0;
-  const totalPages = apiResponse?.meta?.last_page || 1;
-  const from = apiResponse?.meta?.from || 0;
-  const to = apiResponse?.meta?.to || 0;
+  // Get pagination meta from the correct response based on active tab
+  const paginationMeta = activeTab === "ehad_karkun" 
+    ? ehadKarkunsResponse?.meta 
+    : apiResponse?.meta;
+  
+  const totalFilteredCount = paginationMeta?.total || 0;
+  const totalPages = paginationMeta?.last_page || 1;
+  const from = paginationMeta?.from || 0;
+  const to = paginationMeta?.to || 0;
   const currentTotal = totalFilteredCount;
 
   // Permission checks
@@ -290,21 +388,38 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
   const canDeleteKarkuns = isSuperAdmin || hasPermission(PERMISSIONS.DELETE_KARKUNS);
   const canCreateKarkuns = isSuperAdmin || hasPermission(PERMISSIONS.CREATE_KARKUNS);
 
+  // Determine which loading and error states to use based on active tab
+  const isLoading = activeTab === "ehad_karkun" ? ehadKarkunsLoading : loading;
+  const currentError = activeTab === "ehad_karkun" ? ehadKarkunsError : fetchError;
+
   // Debug logging for API response
   useEffect(() => {
-    if (apiResponse) {
-      console.log("📦 API Response:", {
-        dataLength: apiResponse.data?.length || 0,
-        meta: apiResponse.meta,
-        hasData: !!apiResponse.data,
-      });
+    if (activeTab === "ehad_karkun") {
+      if (ehadKarkunsResponse) {
+        console.log("📦 Ehad Karkuns Response:", {
+          dataLength: ehadKarkunsResponse.data?.length || 0,
+          meta: ehadKarkunsResponse.meta,
+          hasData: !!ehadKarkunsResponse.data,
+        });
+      }
+      if (ehadKarkunsError) {
+        console.error("❌ Ehad Karkuns Fetch Error:", ehadKarkunsError);
+      }
+    } else {
+      if (apiResponse) {
+        console.log("📦 API Response:", {
+          dataLength: apiResponse.data?.length || 0,
+          meta: apiResponse.meta,
+          hasData: !!apiResponse.data,
+        });
+      }
+      if (fetchError) {
+        console.error("❌ Fetch Error:", fetchError);
+      }
     }
-    if (fetchError) {
-      console.error("❌ Fetch Error:", fetchError);
-    }
-  }, [apiResponse, fetchError]);
+  }, [apiResponse, ehadKarkunsResponse, fetchError, ehadKarkunsError, activeTab]);
 
-  if (fetchError) {
+  if (currentError) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-7xl mx-auto">
@@ -313,14 +428,20 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
               Error loading data
             </div>
             <p className="text-gray-600 mt-2">
-              {(fetchError as { data?: { message?: string }; message?: string })
+              {(currentError as { data?: { message?: string }; message?: string })
                 .data?.message ??
-                (fetchError as { message?: string }).message ??
+                (currentError as { message?: string }).message ??
                 "Please try refreshing the page"}
-              {(fetchError as any)?.data?.message || (fetchError as any)?.message || "Please try refreshing the page"}
             </p>
             <button
-              onClick={() => refetch()}
+              onClick={() => {
+                if (activeTab === "ehad_karkun") {
+                  // Refetch ehad karkuns - RTK Query will handle this automatically
+                  window.location.reload();
+                } else {
+                  refetch();
+                }
+              }}
               className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
             >
               Retry
@@ -461,30 +582,33 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                   </div>
                 </div>
 
-                <div className="relative w-full md:w-48">
-                  <select
-                    value={selectedMehfilId}
-                    onChange={(e) => setSelectedMehfilId(e.target.value)}
-                    disabled={selectedZoneId === "all" || mehfilsLoading}
-                    className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    <option value="all">All Mehfils</option>
-                    {mehfilsLoading ? (
-                      <option value="">Loading mehfils...</option>
-                    ) : mehfilsError ? (
-                      <option value="">Error loading mehfils</option>
-                    ) : (
-                      mehfilsData?.data?.map((mehfil: any) => (
-                        <option key={mehfil.id} value={mehfil.id}>
-                          {mehfil.name_en || mehfil.name || mehfil.id}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                {/* Hide Mehfil filter for Ehad Karkuns tab */}
+                {activeTab !== "ehad_karkun" && (
+                  <div className="relative w-full md:w-48">
+                    <select
+                      value={selectedMehfilId}
+                      onChange={(e) => setSelectedMehfilId(e.target.value)}
+                      disabled={selectedZoneId === "all" || mehfilsLoading}
+                      className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="all">All Mehfils</option>
+                      {mehfilsLoading ? (
+                        <option value="">Loading mehfils...</option>
+                      ) : mehfilsError ? (
+                        <option value="">Error loading mehfils</option>
+                      ) : (
+                        mehfilsData?.data?.map((mehfil: any) => (
+                          <option key={mehfil.id} value={mehfil.id}>
+                            {mehfil.name_en || mehfil.name || mehfil.id}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="relative w-full md:w-auto">
                   <select
@@ -510,7 +634,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
 
         {/* Table */}
         <div className="bg-white rounded-lg shadow-sm border">
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
@@ -520,126 +644,254 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Karkun ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Avatar
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSortChange("name")}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>Name (English)</span>
-                          {sortField === "name" && (
-                            <svg
-                              className="w-3 h-3 text-gray-400"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              {sortDirection === "asc" ? (
-                                <path d="M10 5l-5 6h10l-5-6z" />
-                              ) : (
-                                <path d="M10 15l5-6H5l5 6z" />
+                      {activeTab === "ehad_karkun" ? (
+                        <>
+                          {/* Ehad Karkuns columns - matching Laravel */}
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("id")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>ID</span>
+                              {sortField === "id" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
                               )}
-                            </svg>
-                          )}
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name (Urdu)
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Father Name (English)
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Father Name (Urdu)
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSortChange("email")}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>Email</span>
-                          {sortField === "email" && (
-                            <svg
-                              className="w-3 h-3 text-gray-400"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              {sortDirection === "asc" ? (
-                                <path d="M10 5l-5 6h10l-5-6z" />
-                              ) : (
-                                <path d="M10 15l5-6H5l5 6z" />
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Avatar
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("name")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Name (English)</span>
+                              {sortField === "name" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
                               )}
-                            </svg>
-                          )}
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Affidavit Form
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Access Level
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Zone
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mehfil
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Address
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Birth Year
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ehad Year
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSortChange("created_at")}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>Created At</span>
-                          {sortField === "created_at" && (
-                            <svg
-                              className="w-3 h-3 text-gray-400"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              {sortDirection === "asc" ? (
-                                <path d="M10 5l-5 6h10l-5-6z" />
-                              ) : (
-                                <path d="M10 15l5-6H5l5 6z" />
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Name (Urdu)
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Father Name (Urdu)
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("phone_number")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Phone Number</span>
+                              {sortField === "phone_number" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
                               )}
-                            </svg>
-                          )}
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created By
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Updated By
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("zone_id")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Zone</span>
+                              {sortField === "zone_id" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("city")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>City</span>
+                              {sortField === "city" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("country")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Country</span>
+                              {sortField === "country" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("created_at")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Created At</span>
+                              {sortField === "created_at" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </>
+                      ) : (
+                        <>
+                          {/* Regular Karkuns columns */}
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Karkun ID
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Avatar
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("name")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Name (English)</span>
+                              {sortField === "name" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Name (Urdu)
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Father Name (English)
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Father Name (Urdu)
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("email")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Email</span>
+                              {sortField === "email" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Phone
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Affidavit Form
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Access Level
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Zone
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Mehfil
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Address
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Birth Year
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Ehad Year
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSortChange("created_at")}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span>Created At</span>
+                              {sortField === "created_at" && (
+                                <svg className="w-3 h-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  {sortDirection === "asc" ? (
+                                    <path d="M10 5l-5 6h10l-5-6z" />
+                                  ) : (
+                                    <path d="M10 15l5-6H5l5 6z" />
+                                  )}
+                                </svg>
+                              )}
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Created By
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Updated By
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredData.length === 0 ? (
                       <tr>
-                        <td colSpan={20} className="px-6 py-12 text-center">
+                        <td colSpan={activeTab === "ehad_karkun" ? 11 : 20} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center">
                             <User className="h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -663,120 +915,181 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
 
                         return (
                           <tr key={user.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {karkunId}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {avatarUrl ? (
-                                <img
-                                  src={avatarUrl}
-                                  alt={user.name}
-                                  className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
-                                />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-medium ring-1 ring-primary-300/30">
-                                  {initials}
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {user.name}
-                            </td>
-                            <td dir="rtl" className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {user.name_ur || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.father_name || "—"}
-                            </td>
-                            <td dir="rtl" className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.father_name_ur || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.email}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.phone_number || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {user.is_active ? (
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                  Active
-                                </span>
-                              ) : (
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                  Inactive
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {user.has_affidavit_form ? (
-                                <button
-                                  onClick={() => {
-                                    if (user.affidavit_form_file) {
-                                      // Handle affidavit form view - adjust URL based on your setup
-                                      window.open(user.affidavit_form_file, "_blank");
-                                    }
-                                  }}
-                                  className="inline-block"
-                                >
-                                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
-                                    Yes
-                                  </span>
-                                </button>
-                              ) : (
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                  No
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.is_all_region_admin
-                                ? "All Region Admin"
-                                : user.is_region_admin
-                                  ? "Region Admin"
-                                  : user.is_zone_admin
-                                    ? "Zone Admin"
-                                    : user.is_mehfil_admin
-                                      ? "Mehfil Admin"
-                                      : "Karkun"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.zone?.title_en || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.mehfilDirectory?.name_en || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {fullAddress}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.birth_year || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.ehad_year || "—"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {formatDate(user.created_at)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.creator?.name || (user.created_by ? `User ${user.created_by}` : "—")}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {user.updater?.name || (user.updated_by ? `User ${user.updated_by}` : "—")}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex items-center justify-end">
-                                <ActionsDropdown
-                                  onView={() => handleView(user)}
-                                  onEdit={() => handleEdit(user)}
-                                  onDelete={canDeleteKarkuns ? () => handleDeleteClick(user) : undefined}
-                                  showView={false}
-                                  showEdit={canEditKarkuns}
-                                  showDelete={canDeleteKarkuns}
-                                  align="right"
-                                />
-                              </div>
-                            </td>
+                            {activeTab === "ehad_karkun" ? (
+                              <>
+                                {/* Ehad Karkuns cells - matching Laravel */}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {user.id}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {avatarUrl ? (
+                                    <img
+                                      src={avatarUrl}
+                                      alt={user.name}
+                                      className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
+                                    />
+                                  ) : (
+                                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-medium ring-1 ring-primary-300/30">
+                                      {initials}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.name}
+                                </td>
+                                <td dir="rtl" className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.name_ur || "—"}
+                                </td>
+                                <td dir="rtl" className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.father_name_ur || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.phone_number || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.zone?.title_en || "N/A"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.city || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.country || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {formatDate(user.created_at)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <div className="flex items-center justify-end">
+                                    <ActionsDropdown
+                                      onView={() => handleView(user)}
+                                      onEdit={() => handleEdit(user)}
+                                      onDelete={canDeleteKarkuns ? () => handleDeleteClick(user) : undefined}
+                                      showView={false}
+                                      showEdit={canEditKarkuns}
+                                      showDelete={canDeleteKarkuns}
+                                      align="right"
+                                    />
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                {/* Regular Karkuns cells */}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {karkunId}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {avatarUrl ? (
+                                    <img
+                                      src={avatarUrl}
+                                      alt={user.name}
+                                      className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
+                                    />
+                                  ) : (
+                                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-medium ring-1 ring-primary-300/30">
+                                      {initials}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {user.name}
+                                </td>
+                                <td dir="rtl" className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {user.name_ur || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.father_name || "—"}
+                                </td>
+                                <td dir="rtl" className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.father_name_ur || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.email}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.phone_number || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {user.is_active ? (
+                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                      Active
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                      Inactive
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {user.has_affidavit_form ? (
+                                    <button
+                                      onClick={() => {
+                                        if (user.affidavit_form_file) {
+                                          window.open(user.affidavit_form_file, "_blank");
+                                        }
+                                      }}
+                                      className="inline-block"
+                                    >
+                                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors">
+                                        Yes
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                      No
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.is_all_region_admin
+                                    ? "All Region Admin"
+                                    : user.is_region_admin
+                                      ? "Region Admin"
+                                      : user.is_zone_admin
+                                        ? "Zone Admin"
+                                        : user.is_mehfil_admin
+                                          ? "Mehfil Admin"
+                                          : "Karkun"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.zone?.title_en || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.mehfilDirectory?.name_en || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {fullAddress}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.birth_year || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.ehad_year || "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {formatDate(user.created_at)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.creator?.name || (user.created_by ? `User ${user.created_by}` : "—")}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {user.updater?.name || (user.updated_by ? `User ${user.updated_by}` : "—")}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <div className="flex items-center justify-end">
+                                    <ActionsDropdown
+                                      onView={() => handleView(user)}
+                                      onEdit={() => handleEdit(user)}
+                                      onDelete={canDeleteKarkuns ? () => handleDeleteClick(user) : undefined}
+                                      showView={false}
+                                      showEdit={canEditKarkuns}
+                                      showDelete={canDeleteKarkuns}
+                                      align="right"
+                                    />
+                                  </div>
+                                </td>
+                              </>
+                            )}
                           </tr>
                         );
                       })

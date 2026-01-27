@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Users,
   ChevronDown,
+  Lock,
+  MoreVertical,
 } from "lucide-react";
 import axios from "axios";
 
@@ -128,6 +130,28 @@ interface Karkun {
   updated_at?: string | null;
 }
 
+// Interface for Ehad Karkuns from ehad_karkuns table
+interface EhadKarkun {
+  id: number;
+  zone_id: number;
+  name_en: string;
+  name_ur: string;
+  so_en?: string | null; // Son of (English) - mapped to father_name
+  so_ur?: string | null; // Son of (Urdu) - mapped to father_name_ur
+  mobile_no?: string | null;
+  cnic?: string | null;
+  city_en?: string | null;
+  city_ur?: string | null;
+  country_en?: string | null;
+  country_ur?: string | null;
+  birth_year?: string | number | null;
+  ehad_year?: string | number | null;
+  ehad_ijazat_year?: string | number | null;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string | null;
+}
+
 interface PaginationMeta {
   current_page: number;
   from: number;
@@ -151,6 +175,12 @@ interface KarkunApiResponse {
   meta: PaginationMeta;
 }
 
+interface EhadKarkunApiResponse {
+  data: EhadKarkun[];
+  links: PaginationLinks;
+  meta: PaginationMeta;
+}
+
 type TabType = "karkun" | "ehad_karkun" | "mehfil_admin" | "zone_admin";
 
 const KarkunanPage = () => {
@@ -167,6 +197,7 @@ const KarkunanPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>("karkun");
   const [karkunIdToDelete, setKarkunIdToDelete] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [openActionsMenu, setOpenActionsMenu] = useState<number | null>(null);
 
   // Filters
   const [regionId, setRegionId] = useState<number | null>(null);
@@ -197,44 +228,70 @@ const KarkunanPage = () => {
     }
   }, [user]);
 
-  // Load zones
+  // Load zones based on user permissions (matching Laravel Zone::forUser)
+  // Using /dashboard/zones endpoint which filters by user permissions
   useEffect(() => {
     const loadZones = async () => {
+      if (!user) return;
+
       try {
-        const response = await apiClient.get("/admin/zones");
-        setZones(response.data.data || []);
+        // Use /dashboard/zones endpoint which filters zones based on user permissions
+        // This matches Laravel Zone::forUser() behavior
+        const response = await apiClient.get("/dashboard/zones");
+        let filteredZones: Zone[] = response.data.data || [];
+
+        // Ensure the selected zone (if any) is always in the zones array
+        // This is important when zoneId is set before zones are loaded
+        const currentZoneId = zoneId || user?.zone_id;
+        if (currentZoneId) {
+          const selectedZoneExists = filteredZones.some((z: Zone) => z.id === currentZoneId);
+          if (!selectedZoneExists) {
+            // If zone not found in filtered list, try to fetch it separately
+            try {
+              const zoneResponse = await apiClient.get(`/zone/${currentZoneId}`);
+              if (zoneResponse.data.data) {
+                filteredZones = [zoneResponse.data.data, ...filteredZones];
+              }
+            } catch (err) {
+              console.error("Error fetching selected zone:", err);
+            }
+          }
+        }
+
+        setZones(filteredZones);
       } catch (error) {
         console.error("Error loading zones:", error);
+        // Fallback: set empty array on error
+        setZones([]);
       }
     };
 
-    if (user) {
-      loadZones();
-    }
+    loadZones();
   }, [user]);
 
   // Load mehfils when zone changes
+  const loadMehfils = async () => {
+    if (!zoneId) {
+      setMehfilDirectories([]);
+      return;
+    }
+
+    try {
+      const response = await apiClient.get("/mehfil-directory", {
+        params: { zoneId: zoneId, size: 500 },
+      });
+      const mehfils = (response.data.data || []).sort(
+        (a: MehfilDirectory, b: MehfilDirectory) =>
+          parseInt(a.mehfil_number) - parseInt(b.mehfil_number)
+      );
+      setMehfilDirectories(mehfils);
+    } catch (error) {
+      console.error("Error loading mehfils:", error);
+    }
+  };
+
+  // Load mehfils when zone changes (including on mount if zone is already set)
   useEffect(() => {
-    const loadMehfils = async () => {
-      if (!zoneId) {
-        setMehfilDirectories([]);
-        return;
-      }
-
-      try {
-        const response = await apiClient.get("/mehfil-directory", {
-          params: { zoneId: zoneId, size: 500 },
-        });
-        const mehfils = (response.data.data || []).sort(
-          (a: MehfilDirectory, b: MehfilDirectory) =>
-            parseInt(a.mehfil_number) - parseInt(b.mehfil_number)
-        );
-        setMehfilDirectories(mehfils);
-      } catch (error) {
-        console.error("Error loading mehfils:", error);
-      }
-    };
-
     loadMehfils();
   }, [zoneId]);
 
@@ -256,10 +313,92 @@ const KarkunanPage = () => {
   const loadKarkuns = async () => {
     setLoading(true);
     try {
-      // Build API parameters
+      // If activeTab is "ehad_karkun", fetch from ehad_karkuns table
+      if (activeTab === "ehad_karkun") {
+        const params: any = {
+          page: currentPage,
+          size: perPage,
+        };
+
+        // Apply search
+        if (search) {
+          params.search = search;
+        }
+
+        // Apply zone filtering
+        if (zoneId) {
+          params.zone_id = zoneId;
+        }
+
+        const response = await apiClient.get("/ehadKarkun", { params });
+        
+        // Handle API response structure: { data: [...], links: {...}, meta: {...} }
+        const apiResponse: EhadKarkunApiResponse = response.data;
+        
+        let ehadKarkunsData: EhadKarkun[] = [];
+        if (apiResponse && apiResponse.data) {
+          ehadKarkunsData = Array.isArray(apiResponse.data) ? (apiResponse.data as EhadKarkun[]) : [];
+        }
+        
+        // Store pagination metadata from API
+        if (apiResponse.meta) {
+          setPaginationMeta(apiResponse.meta);
+          setTotalPages(apiResponse.meta.last_page);
+          setTotal(apiResponse.meta.total);
+          setCurrentPage(apiResponse.meta.current_page);
+        }
+        
+        if (apiResponse.links) {
+          setPaginationLinks(apiResponse.links);
+        }
+        
+        // Convert EhadKarkun to Karkun format for display
+        const convertedData: Karkun[] = ehadKarkunsData.map((ek: EhadKarkun) => ({
+          id: ek.id,
+          name: ek.name_en || "",
+          name_ur: ek.name_ur || undefined,
+          email: "", // Ehad Karkuns don't have email
+          phone_number: ek.mobile_no || undefined,
+          mobile_no: ek.mobile_no || undefined,
+          id_card_number: ek.cnic || undefined,
+          father_name: ek.so_en || undefined, // Map so_en to father_name
+          father_name_ur: ek.so_ur || undefined, // Map so_ur to father_name_ur
+          user_type: "ehad_karkun",
+          zone_id: ek.zone_id,
+          region_id: undefined,
+          mehfil_directory_id: undefined, // Ehad Karkuns don't have mehfil
+          address: undefined,
+          birth_year: ek.birth_year ? parseInt(String(ek.birth_year)) : undefined,
+          ehad_year: ek.ehad_year ? parseInt(String(ek.ehad_year)) : undefined,
+          duty_days: undefined,
+          duty_type: undefined,
+          city: ek.city_en || undefined,
+          country: ek.country_en || undefined,
+          avatar: undefined, // Ehad Karkuns don't have avatar
+          is_mehfil_admin: false,
+          is_mehfile_admin: false,
+          is_zone_admin: false,
+          is_region_admin: false,
+          is_super_admin: false,
+          is_all_region_admin: false,
+          is_active: true,
+          created_at: ek.created_at || undefined,
+          updated_at: ek.updated_at || undefined,
+        }));
+
+        setKarkuns(convertedData);
+        setLoading(false);
+        return;
+      }
+
+      // For other tabs, use the regular karkun endpoint
+      // Build API parameters (matching Laravel)
       const params: any = {
         page: currentPage,
         size: perPage,
+        activeTab: activeTab, // Pass activeTab to backend for server-side filtering
+        sortBy: sortBy, // Pass sortBy to backend for server-side sorting
+        sortDirection: sortDirection, // Pass sortDirection to backend
       };
 
       // Apply search
@@ -309,56 +448,13 @@ const KarkunanPage = () => {
         setPaginationLinks(apiResponse.links);
       }
       
-      // Apply mehfil filtering (client-side, since backend doesn't support it yet)
+      // Apply mehfil filtering (client-side, matching Laravel: not applied for ehad_karkun and zone_admin)
       if (mehfilDirectoryId && !["ehad_karkun", "zone_admin"].includes(activeTab)) {
         karkunsData = karkunsData.filter((k: Karkun) => k.mehfil_directory_id === mehfilDirectoryId);
       }
 
-      // Apply tab-specific filters
-      // Zone filtering is already applied at the API level, so all tabs will only show records from the selected zone
-      if (activeTab === "mehfil_admin") {
-        // Show karkuns who are mehfil admins (from the selected zone)
-        karkunsData = karkunsData.filter((k: Karkun) => 
-          k.is_mehfil_admin === true || k.is_mehfile_admin === true
-        );
-      } else if (activeTab === "zone_admin") {
-        // Show karkuns who are zone admins (from the selected zone)
-        karkunsData = karkunsData.filter((k: Karkun) => k.is_zone_admin === true);
-      } else if (activeTab === "karkun") {
-        // Show all regular karkuns (from the selected zone)
-        // Exclude those who are admins in other tabs
-        karkunsData = karkunsData.filter((k: Karkun) => 
-          k.user_type === "karkun" &&
-          !k.is_mehfil_admin &&
-          !k.is_mehfile_admin &&
-          !k.is_zone_admin &&
-          !k.is_region_admin
-        );
-      } else if (activeTab === "ehad_karkun") {
-        // Show ehad karkuns (from the selected zone)
-        karkunsData = karkunsData.filter((k: Karkun) => k.user_type === "ehad_karkun");
-      }
-
-      // Client-side sorting (backend doesn't support sorting yet)
-      karkunsData.sort((a: Karkun, b: Karkun) => {
-        let aVal: any, bVal: any;
-        if (sortBy === "name") {
-          aVal = a.name?.toLowerCase() || "";
-          bVal = b.name?.toLowerCase() || "";
-        } else if (sortBy === "email") {
-          aVal = a.email?.toLowerCase() || "";
-          bVal = b.email?.toLowerCase() || "";
-        } else {
-          aVal = a.created_at || "";
-          bVal = b.created_at || "";
-        }
-        
-        if (sortDirection === "asc") {
-          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        } else {
-          return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-        }
-      });
+      // Tab-specific filtering and sorting are now done on the backend via activeTab, sortBy, and sortDirection parameters
+      // No need for client-side filtering or sorting - the backend handles this matching Laravel's server-side processing
 
       setKarkuns(karkunsData);
     } catch (error: any) {
@@ -426,9 +522,9 @@ const KarkunanPage = () => {
   const getTabLabel = (tab: TabType): string => {
     switch (tab) {
       case "karkun":
-        return "Karkun";
+        return "Karkuns";
       case "ehad_karkun":
-        return "Ehad Karkun";
+        return "Ehad Karkuns"; // Matching Laravel plural form
       case "mehfil_admin":
         return "Mehfil Admin";
       case "zone_admin":
@@ -442,6 +538,55 @@ const KarkunanPage = () => {
     if (sortBy !== field) return null;
     return sortDirection === "asc" ? "↑" : "↓";
   };
+
+  // Generate Karkun ID (zone_id-user_id format)
+  const getKarkunId = (karkun: Karkun): string => {
+    if (karkun.zone_id && karkun.id) {
+      return `${karkun.zone_id}-${karkun.id}`;
+    }
+    return `—`;
+  };
+
+  // Format date for display
+  const formatDate = (dateString?: string | null): string => {
+    if (!dateString) return "—";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return "—";
+    }
+  };
+
+  // Get avatar URL
+  const getAvatarUrl = (avatar?: string | null): string | null => {
+    if (!avatar) return null;
+    if (avatar.startsWith("http")) return avatar;
+    const apiBaseUrl = API_URL.replace("/api", "");
+    return `${apiBaseUrl}/storage/${avatar}`;
+  };
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (openActionsMenu !== null && !target.closest('.actions-menu-container')) {
+        setOpenActionsMenu(null);
+      }
+    };
+    
+    if (openActionsMenu !== null) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [openActionsMenu]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -467,6 +612,50 @@ const KarkunanPage = () => {
             </div>
           </div>
 
+          
+
+          {/* Tabs - Matching Laravel conditional display */}
+          <div className="flex border-b border-gray-200 mb-4 overflow-x-auto">
+            {/* Always show Karkuns and Ehad Karkuns tabs */}
+            {(["karkun", "ehad_karkun"] as TabType[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => handleTabChange(tab)}
+                className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  activeTab === tab
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-2 border-transparent"
+                }`}
+              >
+                {getTabLabel(tab)}
+              </button>
+            ))}
+            {/* Only show Mehfil Admin and Zone Admin tabs for zone/region admins (matching Laravel) */}
+            {(user?.is_zone_admin || user?.is_region_admin || user?.is_all_region_admin) && (
+              <>
+                <button
+                  onClick={() => handleTabChange("mehfil_admin")}
+                  className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                    activeTab === "mehfil_admin"
+                      ? "text-green-600 border-b-2 border-green-600"
+                      : "text-gray-600 hover:text-gray-900 border-b-2 border-transparent"
+                  }`}
+                >
+                  {getTabLabel("mehfil_admin")}
+                </button>
+                <button
+                  onClick={() => handleTabChange("zone_admin")}
+                  className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                    activeTab === "zone_admin"
+                      ? "text-green-600 border-b-2 border-green-600"
+                      : "text-gray-600 hover:text-gray-900 border-b-2 border-transparent"
+                  }`}
+                >
+                  {getTabLabel("zone_admin")}
+                </button>
+              </>
+            )}
+          </div>
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Zone Filter */}
@@ -486,7 +675,7 @@ const KarkunanPage = () => {
                   <option value="">All Zones</option>
                   {zones.map((zone) => (
                     <option key={zone.id} value={zone.id}>
-                      {zone.title_en}
+                      {zone.title_en} - {zone.city_en || ""}
                     </option>
                   ))}
                 </select>
@@ -494,33 +683,35 @@ const KarkunanPage = () => {
               </div>
             </div>
 
-            {/* Mehfil Filter */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mehfil
-              </label>
+            {/* Mehfil Filter - Hide for Ehad Karkuns and Zone Admin tabs */}
+            {!["ehad_karkun", "zone_admin"].includes(activeTab) && (
               <div className="relative">
-                <select
-                  value={mehfilDirectoryId || ""}
-                  onChange={(e) => {
-                    setMehfilDirectoryId(
-                      e.target.value ? Number(e.target.value) : null
-                    );
-                    setCurrentPage(1);
-                  }}
-                  disabled={!zoneId || user?.is_mehfil_admin}
-                  className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">All Mehfils</option>
-                  {mehfilDirectories.map((mehfil) => (
-                    <option key={mehfil.id} value={mehfil.id}>
-                      #{mehfil.mehfil_number} - {mehfil.name_en}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mehfil
+                </label>
+                <div className="relative">
+                  <select
+                    value={mehfilDirectoryId || ""}
+                    onChange={(e) => {
+                      setMehfilDirectoryId(
+                        e.target.value ? Number(e.target.value) : null
+                      );
+                      setCurrentPage(1);
+                    }}
+                    disabled={!zoneId || user?.is_mehfil_admin}
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">All Mehfils</option>
+                    {mehfilDirectories.map((mehfil) => (
+                      <option key={mehfil.id} value={mehfil.id}>
+                        #{mehfil.mehfil_number} - {mehfil.name_en}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Search */}
             <div>
@@ -536,30 +727,11 @@ const KarkunanPage = () => {
                     setSearch(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Search by name, email, phone..."
+                  placeholder="Search karkuns..."
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 mb-4">
-            {(["karkun", "ehad_karkun", "mehfil_admin", "zone_admin"] as TabType[]).map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => handleTabChange(tab)}
-                  className={`px-4 py-2 font-medium text-sm transition-colors ${
-                    activeTab === tab
-                      ? "text-green-600 border-b-2 border-green-600"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {getTabLabel(tab)}
-                </button>
-              )
-            )}
           </div>
         </div>
 
@@ -580,107 +752,451 @@ const KarkunanPage = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort("name")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Name
-                          <SortIcon field="name" />
-                        </div>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort("email")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Email
-                          <SortIcon field="email" />
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Zone / Mehfil
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+                      {/* Simplified view for Mehfil Admin and Zone Admin tabs (matching screenshot) */}
+                      {activeTab === "mehfil_admin" || activeTab === "zone_admin" ? (
+                        <>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            AVATAR
+                          </th>
+                          <th
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("name")}
+                          >
+                            <div className="flex items-center gap-2">
+                              NAME
+                              <SortIcon field="name" />
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            EMAIL
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ACTIONS
+                          </th>
+                        </>
+                      ) : activeTab === "ehad_karkun" ? (
+                        <>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            AVATAR
+                          </th>
+                          <th
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("name")}
+                          >
+                            <div className="flex items-center gap-2">
+                              NAME (ENGLISH)
+                              <SortIcon field="name" />
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            NAME (URDU)
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            FATHER NAME (ENGLISH)
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            FATHER NAME (URDU)
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            PHONE
+                          </th>
+                        </>
+                      ) : (
+                        <>
+                          {/* Full view for Karkuns tab only */}
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            KARKUN ID
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ZONE
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            MEHFIL
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            AVATAR
+                          </th>
+                          <th
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("name")}
+                          >
+                            <div className="flex items-center gap-2">
+                              NAME (ENGLISH)
+                              <SortIcon field="name" />
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            NAME (URDU)
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            FATHER NAME (ENGLISH)
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            FATHER NAME (URDU)
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            EMAIL
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            PHONE
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ID CARD
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ADDRESS
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            BIRTH YEAR
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            EHAD YEAR
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            CREATED AT
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            CREATED BY
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ACTIONS
+                          </th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {karkuns.map((karkun) => (
-                      <tr key={karkun.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {karkun.name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">{karkun.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">
-                            {karkun.phone_number || karkun.mobile_no || "—"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
-                            {karkun.zone_id 
-                              ? zones.find(z => z.id === karkun.zone_id)?.title_en || `Zone ${karkun.zone_id}`
-                              : "—"}
-                          </div>
-                          {karkun.mehfil_directory_id && (
-                            <div className="text-xs text-gray-500">
-                              Mehfil ID: {karkun.mehfil_directory_id}
-                            </div>
+                    {karkuns.map((karkun) => {
+                      const avatarUrl = getAvatarUrl(karkun.avatar);
+                      const zone = zones.find(z => z.id === karkun.zone_id);
+                      const mehfil = mehfilDirectories.find(m => m.id === karkun.mehfil_directory_id);
+                      
+                      return (
+                        <tr 
+                          key={karkun.id} 
+                          className={`hover:bg-gray-50 ${openActionsMenu === karkun.id ? 'bg-blue-50' : ''}`}
+                        >
+                          {/* Simplified view for Mehfil Admin and Zone Admin tabs (matching screenshot) */}
+                          {activeTab === "mehfil_admin" || activeTab === "zone_admin" ? (
+                            <>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                {avatarUrl ? (
+                                  <img
+                                    src={avatarUrl}
+                                    alt={karkun.name}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  />
+                                ) : null}
+                                {!avatarUrl && (
+                                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium">
+                                    {karkun.name?.charAt(0)?.toUpperCase() || "A"}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {karkun.name || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.email || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-center text-sm relative">
+                                <div className="flex justify-center actions-menu-container">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenActionsMenu(openActionsMenu === karkun.id ? null : karkun.id);
+                                    }}
+                                    className="text-gray-600 hover:text-gray-900 p-1"
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                  {openActionsMenu === karkun.id && (
+                                    <div 
+                                      className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="py-1">
+                                        <button
+                                          onClick={() => {
+                                            router.push(`/karkun-portal/karkunan/${karkun.id}/password`);
+                                            setOpenActionsMenu(null);
+                                          }}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                          <Lock size={16} />
+                                          Change Password
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </>
+                          ) : activeTab === "ehad_karkun" ? (
+                            <>
+                              {/* Ehad Karkuns view */}
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                {avatarUrl ? (
+                                  <img
+                                    src={avatarUrl}
+                                    alt={karkun.name}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  />
+                                ) : null}
+                                {!avatarUrl && (
+                                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium">
+                                    {karkun.name?.charAt(0)?.toUpperCase() || "A"}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {karkun.name || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900" dir="rtl">
+                                {karkun.name_ur || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {karkun.father_name || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900" dir="rtl">
+                                {karkun.father_name_ur || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.phone_number || karkun.mobile_no || "—"}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              {/* Full view for Karkuns and Zone Admin tabs */}
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {getKarkunId(karkun)}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {zone?.title_en || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {mehfil ? `#${mehfil.mehfil_number} - ${mehfil.name_en}` : "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                {avatarUrl ? (
+                                  <img
+                                    src={avatarUrl}
+                                    alt={karkun.name}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  />
+                                ) : null}
+                                {!avatarUrl && (
+                                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium">
+                                    {karkun.name?.charAt(0)?.toUpperCase() || "A"}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {karkun.name || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900" dir="rtl">
+                                {karkun.name_ur || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {karkun.father_name || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900" dir="rtl">
+                                {karkun.father_name_ur || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.email || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.phone_number || karkun.mobile_no || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.id_card_number || "—"}
+                              </td>
+                              <td className="px-4 py-4 text-sm text-gray-600 max-w-xs truncate">
+                                {karkun.address || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.birth_year || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {karkun.ehad_year || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {formatDate(karkun.created_at)}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {(karkun.creator as any)?.name || (karkun as any).created_by_name || "—"}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-center text-sm relative">
+                                <div className="flex justify-center actions-menu-container">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenActionsMenu(openActionsMenu === karkun.id ? null : karkun.id);
+                                    }}
+                                    className="text-gray-600 hover:text-gray-900 p-1"
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                  {openActionsMenu === karkun.id && (
+                                    <div 
+                                      className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="py-1">
+                                        <button
+                                          onClick={() => {
+                                            sessionStorage.setItem(
+                                              "editRow",
+                                              JSON.stringify({ id: karkun.id })
+                                            );
+                                            router.push(`/karkun-portal/karkunan/${karkun.id}/edit`);
+                                            setOpenActionsMenu(null);
+                                          }}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                          <Edit size={16} />
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            router.push(`/karkun-portal/karkunan/${karkun.id}/password`);
+                                            setOpenActionsMenu(null);
+                                          }}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                          <Lock size={16} />
+                                          Change Password
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => {
-                                sessionStorage.setItem(
-                                  "editRow",
-                                  JSON.stringify({ id: karkun.id })
-                                );
-                                router.push(`/karkun-portal/karkunan/${karkun.id}/edit`);
-                              }}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setKarkunIdToDelete(karkun.id);
-                                setShowDeleteModal(true);
-                              }}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
-              {/* Pagination */}
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
+              {/* Pagination - Matching Laravel UI */}
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                {/* Left side: Showing X to Y of Z results */}
+                <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                  Showing{" "}
+                  <span className="text-gray-700">
+                    {paginationMeta?.from || (currentPage - 1) * perPage + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="text-gray-700">
+                    {paginationMeta?.to || Math.min(currentPage * perPage, total)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="text-gray-700">{paginationMeta?.total || total}</span> results
+                </div>
+
+                {/* Right side: Pagination controls */}
+                <div className="flex items-center bg-white border border-gray-200 rounded-lg p-[1px]">
+                  {/* Previous button */}
                   <button
                     onClick={() => {
                       const prevPage = Math.max(1, (paginationMeta?.current_page || currentPage) - 1);
                       setCurrentPage(prevPage);
                     }}
                     disabled={!paginationLinks?.prev && (paginationMeta?.current_page || currentPage) === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex justify-center items-center w-6 h-6 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                    aria-label="Previous"
                   >
-                    Previous
+                    <ChevronLeft size={16} />
                   </button>
+
+                  {/* Page numbers */}
+                  {(() => {
+                    const current = paginationMeta?.current_page || currentPage;
+                    const last = paginationMeta?.last_page || totalPages;
+                    const pages: (number | string)[] = [];
+                    
+                    // Show up to 7 page numbers
+                    if (last <= 7) {
+                      // Show all pages if 7 or fewer
+                      for (let i = 1; i <= last; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      // Show first page
+                      pages.push(1);
+                      
+                      if (current <= 4) {
+                        // Near the start: 1, 2, 3, 4, 5, ..., last
+                        for (let i = 2; i <= 5; i++) {
+                          pages.push(i);
+                        }
+                        pages.push("...");
+                        pages.push(last);
+                      } else if (current >= last - 3) {
+                        // Near the end: 1, ..., last-4, last-3, last-2, last-1, last
+                        pages.push("...");
+                        for (let i = last - 4; i <= last; i++) {
+                          pages.push(i);
+                        }
+                      } else {
+                        // In the middle: 1, ..., current-1, current, current+1, ..., last
+                        pages.push("...");
+                        for (let i = current - 1; i <= current + 1; i++) {
+                          pages.push(i);
+                        }
+                        pages.push("...");
+                        pages.push(last);
+                      }
+                    }
+
+                    return pages.map((page, index) => {
+                      if (page === "...") {
+                        return (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="text-sm h-6 px-2 rounded-md text-gray-400 font-medium"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      const pageNum = page as number;
+                      const isActive = pageNum === current;
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`text-sm h-6 px-2 rounded-md font-medium ${
+                            isActive
+                              ? "bg-gray-100 text-gray-800 cursor-default"
+                              : "text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    });
+                  })()}
+
+                  {/* Next button */}
                   <button
                     onClick={() => {
                       const nextPage = Math.min(
@@ -690,67 +1206,11 @@ const KarkunanPage = () => {
                       setCurrentPage(nextPage);
                     }}
                     disabled={!paginationLinks?.next && (paginationMeta?.current_page || currentPage) >= (paginationMeta?.last_page || totalPages)}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex justify-center items-center w-6 h-6 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                    aria-label="Next"
                   >
-                    Next
+                    <ChevronRight size={16} />
                   </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing{" "}
-                      <span className="font-medium">
-                        {paginationMeta?.from || (currentPage - 1) * perPage + 1}
-                      </span>{" "}
-                      to{" "}
-                      <span className="font-medium">
-                        {paginationMeta?.to || Math.min(currentPage * perPage, total)}
-                      </span>{" "}
-                      of <span className="font-medium">{paginationMeta?.total || total}</span> results
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={perPage}
-                      onChange={(e) => {
-                        setPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
-                    >
-                      <option value={10}>10 per page</option>
-                      <option value={25}>25 per page</option>
-                      <option value={50}>50 per page</option>
-                    </select>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => {
-                          const prevPage = Math.max(1, (paginationMeta?.current_page || currentPage) - 1);
-                          setCurrentPage(prevPage);
-                        }}
-                        disabled={!paginationLinks?.prev && (paginationMeta?.current_page || currentPage) === 1}
-                        className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      <span className="px-3 py-2 text-sm text-gray-700">
-                        Page {paginationMeta?.current_page || currentPage} of {paginationMeta?.last_page || totalPages}
-                      </span>
-                      <button
-                        onClick={() => {
-                          const nextPage = Math.min(
-                            paginationMeta?.last_page || totalPages,
-                            (paginationMeta?.current_page || currentPage) + 1
-                          );
-                          setCurrentPage(nextPage);
-                        }}
-                        disabled={!paginationLinks?.next && (paginationMeta?.current_page || currentPage) >= (paginationMeta?.last_page || totalPages)}
-                        className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </>

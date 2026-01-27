@@ -121,7 +121,12 @@ export class DashboardService {
         zonesCount: data.zones?.length || 0,
         hasMehfils: !!data.mehfils,
         mehfilsCount: data.mehfils?.length || 0,
+        totalKarkuns: data.totalKarkuns,
+        ehadKarkuns: data.ehadKarkuns,
+        totalNewEhads: data.totalNewEhads,
+        totalTabarukats: data.totalTabarukats,
         dataKeys: Object.keys(data),
+        fullData: data, // Log full response for debugging
       });
       return data;
     } catch (error) {

@@ -2,17 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import DutyTypeService, { DutyType } from "@/services/DutyTypes";
 import { toast } from "sonner";
 import { useFetchUserZonesQuery } from "@/store/slicers/zoneApi";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 
-const NewDutyTypePage = () => {
+const EditDutyTypePage = () => {
   const { user } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const dutyTypeId = params?.id ? Number(params.id) : null;
+
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [formData, setFormData] = useState<Partial<DutyType>>({
     zone_id: user?.zone_id || 0,
     name: "",
@@ -24,18 +28,46 @@ const NewDutyTypePage = () => {
   const { data: zoneRes, isLoading: zonesLoading } = useFetchUserZonesQuery();
   const availableZones = zoneRes?.data || [];
 
-  // Initialize zone_id based on user permissions (matching Laravel mount)
+  // Load duty type data for editing
   useEffect(() => {
-    if (user && !formData.zone_id) {
-      setFormData((prev) => ({
-        ...prev,
-        zone_id: user.zone_id || 0,
-      }));
+    const loadDutyType = async () => {
+      if (!dutyTypeId) {
+        toast.error("Invalid duty type ID");
+        router.push("/karkun-portal/duty-types");
+        return;
+      }
+
+      try {
+        setLoadingData(true);
+        const dutyType = await DutyTypeService.getDutyTypeById(dutyTypeId);
+        
+        setFormData({
+          zone_id: dutyType.zone_id,
+          name: dutyType.name,
+          description: dutyType.description || "",
+          is_editable: dutyType.is_editable,
+        });
+      } catch (error: any) {
+        console.error("Error loading duty type:", error);
+        toast.error("Failed to load duty type data");
+        router.push("/karkun-portal/duty-types");
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    if (dutyTypeId) {
+      loadDutyType();
     }
-  }, [user]);
+  }, [dutyTypeId, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!dutyTypeId) {
+      toast.error("Invalid duty type ID");
+      return;
+    }
 
     // Validation matching Laravel rules
     if (!formData.zone_id || !formData.name) {
@@ -50,13 +82,13 @@ const NewDutyTypePage = () => {
 
     try {
       setLoading(true);
-      await DutyTypeService.createDutyType(formData as DutyType);
-      toast.success("Duty type created successfully");
+      await DutyTypeService.updateDutyType(dutyTypeId, formData);
+      toast.success("Duty type updated successfully");
       router.push("/karkun-portal/duty-types");
     } catch (error: any) {
-      console.error("Error creating duty type:", error);
+      console.error("Error updating duty type:", error);
       toast.error(
-        error.response?.data?.message || "Failed to create duty type"
+        error.response?.data?.message || "Failed to update duty type"
       );
     } finally {
       setLoading(false);
@@ -64,6 +96,14 @@ const NewDutyTypePage = () => {
   };
 
   const canFilterZones = user?.is_region_admin || user?.is_all_region_admin;
+
+  if (loadingData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -80,10 +120,10 @@ const NewDutyTypePage = () => {
             Back to Duty Types
           </Link>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Create New Duty Type
+            Edit Duty Type
           </h2>
           <p className="text-gray-600">
-            Add a new duty type for your zone
+            Update duty type information
           </p>
         </div>
 
@@ -160,7 +200,7 @@ const NewDutyTypePage = () => {
                 disabled={loading}
                 className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Creating..." : "Create Duty Type"}
+                {loading ? "Updating..." : "Update Duty Type"}
               </button>
               <Link
                 href="/karkun-portal/duty-types"
@@ -176,4 +216,5 @@ const NewDutyTypePage = () => {
   );
 };
 
-export default NewDutyTypePage;
+export default EditDutyTypePage;
+

@@ -1,65 +1,58 @@
 "use client";
-import { useState, useCallback } from 'react';
-
-interface ToastMessage {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  duration?: number;
-}
+import { useCallback, useContext } from 'react';
+import { ToastContext } from '@/context/ToastContext';
+import { Toast } from 'primereact/toast';
 
 interface UseToastReturn {
   showSuccess: (message: string, duration?: number) => void;
   showError: (message: string, duration?: number) => void;
   showWarning: (message: string, duration?: number) => void;
   showInfo: (message: string, duration?: number) => void;
-  toasts: ToastMessage[];
+  toasts: never[];
   removeToast: (id: string) => void;
 }
 
 export const useToast = (): UseToastReturn => {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastRef = useContext(ToastContext);
 
-  const addToast = useCallback((message: string, type: ToastMessage['type'], duration = 5000) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const toast: ToastMessage = { id, message, type, duration };
-    
-    setToasts(prev => [...prev, toast]);
-
-    // Auto-remove toast after duration
-    if (duration > 0) {
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-      }, duration);
+  const showToast = useCallback((message: string, severity: 'success' | 'error' | 'warn' | 'info', duration = 5000) => {
+    if (toastRef?.current) {
+      toastRef.current.show({
+        severity,
+        summary: severity === 'success' ? 'Success' : severity === 'error' ? 'Error' : severity === 'warn' ? 'Warning' : 'Info',
+        detail: message,
+        life: duration,
+      });
     }
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
+  }, [toastRef]);
 
   const showSuccess = useCallback((message: string, duration?: number) => {
-    addToast(message, 'success', duration);
-  }, [addToast]);
+    showToast(message, 'success', duration);
+  }, [showToast]);
 
   const showError = useCallback((message: string, duration?: number) => {
-    addToast(message, 'error', duration);
-  }, [addToast]);
+    showToast(message, 'error', duration);
+  }, [showToast]);
 
   const showWarning = useCallback((message: string, duration?: number) => {
-    addToast(message, 'warning', duration);
-  }, [addToast]);
+    showToast(message, 'warn', duration);
+  }, [showToast]);
 
   const showInfo = useCallback((message: string, duration?: number) => {
-    addToast(message, 'info', duration);
-  }, [addToast]);
+    showToast(message, 'info', duration);
+  }, [showToast]);
+
+  const removeToast = useCallback((id: string) => {
+    // PrimeReact Toast doesn't expose individual toast removal
+    // Toasts are automatically removed after their life duration
+  }, []);
 
   return {
     showSuccess,
     showError,
     showWarning,
     showInfo,
-    toasts,
+    toasts: [],
     removeToast,
   };
 };

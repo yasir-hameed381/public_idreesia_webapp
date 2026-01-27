@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useToast } from "@/hooks/useToast";
 import { Button } from "primereact/button";
 import { useState } from "react";
+import { Parhaiyan } from "@/app/types/Parhaiyan";
 
 type FormValues = {
   name: string;
@@ -20,7 +21,7 @@ type FormValues = {
   quran_pak: number;
 };
 
-export default function RamzanForm({ parhaiyan }: { parhaiyan?: { id?: number, title_en?: string, title_ur?: string, description_en?: string, description_ur?: string } }) {
+export default function RamzanForm({ parhaiyan }: { parhaiyan?: Pick<Parhaiyan, 'id' | 'title_en' | 'title_ur' | 'description_en' | 'description_ur'> }) {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('RamzanForm');
@@ -55,7 +56,7 @@ export default function RamzanForm({ parhaiyan }: { parhaiyan?: { id?: number, t
     try {
       const payload = {
         ...data,
-        parhaiyan_id: parhaiyan?.id ?? 0,
+        parhaiyan_id: parhaiyan?.id ? (typeof parhaiyan.id === 'string' ? parseInt(parhaiyan.id, 10) : parhaiyan.id) : 0,
       };
      setLoading(true)
       const response = await createParhaiyanEntry(payload);

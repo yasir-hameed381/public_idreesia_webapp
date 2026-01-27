@@ -6,9 +6,11 @@ interface FeedbackData {
   name: string;
   contact_no: string;
   type: string;
+  app_type?: string;
   subject: string;
   description: string;
   screenshot?: string;
+  is_resolved?: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -26,6 +28,7 @@ interface FeedbackQueryParams {
   size: number;
   search: string;
   type?: string;
+  statusFilter?: string;
 }
 
 // Valid feedback types
@@ -40,12 +43,13 @@ export const feedbackApi = createApi({
   tagTypes: ['Feedback'],
   endpoints: (builder) => ({
     fetchFeedbackData: builder.query<FeedbackResponse, FeedbackQueryParams>({
-      query: ({ page, size, search, type }) => {
+      query: ({ page, size, search, type, statusFilter }) => {
         // Validate the type parameter
         const validType = type && VALID_FEEDBACK_TYPES.includes(type) 
         ? type 
         : 'all';
-        return `feedback?page=${page}&size=${size}&search=${search}&type=${validType}`;
+        const status = statusFilter || 'all';
+        return `feedback?page=${page}&size=${size}&search=${search}&type=${validType}&statusFilter=${status}`;
       },
       transformResponse: (response: any) => {
         

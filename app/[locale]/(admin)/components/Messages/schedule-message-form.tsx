@@ -10,7 +10,12 @@ import { useToast } from "@/hooks/useToast";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
 import { useGetMessageByIdQuery } from "@/store/slicers/messagesApi";
-import { useCreateMessageScheduleMutation } from "@/store/slicers/messageSchedulesApi";
+import {
+  useCreateMessageScheduleMutation,
+  useGetMessageScheduleByIdQuery,
+  useUpdateMessageScheduleMutation,
+} from "@/store/slicers/messageSchedulesApi";
+import type { CreateMessageSchedulePayload } from "@/store/slicers/messageSchedulesApi";
 
 // Validation schema
 const scheduleSchema = yup.object().shape({
@@ -44,12 +49,14 @@ type ScheduleFormData = yup.InferType<typeof scheduleSchema>;
 
 interface ScheduleMessageFormProps {
   messageId: string;
+  scheduleId?: string; // Optional - for editing existing schedule
   onCancel?: () => void;
   onSuccess?: () => void;
 }
 
 export function ScheduleMessageForm({
   messageId,
+  scheduleId,
   onCancel,
   onSuccess,
 }: ScheduleMessageFormProps) {
@@ -61,6 +68,10 @@ export function ScheduleMessageForm({
 
   const canCreateMessages =
     isSuperAdmin || hasPermission(PERMISSIONS.CREATE_MESSAGES);
+  const canEditMessages =
+    isSuperAdmin || hasPermission(PERMISSIONS.EDIT_MESSAGES);
+
+  const isEdit = !!scheduleId;
 
   // Fetch message details
   const {
@@ -71,7 +82,16 @@ export function ScheduleMessageForm({
     skip: !messageId,
   });
 
+  // Fetch schedule details if editing
+  const {
+    data: scheduleData,
+    isLoading: isLoadingSchedule,
+  } = useGetMessageScheduleByIdQuery(Number(scheduleId!), {
+    skip: !scheduleId || !isEdit,
+  });
+
   const [createSchedule, { isLoading: isCreatingSchedule }] = useCreateMessageScheduleMutation();
+  const [updateSchedule, { isLoading: isUpdatingSchedule }] = useUpdateMessageScheduleMutation();
 
   // Extract message from response - handle different response structures
   // Backend returns: { message: "...", data: MessageData }
@@ -106,31 +126,61 @@ export function ScheduleMessageForm({
 
   const repeatValue = watch("repeat");
 
-  // Set default date/time when component mounts
+  // Set default date/time when component mounts or load schedule data if editing
   useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const defaultDate = tomorrow.toISOString().split("T")[0];
-    const now = new Date();
-    const defaultTime = `${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes()
-    ).padStart(2, "0")}`;
+    if (isEdit && scheduleData?.data) {
+      const schedule = scheduleData.data;
+      // Parse scheduled_at date/time (assuming UTC, convert to local)
+      if (schedule.scheduled_at) {
+        const scheduledDate = new Date(schedule.scheduled_at);
+        // Convert UTC to Asia/Karachi timezone (UTC+5)
+        const localDate = new Date(scheduledDate.getTime() + 5 * 60 * 60 * 1000);
+        const scheduledDateStr = localDate.toISOString().split("T")[0];
+        const scheduledTimeStr = `${String(localDate.getUTCHours()).padStart(2, "0")}:${String(
+          localDate.getUTCMinutes()
+        ).padStart(2, "0")}`;
 
-    reset({
-      scheduled_date: defaultDate,
-      scheduled_time: defaultTime,
-      repeat: "no-repeat",
-      is_active: true,
-      send_to_mobile_devices: false,
-      monday: false,
-      tuesday: false,
-      wednesday: false,
-      thursday: false,
-      friday: false,
-      saturday: false,
-      sunday: false,
-    });
-  }, [reset]);
+        reset({
+          scheduled_date: scheduledDateStr,
+          scheduled_time: scheduledTimeStr,
+          repeat: schedule.repeat || "no-repeat",
+          is_active: schedule.is_active ?? true,
+          send_to_mobile_devices: schedule.send_to_mobile_devices ?? false,
+          monday: schedule.monday ?? false,
+          tuesday: schedule.tuesday ?? false,
+          wednesday: schedule.wednesday ?? false,
+          thursday: schedule.thursday ?? false,
+          friday: schedule.friday ?? false,
+          saturday: schedule.saturday ?? false,
+          sunday: schedule.sunday ?? false,
+        });
+      }
+    } else {
+      // Default values for new schedule
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const defaultDate = tomorrow.toISOString().split("T")[0];
+      const now = new Date();
+      const defaultTime = `${String(now.getHours()).padStart(2, "0")}:${String(
+        now.getMinutes()
+      ).padStart(2, "0")}`;
+
+      reset({
+        scheduled_date: defaultDate,
+        scheduled_time: defaultTime,
+        repeat: "no-repeat",
+        is_active: true,
+        send_to_mobile_devices: false,
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false,
+      });
+    }
+  }, [reset, isEdit, scheduleData]);
 
   // Clear day checkboxes when repeat is not weekly
   useEffect(() => {
@@ -171,21 +221,52 @@ export function ScheduleMessageForm({
     }
 
     try {
-      // TODO: Implement API call to create/update message schedule
-      // For now, we'll show a success message
-      const scheduledDateTime = new Date(`${data.scheduled_date}T${data.scheduled_time}`);
-      showSuccess(
-        `Message "${message?.title_en || "Message"}" scheduled for ${scheduledDateTime.toLocaleString()}`
-      );
+      // Convert local date/time to UTC for backend (Asia/Karachi is UTC+5)
+      const localDateTime = new Date(`${data.scheduled_date}T${data.scheduled_time}`);
+      // Adjust for timezone offset (Asia/Karachi is UTC+5, so subtract 5 hours)
+      const utcDateTime = new Date(localDateTime.getTime() - 5 * 60 * 60 * 1000);
 
-      // Navigate back to messages table
+      const payload: CreateMessageSchedulePayload = {
+        message_id: Number(messageId),
+        scheduled_date: data.scheduled_date,
+        scheduled_time: data.scheduled_time,
+        repeat: data.repeat as 'no-repeat' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+        is_active: data.is_active ?? true,
+        send_to_mobile_devices: data.send_to_mobile_devices ?? false,
+        monday: data.monday ?? false,
+        tuesday: data.tuesday ?? false,
+        wednesday: data.wednesday ?? false,
+        thursday: data.thursday ?? false,
+        friday: data.friday ?? false,
+        saturday: data.saturday ?? false,
+        sunday: data.sunday ?? false,
+      };
+
+      if (isEdit && scheduleId) {
+        // Update existing schedule
+        if (!canEditMessages) {
+          showError("You don't have permission to edit scheduled messages.");
+          return;
+        }
+        await updateSchedule({
+          id: Number(scheduleId),
+          data: payload,
+        }).unwrap();
+        showSuccess("Message schedule updated successfully");
+      } else {
+        // Create new schedule
+        await createSchedule(payload).unwrap();
+        showSuccess("Message scheduled successfully");
+      }
+
+      // Navigate back to scheduled messages list
       if (onSuccess) {
         onSuccess();
       } else {
-        router.push(`/${locale}/admin/messages`);
+        router.push(`/${locale}/messages/schedules`);
       }
     } catch (error: any) {
-      showError(error?.data?.message || "Failed to schedule message. Please try again.");
+      showError(error?.data?.message || "Failed to save schedule. Please try again.");
     }
   };
 
@@ -193,11 +274,11 @@ export function ScheduleMessageForm({
     if (onCancel) {
       onCancel();
     } else {
-      router.push(`/${locale}/admin/messages`);
+        router.push(`/${locale}/messages`);
     }
   };
 
-  if (isLoadingMessage) {
+  if (isLoadingMessage || isLoadingSchedule) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-4xl mx-auto">
@@ -254,9 +335,13 @@ export function ScheduleMessageForm({
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Schedule Message</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isEdit ? "Edit Scheduled Message" : "Schedule Message"}
+              </h1>
               <p className="text-gray-600 mt-1">
-                Set up when and how often to send a message
+                {isEdit
+                  ? "Update the schedule for this message"
+                  : "Set up when and how often to send a message"}
               </p>
             </div>
             <button
@@ -485,10 +570,10 @@ export function ScheduleMessageForm({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || isCreatingSchedule}
+                disabled={isSubmitting || isCreatingSchedule || isUpdatingSchedule}
                 className="inline-flex items-center gap-2 px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {(isSubmitting || isCreatingSchedule) ? (
+                {(isSubmitting || isCreatingSchedule || isUpdatingSchedule) ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Saving...

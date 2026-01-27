@@ -195,6 +195,10 @@ const KarkunDashboardPage: React.FC = () => {
           zones: dashboardData.zones,
           mehfils: dashboardData.mehfils,
           totalKarkuns: dashboardData.totalKarkuns,
+          ehadKarkuns: dashboardData.ehadKarkuns,
+          totalNewEhads: dashboardData.totalNewEhads,
+          totalTabarukats: dashboardData.totalTabarukats,
+          allKeys: Object.keys(dashboardData),
           userZoneId: user?.zone_id,
           userIsZoneAdmin: user?.is_zone_admin,
           userIsMehfilAdmin: user?.is_mehfil_admin,
@@ -209,6 +213,11 @@ const KarkunDashboardPage: React.FC = () => {
         setStats((prev) => ({
           ...prev,
           ...dashboardData,
+          // Ensure numeric values are properly set (handle potential undefined/null)
+          totalKarkuns: dashboardData.totalKarkuns ?? 0,
+          ehadKarkuns: dashboardData.ehadKarkuns ?? 0,
+          totalNewEhads: dashboardData.totalNewEhads ?? 0,
+          totalTabarukats: dashboardData.totalTabarukats ?? 0,
           zones: zonesToSet,
           mehfils:
             prev.mehfils?.length > 0 ? prev.mehfils : dashboardData.mehfils,
@@ -219,6 +228,8 @@ const KarkunDashboardPage: React.FC = () => {
           zonesCount: zonesToSet.length,
           zones: zonesToSet,
           mehfilsCount: dashboardData.mehfils?.length || 0,
+          ehadKarkuns: dashboardData.ehadKarkuns ?? 0,
+          totalKarkuns: dashboardData.totalKarkuns ?? 0,
         });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -331,33 +342,59 @@ const KarkunDashboardPage: React.FC = () => {
             Welcome to Karkun Portal
           </p>
 
-          {/* User Zone Context - Display Selected Zone Dynamically */}
+          {/* User Context - Display Zone and Mehfil (matching Laravel) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200">
+            {(() => {
+              // Find the selected zone from stats.zones
+              const selectedZone = stats.zones.find(
+                (z) => z.id === selectedZoneId
+              );
+              // If a zone is selected, show it; otherwise show user's zone
+              const displayZone = selectedZone || user?.zone;
 
-          {(() => {
-            // Find the selected zone from stats.zones
-            const selectedZone = stats.zones.find(
-              (z) => z.id === selectedZoneId
-            );
+              return displayZone ? (
+                <div className="bg-gray-100 rounded-lg p-4">
+                  <p className="text-sm font-medium text-gray-600 mb-1">Zone</p>
+                  <div className="font-medium mt-1">
+                    <p className="text-gray-900">{displayZone.title_en}</p>
+                    {displayZone.city_en && (
+                      <p className="text-sm text-gray-700">
+                        {displayZone.city_en}, {displayZone.country_en}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null;
+            })()}
 
-            // If a zone is selected, show it; otherwise show user's zone
-            const displayZone = selectedZone || user?.zone;
+            {(() => {
+              // Find the selected mehfil from stats.mehfils
+              const selectedMehfil = stats.mehfils.find(
+                (m) => m.id === selectedMehfilId
+              );
+              // If a mehfil is selected, show it; otherwise try to find user's mehfil from stats
+              const userMehfil = user?.mehfil_directory_id
+                ? stats.mehfils.find((m) => m.id === user.mehfil_directory_id)
+                : null;
+              const displayMehfil = selectedMehfil || userMehfil;
 
-            return displayZone ? (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <p className="text-sm font-medium text-gray-600 mb-1">Zone</p>
-
-                <p className="font-semibold text-gray-900">
-                  {displayZone.title_en}
-                </p>
-
-                {displayZone.city_en && (
-                  <p className="text-sm text-gray-600">
-                    {displayZone.city_en}, {displayZone.country_en}
-                  </p>
-                )}
-              </div>
-            ) : null;
-          })()}
+              return displayMehfil ? (
+                <div className="bg-gray-100 rounded-lg p-4">
+                  <p className="text-sm font-medium text-gray-600 mb-1">Mehfil</p>
+                  <div className="font-medium mt-1">
+                    <p className="text-gray-900">
+                      #{displayMehfil.mehfil_number} - {displayMehfil.name_en}
+                    </p>
+                    {displayMehfil.address_en && (
+                      <p className="text-sm text-gray-700">
+                        {displayMehfil.address_en}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+          </div>
         </div>
 
         {/* Filter Dropdowns */}
@@ -403,12 +440,10 @@ const KarkunDashboardPage: React.FC = () => {
             </div>
 
             {/* Mehfil Dropdown */}
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mehfil
               </label>
-
               <select
                 value={selectedMehfilId || ""}
                 onChange={(e) =>
@@ -416,24 +451,25 @@ const KarkunDashboardPage: React.FC = () => {
                     e.target.value ? Number(e.target.value) : null
                   )
                 }
-                disabled={!canFilterMehfils}
+                disabled={!canFilterMehfils || !selectedZoneId}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 ${
-                  !canFilterMehfils
+                  !canFilterMehfils || !selectedZoneId
                     ? "opacity-50 cursor-not-allowed bg-gray-50"
                     : ""
                 }`}
               >
-                <option
-                  value={stats.mehfils.length > 0 ? stats.mehfils[0].id : ""}
-                >
-                  {"All Mehfils"}
-                </option>
-
-                {stats.mehfils.map((mehfil) => (
-                  <option key={mehfil.id} value={mehfil.id}>
-                    #{mehfil.mehfil_number} - {mehfil.name_en}
+                <option value="">All Mehfils</option>
+                {stats.mehfils && stats.mehfils.length > 0 ? (
+                  stats.mehfils.map((mehfil) => (
+                    <option key={mehfil.id} value={mehfil.id}>
+                      #{mehfil.mehfil_number} - {mehfil.name_en}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    {selectedZoneId ? "No mehfils found" : "Select a zone first"}
                   </option>
-                ))}
+                )}
               </select>
             </div>
 
@@ -738,6 +774,111 @@ const KarkunDashboardPage: React.FC = () => {
               </div>
             </div>
           )}
+        {/* Mehfil Stats Cards - Show when a mehfil is selected (matching Laravel) */}
+        {selectedMehfilId && (
+          <div className="mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Total Karkuns */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-700 mb-1">Total Karkuns</p>
+                    {stats.loading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    ) : (
+                      <h3 className="text-2xl font-semibold text-blue-900">
+                        {stats.totalKarkuns}
+                      </h3>
+                    )}
+                  </div>
+                  <svg
+                    className="w-8 h-8 text-blue-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Ehad Karkuns - Matching Laravel styling */}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-700 mb-1">Ehad Karkuns</p>
+                    {stats.loading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    ) : (
+                      <h3 className="text-2xl font-semibold text-green-900">
+                        {stats.ehadKarkuns}
+                      </h3>
+                    )}
+                  </div>
+                  <svg
+                    className="w-8 h-8 text-green-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Tabarukats */}
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-orange-700 mb-1">Tabarukats</p>
+                    {stats.loading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                    ) : (
+                      <h3 className="text-2xl font-semibold text-orange-900">
+                        {stats.totalTabarukats}
+                      </h3>
+                    )}
+                  </div>
+                  <svg
+                    className="w-8 h-8 text-orange-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* New Ehads */}
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-purple-700 mb-1">
+                      New Ehads ({months[selectedMonth]} {selectedYear})
+                    </p>
+                    {stats.loading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    ) : (
+                      <h3 className="text-2xl font-semibold text-purple-900">
+                        {stats.totalNewEhads}
+                      </h3>
+                    )}
+                  </div>
+                  <svg
+                    className="w-8 h-8 text-purple-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Zone Stats Cards - Show when a zone is selected but no mehfil */}
         {selectedZoneId && !selectedMehfilId && (
           <div className="mb-8">
@@ -745,117 +886,101 @@ const KarkunDashboardPage: React.FC = () => {
               Zone Stats - {getSelectedZoneName()}
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl shadow-md p-6 border border-cyan-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Mehfils - Matching Laravel styling (teal) */}
+              <div className="p-4 bg-teal-50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-gray-600 text-sm font-medium mb-2">
-                      Total Mehfils
-                    </h3>
-
+                    <p className="text-sm text-teal-700 mb-1">Total Mehfils</p>
                     {stats.loading ? (
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
                     ) : (
-                      <p className="text-4xl font-bold text-cyan-700">
+                      <h3 className="text-2xl font-semibold text-teal-900">
                         {stats.totalMehfils}
-                      </p>
+                      </h3>
                     )}
                   </div>
-
-                  <div className="bg-cyan-200 p-3 rounded-lg">
-                    <svg
-                      className="w-8 h-8 text-cyan-700"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="w-8 h-8 text-teal-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                  </svg>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border border-blue-200">
+              {/* Total Karkuns - Matching Laravel styling */}
+              <div className="p-4 bg-blue-50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-gray-600 text-sm font-medium mb-2">
-                      Total Karkuns
-                    </h3>
-
+                    <p className="text-sm text-blue-700 mb-1">Total Karkuns</p>
                     {stats.loading ? (
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     ) : (
-                      <p className="text-4xl font-bold text-blue-700">
+                      <h3 className="text-2xl font-semibold text-blue-900">
                         {stats.totalKarkuns}
-                      </p>
+                      </h3>
                     )}
                   </div>
-
-                  <div className="bg-blue-200 p-3 rounded-lg">
-                    <svg
-                      className="w-8 h-8 text-blue-700"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="w-8 h-8 text-blue-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                  </svg>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Ehad Karkuns
-                  </h3>
-
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-green-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                    </svg>
+              {/* Ehad Karkuns - Matching Laravel styling for zone stats */}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-700 mb-1">Ehad Karkuns</p>
+                    {stats.loading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    ) : (
+                      <h3 className="text-2xl font-semibold text-green-900">
+                        {stats.ehadKarkuns}
+                      </h3>
+                    )}
                   </div>
+                  <svg
+                    className="w-8 h-8 text-green-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                  </svg>
                 </div>
-
-                {stats.loading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stats.ehadKarkuns}
-                  </p>
-                )}
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-600">
-                    Tabarukats
-                  </h3>
-
-                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-orange-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+              {/* Tabarukats - Matching Laravel styling */}
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-orange-700 mb-1">Tabarukats</p>
+                    {stats.loading ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                    ) : (
+                      <h3 className="text-2xl font-semibold text-orange-900">
+                        {stats.totalTabarukats}
+                      </h3>
+                    )}
                   </div>
+                  <svg
+                    className="w-8 h-8 text-orange-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                 </div>
-
-                {stats.loading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stats.totalTabarukats}
-                  </p>
-                )}
               </div>
             </div>
           </div>

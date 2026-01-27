@@ -4,57 +4,52 @@ import { format } from "date-fns";
 import { useRouter, useParams } from "next/navigation";
 import {
   Search,
-  Plus,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Clock,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
 import {
-  useFetchMessagesDataQuery,
-  useDeleteMessageMutation,
-  useCreateMessageMutation,
-} from "@/store/slicers/messagesApi";
+  useGetMessageSchedulesQuery,
+  useDeleteMessageScheduleMutation,
+} from "@/store/slicers/messageSchedulesApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/useToast";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/types/permission";
-import ActionsDropdown from "@/components/ActionsDropdown";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
-import { MessagesForm } from "./messages-form";
+import ActionsDropdown from "@/components/ActionsDropdown";
 
-export function MessagesTable() {
+export function ScheduledMessagesTable() {
   const router = useRouter();
   const params = useParams();
   const locale = params.locale as string;
   const { hasPermission, isSuperAdmin } = usePermissions();
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [sortField, setSortField] = useState<"id" | "title_en" | "title_ur" | "created_at">("id");
+  const [sortField, setSortField] = useState<"next_run_at" | "scheduled_at" | "last_sent_at" | "repeat" | "message.title_en" | "message.title_ur">("next_run_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { showError, showSuccess } = useToast();
   const debouncedSearch = useDebounce(search, 500);
 
   // RTK Query hook
   const { data, error, isLoading, isFetching, refetch } =
-    useFetchMessagesDataQuery({
-      page: currentPage,
-      size: perPage,
-      search: debouncedSearch || "",
-    }, {
-      // Refetch when parameters change
-      refetchOnMountOrArgChange: true,
-    });
+    useGetMessageSchedulesQuery(
+      {
+        page: currentPage,
+        size: perPage,
+      },
+      {
+        refetchOnMountOrArgChange: true,
+      }
+    );
 
-  const [deleteMessage, { isLoading: isDeleting }] = useDeleteMessageMutation();
-  const [createMessage, { isLoading: isCreating }] = useCreateMessageMutation();
+  const [deleteSchedule, { isLoading: isDeleting }] = useDeleteMessageScheduleMutation();
 
   // Permission checks
   const canViewMessages = isSuperAdmin || hasPermission(PERMISSIONS.VIEW_MESSAGES);
@@ -65,7 +60,7 @@ export function MessagesTable() {
   // Show error notification
   useEffect(() => {
     if (error) {
-      showError("Failed to load messages data. Please try again.");
+      showError("Failed to load scheduled messages. Please try again.");
     }
   }, [error]);
 
@@ -74,37 +69,56 @@ export function MessagesTable() {
     setCurrentPage(1);
   }, [debouncedSearch, sortField, sortDirection]);
 
-  // Client-side sorting
-  const getSortedData = (data: any[]) => {
+  // Client-side sorting and filtering
+  const getFilteredAndSortedData = (data: any[]) => {
     if (!data || data.length === 0) return data;
-    
-    return [...data].sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
-      
+
+    // Filter by search term (message title)
+    let filtered = data;
+    if (debouncedSearch) {
+      filtered = data.filter((item) => {
+        const messageTitleEn = item.message?.title_en || "";
+        const messageTitleUr = item.message?.title_ur || "";
+        const searchLower = debouncedSearch.toLowerCase();
+        return (
+          messageTitleEn.toLowerCase().includes(searchLower) ||
+          messageTitleUr.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Sort data
+    return [...filtered].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      if (sortField.startsWith("message.")) {
+        const field = sortField.replace("message.", "");
+        aValue = a.message?.[field] || "";
+        bValue = b.message?.[field] || "";
+      } else {
+        aValue = a[sortField];
+        bValue = b[sortField];
+      }
+
       // Handle null/undefined values
       if (aValue == null) aValue = "";
       if (bValue == null) bValue = "";
-      
+
+      // Handle date comparison
+      if (sortField === "next_run_at" || sortField === "scheduled_at" || sortField === "last_sent_at") {
+        const aDate = new Date(aValue).getTime();
+        const bDate = new Date(bValue).getTime();
+        return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+      }
+
       // Handle string comparison
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortDirection === "asc"
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
-      // Handle number comparison
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-      }
-      
-      // Handle date comparison
-      if (sortField === "created_at") {
-        const aDate = new Date(aValue).getTime();
-        const bDate = new Date(bValue).getTime();
-        return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
-      }
-      
+
       // Convert to string and compare
       return sortDirection === "asc"
         ? String(aValue).localeCompare(String(bValue))
@@ -112,7 +126,7 @@ export function MessagesTable() {
     });
   };
 
-  const handleSortChange = (field: "id" | "title_en" | "title_ur" | "created_at") => {
+  const handleSortChange = (field: "next_run_at" | "scheduled_at" | "last_sent_at" | "repeat" | "message.title_en" | "message.title_ur") => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
@@ -121,7 +135,7 @@ export function MessagesTable() {
     }
   };
 
-  const getSortIcon = (field: "id" | "title_en" | "title_ur" | "created_at") => {
+  const getSortIcon = (field: "next_run_at" | "scheduled_at" | "last_sent_at" | "repeat" | "message.title_en" | "message.title_ur") => {
     if (sortField !== field) {
       return <ArrowUpDown className="h-3 w-3 text-gray-400" />;
     }
@@ -132,112 +146,62 @@ export function MessagesTable() {
     );
   };
 
+  // Handle view message - navigate to message edit page
+  const handleViewMessage = (schedule: any) => {
+    if (!canViewMessages) {
+      showError("You don't have permission to view messages.");
+      return;
+    }
+    if (!schedule.message_id) {
+      showError("Message ID is missing for this schedule.");
+      return;
+    }
+    // Navigate to message edit page
+    router.push(`/${locale}/messages/${schedule.message_id}/edit`);
+  };
+
   // Handle edit
-  const handleEdit = (message: any) => {
+  const handleEdit = (schedule: any) => {
     if (!canEditMessages) {
-      showError("You don't have permission to edit messages.");
+      showError("You don't have permission to edit scheduled messages.");
       return;
     }
-    setSelectedMessage(message);
-    setShowForm(true);
-  };
-
-  // Handle add
-  const onAdd = () => {
-    if (!canCreateMessages) {
-      showError("You don't have permission to create messages.");
+    if (!schedule.message_id) {
+      showError("Message ID is missing for this schedule.");
       return;
     }
-    setSelectedMessage(null);
-    setShowForm(true);
-  };
-
-  // Handle close form
-  const handleCloseForm = (refresh = false) => {
-    setShowForm(false);
-    setSelectedMessage(null);
-  };
-
-  // Handle form success (refresh data)
-  const handleFormSuccess = () => {
-    refetch(); // Refresh the table data
+    router.push(`/${locale}/messages/schedule/${schedule.message_id}/${schedule.id}`);
   };
 
   // Handle delete click
-  const handleDeleteClick = (message: any) => {
+  const handleDeleteClick = (schedule: any) => {
     if (!canDeleteMessages) {
-      showError("You don't have permission to delete messages.");
+      showError("You don't have permission to delete scheduled messages.");
       return;
     }
-    setSelectedMessage(message);
+    setSelectedSchedule(schedule);
     setShowDeleteDialog(true);
   };
 
   // Handle delete
   const handleDelete = async () => {
-    if (!selectedMessage) return;
+    if (!selectedSchedule) return;
 
     try {
-      await deleteMessage(selectedMessage.id).unwrap();
-      showSuccess("Message deleted successfully");
+      await deleteSchedule(selectedSchedule.id).unwrap();
+      showSuccess("Message schedule deleted successfully");
       setShowDeleteDialog(false);
-      setSelectedMessage(null);
-      refetch(); // Refresh the table data after deletion
+      setSelectedSchedule(null);
+      refetch();
     } catch (error) {
-      showError("Failed to delete message. Please try again.");
-    }
-  };
-
-  // Handle schedule message - navigate to schedule page
-  const handleSchedule = (message: any) => {
-    if (!canCreateMessages) {
-      showError("You don't have permission to schedule messages.");
-      return;
-    }
-    router.push(`/${locale}/messages/schedule/${message.id}`);
-  };
-
-
-  // Handle duplicate message - matches Laravel implementation
-  const handleDuplicate = async (message: any) => {
-    if (!canCreateMessages) {
-      showError("You don't have permission to create messages.");
-      return;
-    }
-
-    try {
-      // Replicate message with is_published = false (draft) - matches Laravel's replicate() behavior
-      const duplicateData = {
-        title_en: message.title_en || "",
-        title_ur: message.title_ur || "",
-        description_en: message.description_en || null,
-        description_ur: message.description_ur || null,
-        is_published: 0, // Set as draft (false) - matches Laravel: $newMessage->is_published = false;
-        at_top: message.at_top ? 1 : 0,
-        show_notice: message.show_notice ? 1 : 0,
-        wazaif_id: message.wazaif_id || null,
-        link_1_id: message.link_1_id || null,
-        link_1_category_id: message.link_1_category_id || null,
-        link_2_id: message.link_2_id || null,
-        link_2_category_id: message.link_2_category_id || null,
-        link_3_id: message.link_3_id || null,
-        link_3_category_id: message.link_3_category_id || null,
-        link_4_id: message.link_4_id || null,
-        link_4_category_id: message.link_4_category_id || null,
-      };
-
-      await createMessage(duplicateData).unwrap();
-      showSuccess("Message duplicated successfully");
-      refetch(); // Refresh the table data
-    } catch (error: any) {
-      showError(error?.data?.message || "Failed to duplicate message. Please try again.");
+      showError("Failed to delete schedule. Please try again.");
     }
   };
 
   // Handle per page change
   const handlePerPageChange = (newPerPage: number) => {
     setPerPage(newPerPage);
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
   };
 
   // Handle page change
@@ -247,18 +211,71 @@ export function MessagesTable() {
 
   // Status template
   const statusTemplate = (rowData: any) => {
-    const isPublished =
-      rowData.is_published === 1 || rowData.is_published === "1";
+    const isActive = rowData.is_active === true || rowData.is_active === 1;
     return (
       <span
         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isPublished
+          isActive
             ? "bg-green-100 text-green-800"
             : "bg-gray-100 text-gray-800"
         }`}
       >
-        {isPublished ? "Published" : "Draft"}
+        {isActive ? "Active" : "Inactive"}
       </span>
+    );
+  };
+
+  // Mobile notification template
+  const mobileNotificationTemplate = (rowData: any) => {
+    const isEnabled = rowData.send_to_mobile_devices === true || rowData.send_to_mobile_devices === 1;
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          isEnabled
+            ? "bg-blue-100 text-blue-800"
+            : "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {isEnabled ? "Enabled" : "Disabled"}
+      </span>
+    );
+  };
+
+  // Repeat template with day badges
+  const repeatTemplate = (schedule: any) => {
+    if (schedule.repeat === "no-repeat") {
+      return <span className="text-sm text-gray-900">No Repeat</span>;
+    }
+
+    const repeatLabel = schedule.repeat.charAt(0).toUpperCase() + schedule.repeat.slice(1);
+    const days = [
+      { key: "monday", label: "Mon" },
+      { key: "tuesday", label: "Tue" },
+      { key: "wednesday", label: "Wed" },
+      { key: "thursday", label: "Thu" },
+      { key: "friday", label: "Fri" },
+      { key: "saturday", label: "Sat" },
+      { key: "sunday", label: "Sun" },
+    ];
+
+    const selectedDays = days.filter((day) => schedule[day.key] === true || schedule[day.key] === 1);
+
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-sm text-gray-900">{repeatLabel}</span>
+        {selectedDays.length > 0 && (
+          <div className="flex gap-1 flex-wrap">
+            {selectedDays.map((day) => (
+              <span
+                key={day.key}
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+              >
+                {day.label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -275,20 +292,8 @@ export function MessagesTable() {
     );
   }
 
-  // Form modal
-  if (showForm) {
-    return (
-      <MessagesForm
-        onClose={handleCloseForm}
-        initialData={selectedMessage}
-        onSuccess={handleFormSuccess}
-      />
-    );
-  }
-
-  // Get sorted data
-  const sortedData = data?.data ? getSortedData(data.data) : [];
-  
+  // Get filtered and sorted data
+  const sortedData = data?.data ? getFilteredAndSortedData(data.data) : [];
   const totalPages = Math.ceil((data?.meta?.total || 0) / perPage);
   const startRecord = (currentPage - 1) * perPage + 1;
   const endRecord = Math.min(startRecord + perPage - 1, data?.meta?.total || 0);
@@ -300,29 +305,18 @@ export function MessagesTable() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Scheduled Messages</h1>
               <p className="text-gray-600 mt-1">
-                Manage messages and their details
+                Manage message schedules and delivery times
               </p>
             </div>
-            {canCreateMessages && (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => router.push(`/${locale}/messages/schedules`)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  <Clock size={16} />
-                  Scheduled Messages
-                </button>
-                <button
-                  onClick={onAdd}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
-                >
-                  <Plus size={16} />
-                  Create Message
-                </button>
-              </div>
-            )}
+            <button
+              onClick={() => router.push(`/${locale}/messages`)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <ChevronLeft size={16} />
+              Back to Messages
+            </button>
           </div>
         </div>
 
@@ -334,7 +328,7 @@ export function MessagesTable() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Search messages..."
+                  placeholder="Search scheduled messages..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -342,8 +336,7 @@ export function MessagesTable() {
               </div>
               {search.trim() && (
                 <div className="mt-2 text-sm text-gray-600">
-                  Searching for: "{search}" • Found {sortedData?.length || 0}{" "}
-                  results
+                  Searching for: "{search}" • Found {sortedData?.length || 0} results
                 </div>
               )}
             </div>
@@ -355,9 +348,7 @@ export function MessagesTable() {
                 <div className="relative">
                   <select
                     value={perPage}
-                    onChange={(e) =>
-                      handlePerPageChange(Number(e.target.value))
-                    }
+                    onChange={(e) => handlePerPageChange(Number(e.target.value))}
                     className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value={5}>5</option>
@@ -383,88 +374,139 @@ export function MessagesTable() {
                 <tr>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSortChange("id")}
-                  >
-                    <div className="flex items-center gap-1">
-                      ID
-                      {getSortIcon("id")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSortChange("title_en")}
+                    onClick={() => handleSortChange("message.title_en")}
                   >
                     <div className="flex items-center gap-1">
                       TITLE (EN)
-                      {getSortIcon("title_en")}
+                      {getSortIcon("message.title_en")}
                     </div>
                   </th>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSortChange("title_ur")}
+                    onClick={() => handleSortChange("message.title_ur")}
                   >
                     <div className="flex items-center gap-1">
                       TITLE (UR)
-                      {getSortIcon("title_ur")}
+                      {getSortIcon("message.title_ur")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("scheduled_at")}
+                  >
+                    <div className="flex items-center gap-1">
+                      SCHEDULED AT
+                      {getSortIcon("scheduled_at")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("last_sent_at")}
+                  >
+                    <div className="flex items-center gap-1">
+                      LAST SENT AT
+                      {getSortIcon("last_sent_at")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("repeat")}
+                  >
+                    <div className="flex items-center gap-1">
+                      REPEAT
+                      {getSortIcon("repeat")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSortChange("next_run_at")}
+                  >
+                    <div className="flex items-center gap-1">
+                      NEXT RUN
+                      {getSortIcon("next_run_at")}
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     STATUS
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                    onClick={() => handleSortChange("created_at")}
-                  >
-                    <div className="flex items-center gap-1">
-                      CREATED AT
-                      {getSortIcon("created_at")}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    MOBILE NOTIFICATION
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    CREATED BY
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    UPDATED BY
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ACTIONS
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedData?.map((message, index) => (
-                  <tr
-                    key={message.id}
-                    className={`hover:bg-gray-50 ${
-                      index === 0 ? "bg-gray-50" : ""
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {message.id}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div className="line-clamp-2">{message.title_en}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div className="line-clamp-2">{message.title_ur}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {statusTemplate(message)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(
-                        new Date(message.created_at),
-                        "dd MMM yyyy - hh:mm a"
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <ActionsDropdown
-                        onEdit={canEditMessages ? () => handleEdit(message) : undefined}
-                        onSchedule={canCreateMessages ? () => handleSchedule(message) : undefined}
-                        onDuplicate={canCreateMessages ? () => handleDuplicate(message) : undefined}
-                        onDelete={canDeleteMessages ? () => handleDeleteClick(message) : undefined}
-                        showEdit={canEditMessages}
-                        showSchedule={canCreateMessages}
-                        showDuplicate={canCreateMessages}
-                        showDelete={canDeleteMessages}
-                      />
+                {sortedData?.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
+                      No scheduled messages found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  sortedData?.map((schedule, index) => (
+                    <tr
+                      key={schedule.id}
+                      className={`hover:bg-gray-50 ${
+                        index === 0 ? "bg-gray-50" : ""
+                      }`}
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-900 min-w-xs">
+                        {schedule.message?.title_en || "N/A"}
+                      </td>
+                      <td dir="rtl" className="px-6 py-4 text-sm text-gray-900 text-right min-w-xs">
+                        {schedule.message?.title_ur || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {schedule.scheduled_at
+                          ? format(new Date(schedule.scheduled_at), "dd MMM yyyy - hh:mm a")
+                          : "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {schedule.last_sent_at
+                          ? format(new Date(schedule.last_sent_at), "dd MMM yyyy - hh:mm a")
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {repeatTemplate(schedule)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {schedule.next_run_at
+                          ? format(new Date(schedule.next_run_at), "dd MMM yyyy - hh:mm a")
+                          : "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {statusTemplate(schedule)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {mobileNotificationTemplate(schedule)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {schedule.createdBy?.name || schedule.created_by_name || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {schedule.updatedBy?.name || schedule.updated_by_name || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <ActionsDropdown
+                          onView={canViewMessages ? () => handleViewMessage(schedule) : undefined}
+                          onEdit={canEditMessages ? () => handleEdit(schedule) : undefined}
+                          onDelete={canDeleteMessages ? () => handleDeleteClick(schedule) : undefined}
+                          showView={canViewMessages}
+                          showEdit={canEditMessages}
+                          showDelete={canDeleteMessages}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -492,8 +534,7 @@ export function MessagesTable() {
                 <p className="text-sm text-gray-700">
                   Showing <span className="font-medium">{startRecord}</span> to{" "}
                   <span className="font-medium">{endRecord}</span> of{" "}
-                  <span className="font-medium">{data?.meta?.total || 0}</span>{" "}
-                  results
+                  <span className="font-medium">{data?.meta?.total || 0}</span> results
                 </p>
               </div>
               <div>
@@ -573,17 +614,17 @@ export function MessagesTable() {
         {/* Delete Confirmation Dialog */}
         <DeleteConfirmationDialog
           isOpen={showDeleteDialog}
-          title="Delete Message"
-          message={`Are you sure you want to delete "${selectedMessage?.title_en || "this message"}"? This action cannot be undone.`}
+          title="Delete Scheduled Message"
+          message={`Are you sure you want to delete this scheduled message? This action cannot be undone.`}
           onClose={() => {
             setShowDeleteDialog(false);
-            setSelectedMessage(null);
+            setSelectedSchedule(null);
           }}
           onConfirm={handleDelete}
           isLoading={isDeleting}
         />
-
       </div>
     </div>
   );
 }
+

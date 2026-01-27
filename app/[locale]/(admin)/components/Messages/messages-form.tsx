@@ -62,6 +62,14 @@ export function MessagesForm({
     search: "",
   });
 
+  // Link category options - matches Laravel LinkCategory enum
+  const linkCategoryOptions = [
+    { value: "0", label: "Mehfil" },
+    { value: "1", label: "Taleem Shareef" },
+    { value: "2", label: "Naat Shareef" },
+    { value: "3", label: "Dua" },
+  ];
+
   const categoryOptions = (categoryData?.data || []).map((cat) => ({
     label: cat.title_en,
     value: cat.id.toString(),
@@ -232,7 +240,7 @@ export function MessagesForm({
               </h1>
               <p className="text-gray-600 mt-1">
                 {initialData
-                  ? "Edit message details"
+                  ? "Update message information"
                   : "Add a new message to the system"}
               </p>
             </div>
@@ -518,7 +526,7 @@ export function MessagesForm({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Category ID
+                        Category
                       </label>
                       <Controller
                         name={`link_${linkNum}_category_id`}
@@ -534,7 +542,7 @@ export function MessagesForm({
                               }`}
                             >
                               <option value="">None</option>
-                              {categoryOptions.map((option) => (
+                              {linkCategoryOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
                                 </option>

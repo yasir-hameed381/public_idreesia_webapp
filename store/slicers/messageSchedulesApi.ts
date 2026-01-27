@@ -21,6 +21,24 @@ export interface MessageSchedule {
   updated_by?: number | null;
   created_at?: string;
   updated_at?: string;
+  message?: {
+    id: number;
+    title_en: string;
+    title_ur: string;
+    description_en?: string;
+    description_ur?: string;
+    is_published: number;
+  };
+  createdBy?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+  updatedBy?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
 }
 
 export interface MessageScheduleResponse {

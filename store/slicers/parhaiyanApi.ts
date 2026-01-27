@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Parhaiyan } from "@/app/types/Parhaiyan";
+import { prepareAuthHeaders, getApiBaseUrl } from '@/lib/apiConfig';
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -14,11 +15,12 @@ export interface PaginatedResponse<T> {
   };
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export const parhaiyanApi = createApi({
   reducerPath: "parhaiyanApi",
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: fetchBaseQuery({ 
+    baseUrl: getApiBaseUrl(),
+    prepareHeaders: prepareAuthHeaders,
+  }),
   tagTypes: ["Parhaiyan"],
   endpoints: (builder) => ({
     // GET
@@ -42,6 +44,18 @@ export const parhaiyanApi = createApi({
         };
       },
       providesTags: (result, error, id) => [{ type: "Parhaiyan", id }],
+    }),
+
+    // GET BY SLUG - Public endpoint for fetching parhaiyan by slug (no auth required)
+    getParhaiyanBySlug: builder.query<{ success: boolean; data: Parhaiyan | null }, string>({
+      query: (slug) => `/parhaiyan/slug/${slug}`,
+      transformResponse: (response: { success: boolean; data: Parhaiyan }) => {
+        return {
+          success: response.success,
+          data: response.data || null,
+        };
+      },
+      providesTags: (result, error, slug) => [{ type: "Parhaiyan", id: `SLUG-${slug}` }],
     }),
 
     // CREATE
@@ -74,13 +88,43 @@ export const parhaiyanApi = createApi({
       }),
       invalidatesTags: ["Parhaiyan"],
     }),
+
+    // GET RECITATIONS BY PARHAIYAN ID
+    getParhaiyanRecitations: builder.query<
+      PaginatedResponse<any>,
+      {
+        parhaiyan_id: number;
+        page: number;
+        size: number;
+        search?: string;
+      }
+    >({
+      query: ({ parhaiyan_id, page, size, search = "" }) => {
+        return `/parhaiyan-recitations?page=${page}&size=${size}&search=${search}&parhaiyan_id=${parhaiyan_id}`;
+      },
+      providesTags: (result, error, arg) => [
+        { type: "Parhaiyan", id: `RECITATIONS-${arg.parhaiyan_id}` },
+      ],
+    }),
+
+    // DELETE RECITATION
+    deleteRecitation: builder.mutation<{ success: boolean }, number>({
+      query: (id) => ({
+        url: `/parhaiyan-recitations/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Parhaiyan"],
+    }),
   }),
 });
 
 export const {
   useGetParhaiyanQuery,
   useGetParhaiyanByIdQuery,
+  useGetParhaiyanBySlugQuery,
   useCreateParhaiyanMutation,
   useUpdateParhaiyanMutation,
   useDeleteParhaiyanMutation,
+  useGetParhaiyanRecitationsQuery,
+  useDeleteRecitationMutation,
 } = parhaiyanApi;

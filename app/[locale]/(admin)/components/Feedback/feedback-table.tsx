@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
 import {
   Search,
@@ -27,8 +28,12 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/useToast";
 import { FeedbackForm } from "./feedback-form";
 import { FEEDBACK_TYPES } from "@/types/feedback";
+import { APP_TYPES } from "@/types/appType";
 
 export function FeedbackTable() {
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
@@ -36,6 +41,7 @@ export function FeedbackTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [selectedType, setSelectedType] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showActionsMenu, setShowActionsMenu] = useState<number | null>(null);
   const { showError, showSuccess } = useToast();
   const debouncedSearch = useDebounce(search, 1000);
@@ -47,6 +53,7 @@ export function FeedbackTable() {
       size: perPage,
       search: debouncedSearch,
       type: selectedType,
+      statusFilter: statusFilter,
     });
 
   const [deleteFeedback, { isLoading: isDeleting }] =
@@ -105,8 +112,7 @@ export function FeedbackTable() {
 
   // Handle view feedback
   const onView = (feedback: any) => {
-    // TODO: Implement view feedback functionality
-    showSuccess("View feedback functionality will be implemented");
+    router.push(`/${locale}/feedback/${feedback.id}`);
   };
 
   // Handle duplicate feedback
@@ -135,6 +141,12 @@ export function FeedbackTable() {
   // Handle type filter change
   const handleTypeChange = (newType: string) => {
     setSelectedType(newType);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Handle status filter change
+  const handleStatusChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
     setCurrentPage(1); // Reset to first page
   };
 
@@ -200,6 +212,32 @@ export function FeedbackTable() {
         )}`}
       >
         {typeLabel}
+      </span>
+    );
+  };
+
+  // App Type template
+  const appTypeTemplate = (rowData: any) => {
+    const appType = APP_TYPES.find((t) => t.value === rowData.app_type) || APP_TYPES[0];
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+        {appType.label}
+      </span>
+    );
+  };
+
+  // Status template
+  const statusTemplate = (rowData: any) => {
+    const isResolved = rowData.is_resolved;
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          isResolved
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+        }`}
+      >
+        {isResolved ? "Resolved" : "Pending"}
       </span>
     );
   };
@@ -279,6 +317,24 @@ export function FeedbackTable() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Status Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Status:</span>
+                <div className="relative">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
               {/* Records Per Page Control */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Show:</span>
@@ -324,6 +380,12 @@ export function FeedbackTable() {
                     TYPE
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    APP TYPE
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    STATUS
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     SUBJECT
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -338,35 +400,48 @@ export function FeedbackTable() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data?.data?.map((feedback, index) => (
-                  <tr
-                    key={feedback.id}
-                    className={`hover:bg-gray-50 ${
-                      index === 0 ? "bg-gray-50" : ""
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {feedback.id}
+                {data?.data?.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                      No feedback found
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      <div className="font-medium">{feedback.name}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {feedback.contact_no}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {typeTemplate(feedback)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div className="line-clamp-2">{feedback.subject}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {format(
-                        new Date(feedback.created_at),
-                        "dd MMM yyyy - hh:mm a"
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                  </tr>
+                ) : (
+                  data?.data?.map((feedback, index) => (
+                    <tr
+                      key={feedback.id}
+                      className={`hover:bg-gray-50 ${
+                        index === 0 ? "bg-gray-50" : ""
+                      }`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {feedback.id}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div className="font-medium">{feedback.name}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {feedback.contact_no}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {typeTemplate(feedback)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {appTypeTemplate(feedback)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {statusTemplate(feedback)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                        <div className="line-clamp-2">{feedback.subject}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {format(
+                          new Date(feedback.created_at),
+                          "dd MMM yyyy - hh:mm a"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                       <div className="relative actions-menu-container">
                         <button
                           onClick={(e) => {
@@ -411,7 +486,8 @@ export function FeedbackTable() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

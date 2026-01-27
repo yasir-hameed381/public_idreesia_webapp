@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Trash2,
   Calendar,
+  Pencil,
 } from "lucide-react";
 import axios from "axios";
 
@@ -454,10 +455,20 @@ const NewEhadPage = () => {
                           <div className="flex justify-center gap-2">
                             <button
                               onClick={() => {
+                                router.push(`/karkun-portal/new-ehad/new?id=${newEhad.id}`);
+                              }}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Edit"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
                                 setDeletingNewEhadId(newEhad.id);
                                 setShowDeleteModal(true);
                               }}
                               className="text-red-600 hover:text-red-800"
+                              title="Delete"
                             >
                               <Trash2 size={16} />
                             </button>
