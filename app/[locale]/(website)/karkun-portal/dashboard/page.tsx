@@ -230,26 +230,25 @@ const KarkunDashboardPage: React.FC = () => {
           : (dashboardData.zones || []); // Use empty array if zones is undefined/null
 
         setStats((prev) => {
-          // SIMPLE: Use mehfil_directory directly from API response
-          // If selectedMehfilId is null, clear it. Otherwise use what API returns.
-          let mehfilDirectoryValue: any = null;
-          
-          if (selectedMehfilId === null) {
-            mehfilDirectoryValue = null;
-          } else {
-            // Use API response directly - backend handles fetching it
-            mehfilDirectoryValue = dashboardData.mehfil_directory || null;
+          // Always PERSIST mehfil_directory once we have it.
+          // - If API sends a non-null mehfil_directory, update it.
+          // - If API sends null/undefined, KEEP the previous value (avoid card flicker).
+          let mehfilDirectoryValue = prev.mehfil_directory ?? null;
+
+          if (dashboardData.mehfil_directory) {
+            mehfilDirectoryValue = dashboardData.mehfil_directory;
           }
 
-          console.log("💾 Setting mehfil_directory from API:", {
+          console.log("💾 Setting mehfil_directory from API (with preservation):", {
             selectedMehfilId,
             apiMehfilDirectory: dashboardData.mehfil_directory,
+            previousValue: prev.mehfil_directory,
             finalValue: mehfilDirectoryValue,
           });
 
           // Create new state - ensure mehfil_directory is preserved
           const { mehfil_directory, ...restData } = dashboardData;
-          
+
           const newState = {
             ...prev,
             ...restData,
@@ -259,7 +258,8 @@ const KarkunDashboardPage: React.FC = () => {
             totalTabarukats: dashboardData.totalTabarukats ?? 0,
             zones: zonesToSet,
             mehfils: dashboardData.mehfils || prev.mehfils,
-            mehfil_directory: mehfilDirectoryValue, // Set explicitly from API
+            // Critical: never clear this due to a null API value
+            mehfil_directory: mehfilDirectoryValue,
             loading: false,
           };
 
@@ -284,18 +284,9 @@ const KarkunDashboardPage: React.FC = () => {
     fetchDashboardData();
   }, [selectedMonth, selectedYear, selectedZoneId, selectedMehfilId]);
 
-  // REMOVED: This useEffect was causing race conditions and clearing mehfil_directory
-  // The API response already includes mehfil_directory, so we don't need this fallback
-  // Only clear mehfil_directory when selectedMehfilId is explicitly set to null
-  useEffect(() => {
-    if (selectedMehfilId === null && stats.mehfil_directory) {
-      // Only clear when explicitly set to null (not when it's undefined during loading)
-      setStats((prev) => ({
-        ...prev,
-        mehfil_directory: null,
-      }));
-    }
-  }, [selectedMehfilId]); // Removed stats.mehfils and selectedZoneId from dependencies
+  // Do NOT auto-clear mehfil_directory anymore.
+  // Once we have a mehfil_directory from the API, we keep it until the page unmounts
+  // or filters (month/year/zone) trigger a fresh stats load that returns a new value.
 
   // Load mehfils when zone changes
   useEffect(() => {
