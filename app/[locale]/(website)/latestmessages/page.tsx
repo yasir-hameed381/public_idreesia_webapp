@@ -81,14 +81,16 @@ const Messages = () => {
           })}
         </div>
       </div>
-      <Pagination
-        count={Math.ceil((data?.meta?.total || 0) / itemsPerPage)}
-        page={currentPage}
-        onChange={handlePageChange}
-        color="primary"
-        size="large"
-        className={locale === "ur" ? "rtl" : ""}
-      />
+      <div className="dark-pagination-wrapper">
+        <Pagination
+          count={Math.ceil((data?.meta?.total || 0) / itemsPerPage)}
+          page={currentPage}
+          onChange={handlePageChange}
+          color="primary"
+          size="large"
+          className={locale === "ur" ? "rtl" : ""}
+        />
+      </div>
     </div>
   );
 };

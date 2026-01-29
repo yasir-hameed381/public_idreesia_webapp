@@ -12,12 +12,13 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleSuccess = () => {
     setShowForm(false);
     setEditingUser(null);
-    // Refresh the table data
-    // You might want to trigger a refetch here
+    // Trigger table refresh by incrementing refreshTrigger
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleAdd = () => {
@@ -49,6 +50,7 @@ export default function AdminUsersPage() {
             onAdd={handleAdd}
             onEdit={handleEdit}
             showActions={true}
+            refreshTrigger={refreshTrigger}
           />
         )}
       </div>

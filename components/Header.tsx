@@ -218,6 +218,21 @@ const Header = () => {
           {/* Mobile Navigation Menu */}
           {isMobileMenuOpen && (
             <div className="md:hidden bg-green-600 px-4 py-3 space-y-3 mobile-menu animate-slideDown">
+              {/* Language Selector for Mobile */}
+              <div className="flex items-center space-x-2 pb-3 border-b border-green-500">
+                <select
+                  value={locale}
+                  onChange={onLanguageChange}
+                  className="bg-white text-black px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 flex-1"
+                >
+                  {LANG_DROPDOWN.map((lang) => (
+                    <option key={lang.id} value={lang.value}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {isAuthenticated ? (
                 <>
                   {/* User Info */}

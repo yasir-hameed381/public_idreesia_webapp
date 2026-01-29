@@ -23,6 +23,7 @@ interface AdminUserTableProps {
   onAdd?: () => void;
   onDelete?: (data: any) => void;
   showActions?: boolean;
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
 export function AdminUserTable({
@@ -30,6 +31,7 @@ export function AdminUserTable({
   onAdd,
   onDelete,
   showActions = true,
+  refreshTrigger = 0,
 }: AdminUserTableProps) {
   const [search, setSearch] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -100,7 +102,7 @@ export function AdminUserTable({
     };
 
     fetchAdminUsers();
-  }, [currentPage, perPage, debouncedSearch]);
+  }, [currentPage, perPage, debouncedSearch, refreshTrigger]); // Add refreshTrigger to dependencies
 
   // Reset to first page when search changes
   useEffect(() => {

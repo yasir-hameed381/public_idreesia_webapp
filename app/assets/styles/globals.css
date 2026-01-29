@@ -1273,3 +1273,195 @@ body {
     background-color: hsl(var(--card)) !important;
   }
 }
+
+/* MUI Pagination Dark Mode Support */
+.dark .dark-pagination-wrapper .MuiPagination-root {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .dark-pagination-wrapper .MuiPaginationItem-root {
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+  background-color: hsl(var(--card)) !important;
+}
+
+.dark .dark-pagination-wrapper .MuiPaginationItem-root:hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .dark-pagination-wrapper .MuiPaginationItem-root.Mui-selected {
+  background-color: #026419 !important;
+  color: white !important;
+  border-color: #026419 !important;
+}
+
+.dark .dark-pagination-wrapper .MuiPaginationItem-root.Mui-selected:hover {
+  background-color: #028f4f !important;
+}
+
+.dark .dark-pagination-wrapper .MuiPaginationItem-icon {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .dark-pagination-wrapper .MuiPaginationItem-ellipsis {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .dark-pagination-wrapper .Mui-disabled {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 0.5 !important;
+}
+
+.dark .dark-pagination-wrapper .Mui-disabled .MuiPaginationItem-icon {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Latest Messages Page - Card Border Dark Mode Support */
+.dark [class*="border-\\[rgba\\(0\\,0\\,0\\,0\\.125\\)\\]"],
+.dark [class*="border-\\[rgba"] {
+  border-color: hsl(var(--border)) !important;
+  border-width: 1px !important;
+}
+
+/* Also target by the rgba value directly - multiple patterns */
+.dark [class*="rgba(0,0,0,0.125)"],
+.dark [class*="rgba\\(0\\,0\\,0\\,0\\.125\\)"],
+.dark div[class*="border"][class*="rgba"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Target message cards specifically by their structure */
+.dark div.max-w-2xl[class*="border"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Mehfil Page Dark Mode Support - Comprehensive */
+/* Main page background - target the container div */
+.dark [class*="bg-\\[#ffff\\]"],
+.dark [class*="bg-\\[#FCF8F5\\]"],
+.dark [class*="FCF8F5"],
+.dark [class*="ffff"],
+.dark div[class*="ffff"] {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Card backgrounds */
+.dark [class*="bg-\\[#FCF8F5\\]"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+.dark [class*="hover\\:bg-\\[#f6f6f6\\]"]:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Text colors */
+.dark [class*="text-\\[#424242\\]"],
+.dark [class*="424242"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark [class*="hover\\:text-\\[#424242\\]"]:hover {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Border colors */
+.dark [class*="border-\\[#E3E3E3\\]"],
+.dark [class*="E3E3E3"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Search/Filter section background */
+.dark .bg-gray-50 {
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* Input fields in mehfil page */
+.dark input[type="text"],
+.dark input[type="date"] {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark input[type="text"]::placeholder,
+.dark input[type="date"]::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Navigation buttons - target by structure */
+.dark nav button,
+.dark .nav-item button {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark nav button:hover,
+.dark .nav-item button:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Navigation inactive button text */
+.dark nav button.text-gray-700 {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Preserve active state (green background) for navigation buttons */
+.dark nav button.bg-green-700,
+.dark .nav-item button.bg-green-700 {
+  background-color: #026419 !important;
+  color: white !important;
+  border-color: #026419 !important;
+}
+
+.dark nav button.bg-green-700:hover,
+.dark .nav-item button.bg-green-700:hover {
+  background-color: #028f4f !important;
+}
+
+/* Pagination section background and text */
+.dark .text-gray-600 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .text-gray-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Pagination buttons */
+.dark button[class*="bg-white"] {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark button[class*="bg-white"]:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Ensure all white backgrounds in mehfil page become dark */
+.dark [class*="bg-white"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Text that should be visible */
+.dark [class*="text-black"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* More specific targeting for mehfil page main container */
+.dark div.flex.flex-col.items-center[class*="bg-"],
+.dark div.flex.flex-col.items-center[class*="ffff"] {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Ensure content area is dark */
+.dark div[class*="w-full"][class*="max-w"] {
+  background-color: transparent !important;
+}
+
+/* Grid container backgrounds */
+.dark div[class*="grid"][class*="grid-cols"] {
+  background-color: transparent !important;
+}

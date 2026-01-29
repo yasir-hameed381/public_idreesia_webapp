@@ -1,6 +1,19 @@
 import { apiConfig } from "@/lib/apiConfig";
 
 
+export interface MehfilDirectory {
+  id: number;
+  mehfil_number: string;
+  name_en: string;
+  name_ur?: string;
+  address_en: string;
+  address_ur?: string;
+  zimdar_bhai?: string;
+  zimdar_bhai_phone_number?: string;
+  zone_id: number;
+  is_published: number | boolean;
+}
+
 export interface DashboardStats {
   // Basic Stats
   totalKarkuns: number;
@@ -25,6 +38,9 @@ export interface DashboardStats {
   totalZones: number;
   zonesWithReports: number;
   zoneReportStats: ZoneReportStat[];
+
+  // Selected Mehfil Directory (when selected_mehfil_id is provided)
+  mehfil_directory?: MehfilDirectory | null;
 }
 
 export interface MehfilWithReport {
@@ -80,7 +96,7 @@ export interface OverallTotals {
 export class DashboardService {
   static async getDashboardStats(
     filters: DashboardFilters
-  ): Promise<DashboardStats & { zones: any[]; mehfils: any[] }> {
+  ): Promise<DashboardStats & { zones: any[]; mehfils: any[]; mehfil_directory?: MehfilDirectory | null }> {
     try {
       const params = new URLSearchParams();
       params.append("selected_month", filters.selectedMonth.toString());
@@ -121,6 +137,9 @@ export class DashboardService {
         zonesCount: data.zones?.length || 0,
         hasMehfils: !!data.mehfils,
         mehfilsCount: data.mehfils?.length || 0,
+        hasMehfilDirectory: !!data.mehfil_directory,
+        mehfilDirectory: data.mehfil_directory,
+        selectedMehfilId: filters.selectedMehfilId,
         totalKarkuns: data.totalKarkuns,
         ehadKarkuns: data.ehadKarkuns,
         totalNewEhads: data.totalNewEhads,

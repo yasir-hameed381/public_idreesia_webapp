@@ -16,6 +16,8 @@ import {
   Users,
   AlertTriangle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 import jsPDF from "jspdf";
@@ -179,6 +181,10 @@ export default function DutyRosterPage() {
   const [showTable, setShowTable] = useState(false);
   const [removingRosterId, setRemovingRosterId] = useState<number | null>(null);
 
+  // Pagination: 10 items per page, same pattern as other karkun-portal screens
+  const perPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Modals
   const [showAddKarkunModal, setShowAddKarkunModal] = useState(false);
   const [showRemoveKarkunModal, setShowRemoveKarkunModal] = useState(false);
@@ -252,15 +258,29 @@ export default function DutyRosterPage() {
           return;
         }
       }
-      
-      const response = await apiClient.get("/admin/zones");
-      setZones(response.data.data || []);
+
+      // Use /dashboard/zones (same as karkunan): zones filtered by user permissions; no /admin/zones on backend
+      const response = await apiClient.get("/dashboard/zones");
+      let filteredZones: Zone[] = response.data.data || [];
+
+      // Ensure the selected zone (if any) is in the list when zoneId is set before zones load
+      const currentZoneId = zoneId ?? user?.zone_id;
+      if (currentZoneId && !filteredZones.some((z) => z.id === currentZoneId)) {
+        try {
+          const zoneRes = await apiClient.get(`/zone/${currentZoneId}`);
+          if (zoneRes.data?.data) {
+            filteredZones = [zoneRes.data.data, ...filteredZones];
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      setZones(filteredZones);
     } catch (error: any) {
       console.error("Error loading zones:", error);
       if (error.response?.status === 401) {
         toast.error("Authentication failed. Please log in again.");
-        // Optionally redirect to login
-        // router.push("/login");
       } else {
         toast.error("Failed to load zones");
       }
@@ -861,6 +881,26 @@ export default function DutyRosterPage() {
     });
   }, [rosters, search]);
 
+  // Pagination: derived from filtered list, 10 per page
+  const totalRosters = filteredRosters.length;
+  const totalPages = Math.max(1, Math.ceil(totalRosters / perPage));
+  const paginatedRosters = useMemo(() => {
+    const start = (currentPage - 1) * perPage;
+    return filteredRosters.slice(start, start + perPage);
+  }, [filteredRosters, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [zoneId, mehfilDirectoryId, userTypeFilter, search]);
+
+  // Clamp page when list shrinks (e.g. after delete or refetch)
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages >= 1) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   // Helper function to get user initials
   const getUserInitials = (name: string): string => {
     const parts = name.split(" ");
@@ -908,7 +948,7 @@ export default function DutyRosterPage() {
                 <Users size={18} />
                 Coordinators
               </button>
-              {canManageRoster && (
+              {(canManageRoster || zoneId != null) && (
                 <button
                   onClick={() => router.push("/karkun-portal/duty-types")}
                   className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
@@ -1103,7 +1143,7 @@ export default function DutyRosterPage() {
                     </tr>
                   )}
                   {!loading &&
-                    filteredRosters.map((roster) => {
+                    paginatedRosters.map((roster) => {
                       const userName = roster.user?.name || `User #${roster.user_id}`;
                       const initials = getUserInitials(userName);
                       const karkunId = getKarkunId(roster);
@@ -1229,6 +1269,92 @@ export default function DutyRosterPage() {
                     })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination - same structure as other karkun-portal screens */}
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 flex-wrap gap-2">
+              <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                Showing{" "}
+                <span className="text-gray-700">
+                  {totalRosters === 0 ? 0 : (currentPage - 1) * perPage + 1}
+                </span>{" "}
+                to{" "}
+                <span className="text-gray-700">
+                  {Math.min(currentPage * perPage, totalRosters)}
+                </span>{" "}
+                of{" "}
+                <span className="text-gray-700">{totalRosters}</span> results
+              </div>
+
+              <div className="flex items-center bg-white border border-gray-200 rounded-lg p-[1px]">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="flex justify-center items-center w-6 h-6 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {(() => {
+                  const pages: (number | string)[] = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (currentPage <= 4) {
+                      for (let i = 2; i <= Math.min(5, totalPages); i++) pages.push(i);
+                      pages.push("...");
+                      pages.push(totalPages);
+                    } else if (currentPage >= totalPages - 3) {
+                      pages.push("...");
+                      for (let i = Math.max(2, totalPages - 4); i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push("...");
+                      for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                      pages.push("...");
+                      pages.push(totalPages);
+                    }
+                  }
+
+                  return pages.map((page, index) => {
+                    if (page === "...") {
+                      return (
+                        <span
+                          key={`ellipsis-${index}`}
+                          className="text-sm h-6 px-2 rounded-md text-gray-400 font-medium"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    const pageNum = page as number;
+                    const isActive = pageNum === currentPage;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`text-sm h-6 px-2 rounded-md font-medium ${
+                          isActive
+                            ? "bg-gray-100 text-gray-800 cursor-default"
+                            : "text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  });
+                })()}
+
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="flex justify-center items-center w-6 h-6 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                  aria-label="Next"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}

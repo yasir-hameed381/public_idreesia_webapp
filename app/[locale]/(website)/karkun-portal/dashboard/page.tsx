@@ -22,12 +22,15 @@ interface Zone {
 
 interface Mehfil {
   id: number;
-
   mehfil_number: string;
-
   name_en: string;
-
+  name_ur?: string;
   address_en: string;
+  address_ur?: string;
+  zimdar_bhai?: string;
+  zimdar_bhai_phone_number?: string;
+  zone_id?: number;
+  is_published?: number | boolean;
 }
 
 interface DashboardState extends DashboardStatsType {
@@ -36,6 +39,19 @@ interface DashboardState extends DashboardStatsType {
   zones: Zone[];
 
   mehfils: Mehfil[];
+  
+  mehfil_directory?: {
+    id: number;
+    mehfil_number: string;
+    name_en: string;
+    name_ur?: string;
+    address_en: string;
+    address_ur?: string;
+    zimdar_bhai?: string;
+    zimdar_bhai_phone_number?: string;
+    zone_id: number;
+    is_published: number | boolean;
+  } | null;
 }
 
 const KarkunDashboardPage: React.FC = () => {
@@ -194,11 +210,14 @@ const KarkunDashboardPage: React.FC = () => {
           totalMehfils: dashboardData.mehfils?.length || 0,
           zones: dashboardData.zones,
           mehfils: dashboardData.mehfils,
+          mehfil_directory: dashboardData.mehfil_directory,
+          hasMehfilDirectory: !!dashboardData.mehfil_directory,
           totalKarkuns: dashboardData.totalKarkuns,
           ehadKarkuns: dashboardData.ehadKarkuns,
           totalNewEhads: dashboardData.totalNewEhads,
           totalTabarukats: dashboardData.totalTabarukats,
           allKeys: Object.keys(dashboardData),
+          selectedMehfilId,
           userZoneId: user?.zone_id,
           userIsZoneAdmin: user?.is_zone_admin,
           userIsMehfilAdmin: user?.is_mehfil_admin,
@@ -210,24 +229,49 @@ const KarkunDashboardPage: React.FC = () => {
           ? dashboardData.zones 
           : (dashboardData.zones || []); // Use empty array if zones is undefined/null
 
-        setStats((prev) => ({
-          ...prev,
-          ...dashboardData,
-          // Ensure numeric values are properly set (handle potential undefined/null)
-          totalKarkuns: dashboardData.totalKarkuns ?? 0,
-          ehadKarkuns: dashboardData.ehadKarkuns ?? 0,
-          totalNewEhads: dashboardData.totalNewEhads ?? 0,
-          totalTabarukats: dashboardData.totalTabarukats ?? 0,
-          zones: zonesToSet,
-          mehfils:
-            prev.mehfils?.length > 0 ? prev.mehfils : dashboardData.mehfils,
-          loading: false,
-        }));
+        setStats((prev) => {
+          // SIMPLE: Use mehfil_directory directly from API response
+          // If selectedMehfilId is null, clear it. Otherwise use what API returns.
+          let mehfilDirectoryValue: any = null;
+          
+          if (selectedMehfilId === null) {
+            mehfilDirectoryValue = null;
+          } else {
+            // Use API response directly - backend handles fetching it
+            mehfilDirectoryValue = dashboardData.mehfil_directory || null;
+          }
+
+          console.log("💾 Setting mehfil_directory from API:", {
+            selectedMehfilId,
+            apiMehfilDirectory: dashboardData.mehfil_directory,
+            finalValue: mehfilDirectoryValue,
+          });
+
+          // Create new state - ensure mehfil_directory is preserved
+          const { mehfil_directory, ...restData } = dashboardData;
+          
+          const newState = {
+            ...prev,
+            ...restData,
+            totalKarkuns: dashboardData.totalKarkuns ?? 0,
+            ehadKarkuns: dashboardData.ehadKarkuns ?? 0,
+            totalNewEhads: dashboardData.totalNewEhads ?? 0,
+            totalTabarukats: dashboardData.totalTabarukats ?? 0,
+            zones: zonesToSet,
+            mehfils: dashboardData.mehfils || prev.mehfils,
+            mehfil_directory: mehfilDirectoryValue, // Set explicitly from API
+            loading: false,
+          };
+
+          return newState;
+        });
 
         console.log("🔍 Stats after setting:", {
           zonesCount: zonesToSet.length,
           zones: zonesToSet,
           mehfilsCount: dashboardData.mehfils?.length || 0,
+          mehfil_directory: dashboardData.mehfil_directory,
+          hasMehfilDirectory: !!dashboardData.mehfil_directory,
           ehadKarkuns: dashboardData.ehadKarkuns ?? 0,
           totalKarkuns: dashboardData.totalKarkuns ?? 0,
         });
@@ -239,6 +283,19 @@ const KarkunDashboardPage: React.FC = () => {
 
     fetchDashboardData();
   }, [selectedMonth, selectedYear, selectedZoneId, selectedMehfilId]);
+
+  // REMOVED: This useEffect was causing race conditions and clearing mehfil_directory
+  // The API response already includes mehfil_directory, so we don't need this fallback
+  // Only clear mehfil_directory when selectedMehfilId is explicitly set to null
+  useEffect(() => {
+    if (selectedMehfilId === null && stats.mehfil_directory) {
+      // Only clear when explicitly set to null (not when it's undefined during loading)
+      setStats((prev) => ({
+        ...prev,
+        mehfil_directory: null,
+      }));
+    }
+  }, [selectedMehfilId]); // Removed stats.mehfils and selectedZoneId from dependencies
 
   // Load mehfils when zone changes
   useEffect(() => {
@@ -263,6 +320,8 @@ const KarkunDashboardPage: React.FC = () => {
           setStats((prev) => ({
             ...prev,
             mehfils,
+            // Preserve mehfil_directory when updating mehfils
+            mehfil_directory: prev.mehfil_directory,
           }));
         } catch (error) {
           console.error("Error loading mehfils:", error);
@@ -368,17 +427,15 @@ const KarkunDashboardPage: React.FC = () => {
             })()}
 
             {(() => {
-              // Find the selected mehfil from stats.mehfils
-              const selectedMehfil = stats.mehfils.find(
-                (m) => m.id === selectedMehfilId
-              );
-              // If a mehfil is selected, show it; otherwise try to find user's mehfil from stats
-              const userMehfil = user?.mehfil_directory_id
-                ? stats.mehfils.find((m) => m.id === user.mehfil_directory_id)
-                : null;
-              const displayMehfil = selectedMehfil || userMehfil;
+              // SIMPLE: Use mehfil_directory directly from state (set by API)
+              const displayMehfil = stats.mehfil_directory;
 
-              return displayMehfil ? (
+              // Only show card if we have mehfil data
+              if (!displayMehfil) {
+                return null;
+              }
+
+              return (
                 <div className="bg-gray-100 rounded-lg p-4">
                   <p className="text-sm font-medium text-gray-600 mb-1">Mehfil</p>
                   <div className="font-medium mt-1">
@@ -392,7 +449,7 @@ const KarkunDashboardPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-              ) : null;
+              );
             })()}
           </div>
         </div>

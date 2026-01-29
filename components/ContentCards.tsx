@@ -8,6 +8,7 @@ import { useGetTaleematQuery } from "@/store/slicers/taleematApi";
 import { useFetchMehfilsDataQuery } from "@/store/slicers/mehfilApi";
 import { useFetchNaatSharifDataQuery } from "@/store/slicers/naatsharifApi";
 import { useGetWazaifQuery } from "@/store/slicers/wazaifApi";
+import CategoryCards from "./CategoryCards";
 
 interface ContentCardsProps {
   locale?: string;
@@ -554,6 +555,9 @@ const ContentCards: React.FC<ContentCardsProps> = ({ locale = "en" }) => {
           </div>
         </div>
       </section>
+
+      {/* Category Cards Section */}
+      <CategoryCards />
     </div>
   );
 };
