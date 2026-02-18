@@ -136,7 +136,7 @@ const MehfilReportFormPage = () => {
     if (user) {
       const previousMonth = new Date();
       previousMonth.setMonth(previousMonth.getMonth() - 1);
-      
+
       setFormData((prev) => ({
         ...prev,
         report_month: previousMonth.getMonth() + 1,
@@ -317,8 +317,8 @@ const MehfilReportFormPage = () => {
         type === "checkbox"
           ? checked
           : type === "number"
-          ? parseInt(value) || 0
-          : value,
+            ? parseInt(value) || 0
+            : value,
     }));
   };
 
@@ -380,20 +380,30 @@ const MehfilReportFormPage = () => {
       };
 
       if (isEdit && reportId) {
-        await apiClient.put(`/mehfil-reports/${reportId}`, payload);
+        const url = `/mehfil-reports/update/${reportId}`;
+        await apiClient.put(url, payload);
         showSuccess("Mehfil report updated successfully.");
       } else {
-        await apiClient.post("/mehfil-reports", payload);
+        const url = "/mehfil-reports/add";
+        await apiClient.post(url, payload);
         showSuccess("Mehfil report submitted successfully.");
       }
 
       router.push("/karkun-portal/mehfil-reports");
     } catch (error: any) {
-      console.error("Error saving report:", error);
-      showError(
-        error.response?.data?.message ||
-          "Error submitting mehfil report. Please try again."
-      );
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "Error submitting mehfil report. Please try again.";
+
+      if (error.response?.status === 404) {
+        showError(`API endpoint not found (404). Please ensure your backend server is running on ${API_URL}`);
+      } else if (error.response?.status === 401) {
+        showError("Authentication failed. Please log in again.");
+      } else if (error.code === 'ERR_NETWORK') {
+        showError(`Cannot connect to backend server at ${API_URL}. Please ensure it's running.`);
+      } else {
+        showError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -852,8 +862,8 @@ const MehfilReportFormPage = () => {
               {loading
                 ? "Saving..."
                 : isEdit
-                ? "Update Report"
-                : "Submit Report"}
+                  ? "Update Report"
+                  : "Submit Report"}
             </button>
           </div>
         </form>

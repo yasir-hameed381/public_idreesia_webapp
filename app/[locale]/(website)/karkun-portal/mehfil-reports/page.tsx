@@ -82,9 +82,9 @@ const MehfilReportsPage = () => {
   const { user } = useAuth();
   const router = useRouter();
 
-  // State matching PHP component
   const [reports, setReports] = useState<MehfilReport[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"created_at" | "coordinator_name">("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -128,51 +128,63 @@ const MehfilReportsPage = () => {
     setAvailableYears([currentYear + 1, currentYear, currentYear - 1, currentYear - 2]);
   }, [user]);
 
-  // Load zones
+  // Load zones (dashboard API – karkun portal)
   useEffect(() => {
     const loadZones = async () => {
       try {
-        const response = await apiClient.get("/admin/zones");
-        setZones(response.data.data || []);
+        const response = await apiClient.get("/dashboard/zones");
+        const list = response.data?.data ?? response.data ?? [];
+        setZones(Array.isArray(list) ? list : []);
       } catch (error) {
         console.error("Error loading zones:", error);
+        setZones([]);
       }
     };
 
-    if (user) {
-      loadZones();
-    }
+    if (user) loadZones();
   }, [user]);
 
-  // Load mehfils when zone changes
+  // Load mehfils when zone changes (dashboard API)
   useEffect(() => {
-    const loadMehfils = async () => {
-      if (!zoneId) {
-        setMehfilDirectories([]);
-        return;
-      }
+    if (!zoneId) {
+      setMehfilDirectories([]);
+      return;
+    }
 
+    const loadMehfils = async () => {
       try {
-        const response = await apiClient.get("/mehfil-directory", {
-          params: { zoneId: zoneId, size: 500 },
-        });
-        const mehfils = (response.data.data || []).sort(
+        const response = await apiClient.get(`/dashboard/mehfils/${zoneId}`);
+        const list = response.data?.data ?? response.data ?? [];
+        const arr = Array.isArray(list) ? list : [];
+        arr.sort(
           (a: MehfilDirectory, b: MehfilDirectory) =>
-            parseInt(a.mehfil_number) - parseInt(b.mehfil_number)
+            parseInt(String(a.mehfil_number), 10) - parseInt(String(b.mehfil_number), 10)
         );
-        setMehfilDirectories(mehfils);
+        setMehfilDirectories(arr);
       } catch (error) {
         console.error("Error loading mehfils:", error);
+        setMehfilDirectories([]);
       }
     };
 
     loadMehfils();
   }, [zoneId]);
 
-  // Load reports
+  // Debounce search and reset page
   useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Load reports (only when user available)
+  useEffect(() => {
+    if (!user) return;
     loadReports();
   }, [
+    user,
     regionId,
     zoneId,
     mehfilDirectoryId,
@@ -188,44 +200,31 @@ const MehfilReportsPage = () => {
   const loadReports = async () => {
     setLoading(true);
     try {
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
-        per_page: perPage,
+        size: perPage,
+        sort_by: sortBy,
+        sort_direction: sortDirection,
       };
-
-      // Apply filters matching PHP component
-      if (regionId) {
-        params.region_id = regionId;
-      }
-      if (zoneId) {
-        params.zone_id = zoneId;
-      }
-      if (mehfilDirectoryId) {
-        params.mehfil_directory_id = mehfilDirectoryId;
-      }
-      if (filterYear) {
-        params.report_year = filterYear;
-      }
-      if (filterMonth) {
-        params.report_month = filterMonth;
-      }
-
-      // Apply search
-      if (search) {
-        params.search = search;
-      }
-
-      // Apply sorting
-      params.sort_by = sortBy;
-      params.sort_direction = sortDirection;
+      if (regionId != null) params.region_id = regionId;
+      if (zoneId != null) params.zone_id = zoneId;
+      if (mehfilDirectoryId != null) params.mehfil_directory_id = mehfilDirectoryId;
+      if (filterYear != null) params.report_year = filterYear;
+      if (filterMonth != null) params.report_month = filterMonth;
+      if (search) params.search = search;
 
       const response = await apiClient.get("/mehfil-reports", { params });
-      setReports(response.data.data || []);
-      setTotalPages(response.data.meta?.last_page || 1);
-      setTotal(response.data.meta?.total || 0);
+      const data = response.data?.data ?? response.data ?? [];
+      const meta = response.data?.meta ?? {};
+      setReports(Array.isArray(data) ? data : []);
+      setTotalPages(meta.last_page ?? 1);
+      setTotal(meta.total ?? 0);
     } catch (error) {
       toast.error("Failed to load mehfil reports");
       console.error("Error loading reports:", error);
+      setReports([]);
+      setTotal(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -441,17 +440,38 @@ const MehfilReportsPage = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search by coordinator, month, year..."
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
           </div>
+
+          {/* Clear filters */}
+          {(zoneId != null || mehfilDirectoryId != null || filterYear != null || filterMonth != null || searchInput.trim()) && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  const canChangeZone = !user?.is_zone_admin && !user?.is_mehfil_admin;
+                  const canChangeMehfil = !user?.is_mehfil_admin;
+                  if (canChangeZone) {
+                    setZoneId(null);
+                    setMehfilDirectoryId(null);
+                  } else if (canChangeMehfil) setMehfilDirectoryId(null);
+                  setFilterYear(null);
+                  setFilterMonth(null);
+                  setSearchInput("");
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -578,49 +598,122 @@ const MehfilReportsPage = () => {
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
-                      Showing{" "}
-                      <span className="font-medium">
-                        {(currentPage - 1) * perPage + 1}
-                      </span>{" "}
-                      to{" "}
-                      <span className="font-medium">
-                        {Math.min(currentPage * perPage, total)}
-                      </span>{" "}
-                      of <span className="font-medium">{total}</span> results
+                      {total === 0 ? (
+                        "0 results"
+                      ) : (
+                        <>
+                          Showing{" "}
+                          <span className="font-medium">
+                            {(currentPage - 1) * perPage + 1}
+                          </span>{" "}
+                          to{" "}
+                          <span className="font-medium">
+                            {Math.min(currentPage * perPage, total)}
+                          </span>{" "}
+                          of <span className="font-medium">{total}</span> results
+                        </>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={perPage}
-                      onChange={(e) => {
-                        setPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Previous page"
                     >
-                      <option value={10}>10 per page</option>
-                      <option value={25}>25 per page</option>
-                      <option value={50}>50 per page</option>
-                    </select>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      <span className="px-3 py-2 text-sm text-gray-700">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
+                      <ChevronLeft size={16} />
+                    </button>
+                    
+                    {/* Page numbers */}
+                    <div className="flex items-center gap-1">
+                      {(() => {
+                        const pageNumbers = [];
+                        const showEllipsisStart = currentPage > 3;
+                        const showEllipsisEnd = currentPage < totalPages - 2;
+                        
+                        // Always show first page
+                        pageNumbers.push(
+                          <button
+                            key={1}
+                            onClick={() => setCurrentPage(1)}
+                            className={`px-3 py-1 rounded-md text-sm font-medium ${
+                              currentPage === 1
+                                ? "bg-blue-600 text-white"
+                                : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            1
+                          </button>
+                        );
+                        
+                        // Show ellipsis if needed
+                        if (showEllipsisStart) {
+                          pageNumbers.push(
+                            <span key="ellipsis-start" className="px-2 text-gray-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        // Show pages around current page
+                        const startPage = Math.max(2, currentPage - 1);
+                        const endPage = Math.min(totalPages - 1, currentPage + 1);
+                        
+                        for (let i = startPage; i <= endPage; i++) {
+                          pageNumbers.push(
+                            <button
+                              key={i}
+                              onClick={() => setCurrentPage(i)}
+                              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                currentPage === i
+                                  ? "bg-blue-600 text-white"
+                                  : "text-gray-700 hover:bg-gray-100"
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+                        
+                        // Show ellipsis if needed
+                        if (showEllipsisEnd) {
+                          pageNumbers.push(
+                            <span key="ellipsis-end" className="px-2 text-gray-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        // Always show last page if more than 1 page
+                        if (totalPages > 1) {
+                          pageNumbers.push(
+                            <button
+                              key={totalPages}
+                              onClick={() => setCurrentPage(totalPages)}
+                              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                currentPage === totalPages
+                                  ? "bg-blue-600 text-white"
+                                  : "text-gray-700 hover:bg-gray-100"
+                              }`}
+                            >
+                              {totalPages}
+                            </button>
+                          );
+                        }
+                        
+                        return pageNumbers;
+                      })()}
                     </div>
+
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Next page"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
