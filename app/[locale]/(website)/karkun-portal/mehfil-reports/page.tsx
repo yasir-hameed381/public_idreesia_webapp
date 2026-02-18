@@ -628,7 +628,7 @@ const MehfilReportsPage = () => {
                     {/* Page numbers */}
                     <div className="flex items-center gap-1">
                       {(() => {
-                        const pageNumbers = [];
+                        const pageNumbers: React.ReactNode[] = [];
                         const showEllipsisStart = currentPage > 3;
                         const showEllipsisEnd = currentPage < totalPages - 2;
                         

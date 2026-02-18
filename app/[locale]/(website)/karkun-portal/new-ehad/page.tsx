@@ -516,7 +516,7 @@ const NewEhadPage = () => {
                     {/* Page numbers */}
                     <div className="flex items-center gap-1">
                       {(() => {
-                        const pageNumbers = [];
+                        const pageNumbers: JSX.Element[] = [];
                         const showEllipsisStart = currentPage > 3;
                         const showEllipsisEnd = currentPage < totalPages - 2;
                         
