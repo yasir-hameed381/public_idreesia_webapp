@@ -10,8 +10,8 @@ import { usePathname } from "next/navigation";
 import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
 
-// Component to handle dynamic PrimeReact theme loading
-function PrimeThemeLoader() {
+// Component to handle dynamic PrimeReact theme loading (exported for use in layout)
+export function PrimeThemeLoader() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
