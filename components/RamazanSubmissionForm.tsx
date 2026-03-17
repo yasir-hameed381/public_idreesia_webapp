@@ -48,9 +48,7 @@ export default function RamzanSubmissionForm() {
     setIsVisible(false);
   };
 
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    router.push("/parhaiyan/Ramzan-2025");
+  const onSubmit = (data: FormValues) => {    router.push("/parhaiyan/Ramzan-2025");
   };
 
   if (!isVisible) {

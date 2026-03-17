@@ -1,14 +1,19 @@
-
 import React from 'react';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { TranslationKeys } from '@/app/constants/translationKeys';
 import PhoneIcon from '@/app/assets/svg/phone';
 import LocationIcon from '@/app/assets/svg/location';
 import BuildingIcon from '@/app/assets/svg/building';
 
+type Props = { params: Promise<{ locale: string }> };
 
-const ContactPage = () => {
-  const t = useTranslations(TranslationKeys.ABOUT);
+export default async function ContactPage({ params }: Props) {
+  const { locale } = await params;
+
+  const t = (await getTranslations({
+    locale,
+    namespace: TranslationKeys.ABOUT,
+  })) as (key: string) => string;
 
   return (
     <div className="min-h-screen bg-white p-4">
@@ -52,9 +57,4 @@ const ContactPage = () => {
       </div>
     </div>
   );
-};
-
-
-
-
-export default ContactPage;
+}

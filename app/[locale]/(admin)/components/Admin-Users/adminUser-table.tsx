@@ -50,47 +50,21 @@ export function AdminUserTable({
   // Debounce search input to avoid excessive API calls
   const debouncedSearch = useDebounce(search, 500);
 
-  console.log("users=========", user?.role);
   const Role = user?.role;
 
-  // Permission checks - In Laravel, super_admin users still need roles with permissions
   const canEditUsers = hasPermission(PERMISSIONS.EDIT_USERS);
   const canDeleteUsers = hasPermission(PERMISSIONS.DELETE_USERS);
   const canCreateUsers = hasPermission(PERMISSIONS.CREATE_USERS);
 
-  // Debug logging for admin user permissions
-  console.log("🔍 Admin User Table Permission Debug:", {
-    hasEditUsers: hasPermission(PERMISSIONS.EDIT_USERS),
-    hasDeleteUsers: hasPermission(PERMISSIONS.DELETE_USERS),
-    hasCreateUsers: hasPermission(PERMISSIONS.CREATE_USERS),
-    userRole: user?.role?.name,
-    userPermissions: user?.role?.permissions?.map((p) => p.name) || [],
-    adminUserPermissions: [
-      PERMISSIONS.VIEW_USERS,
-      PERMISSIONS.CREATE_USERS,
-      PERMISSIONS.EDIT_USERS,
-      PERMISSIONS.DELETE_USERS,
-    ],
-  });
-
-  // Fetch admin users data
   useEffect(() => {
     const fetchAdminUsers = async () => {
       try {
         setLoading(true);
-        console.log("Fetching admin users with params:", {
-          page: currentPage,
-          size: perPage,
-          search: debouncedSearch.trim(),
-        });
-
         const response = await AdminUsersService.getAll({
           page: currentPage,
           size: perPage,
           search: debouncedSearch.trim(),
         });
-
-        console.log("API Response:", response);
         setData(response.data);
         setMeta(response.meta);
       } catch (err) {

@@ -176,22 +176,14 @@ export function NaatShareefTable() {
   };
 
   // Get user name by ID using current user from permissions
-  const getUserName = (userId: number | undefined) => {
-    console.log("getUserName called with userId:", userId);
-    console.log("Current user from permissions:", user);
-
-    if (!userId) return "N/A";
+  const getUserName = (userId: number | undefined) => {    if (!userId) return "N/A";
 
     // If it's the current user, return their name
-    if (user && user.id === userId) {
-      console.log("Matched current user, returning:", user.name || user.email);
-      return user.name || user.email;
+    if (user && user.id === userId) {      return user.name || user.email;
     }
 
     // For other users, you can expand this with actual user data from API
-    // For now, return a generic name with the user ID
-    console.log("Not current user, returning:", `User ${userId}`);
-    return `User ${userId}`;
+    // For now, return a generic name with the user ID    return `User ${userId}`;
   };
 
   if (showForm) {
@@ -368,15 +360,7 @@ export function NaatShareefTable() {
                         </td>
                       </tr>
                     ) : (
-                      data?.data?.map((naat: any) => {
-                        console.log("Naat record:", naat);
-                        console.log(
-                          "Created by:",
-                          naat.created_by,
-                          "Updated by:",
-                          naat.updated_by
-                        );
-                        return (
+                      data?.data?.map((naat: any) => {                        return (
                           <tr key={naat.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">

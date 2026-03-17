@@ -162,15 +162,6 @@ export function AdminUserForm({
     hasPermission(PERMISSIONS.ASSIGN_PERMISSIONS) ||
     user?.is_zone_admin; // Allow Zone Admins to assign roles
 
-  // Debug logging for admin permissions
-  console.log("🔐 Admin Permissions Check:", {
-    hasAssignPermissions: hasPermission(PERMISSIONS.ASSIGN_PERMISSIONS),
-    isZoneAdmin: user?.is_zone_admin,
-    canAssignRoles,
-    userRole: user?.role?.name,
-    userPermissions: user?.role?.permissions?.map((p) => p.name),
-  });
-
   // Reset form when editing user changes
   useEffect(() => {
     if (editingUser) {
@@ -206,15 +197,6 @@ export function AdminUserForm({
   }, [editingUser, form, showError, onCancel]);
 
   const handleSubmit = async (values: AdminUserFormData) => {
-    console.log("🚀 Form submission started");
-    console.log("📝 Form values:", values);
-    console.log("🔐 Permissions:", {
-      canCreateUsers,
-      canEditUsers,
-      canAssignRoles,
-      isEditing: !!editingUser,
-    });
-
     if (!canCreateUsers && !editingUser) {
       showError("You don't have permission to create users");
       return;
@@ -251,15 +233,11 @@ export function AdminUserForm({
             password: values.password 
           }),
     };
-
-    console.log("🔍 Required fields validation:", requiredFields);
-
     const missingFields = Object.entries(requiredFields)
       .filter(([key, value]) => !value)
       .map(([key]) => key);
 
     if (missingFields.length > 0) {
-      console.error("❌ Missing required fields:", missingFields);
       showError(`Missing required fields: ${missingFields.join(", ")}`);
       return;
     }
@@ -298,23 +276,15 @@ export function AdminUserForm({
         is_all_region_admin: values.is_all_region_admin || false,
         ...(values.password && { password: values.password }),
       };
-
-      console.log("📤 Sending data to API:", formData);
-
       if (editingUser) {
-        console.log("🔄 Updating user with ID:", editingUser.id);
         await AdminUsersService.update(editingUser.id!, formData);
         showSuccess("Admin user updated successfully");
       } else {
-        console.log("➕ Creating new user");
         await AdminUsersService.create(formData);
         showSuccess("Admin user created successfully");
       }
-
-      console.log("✅ API call successful");
       onSuccess();
     } catch (error: any) {
-      console.error("❌ API call failed:", error);
       showError(error.message || "An error occurred");
     } finally {
       setIsLoading(false);

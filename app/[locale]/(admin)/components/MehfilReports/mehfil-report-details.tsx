@@ -13,7 +13,6 @@ import {
   Clock,
 } from "lucide-react";
 import { ProgressSpinner } from "primereact/progressspinner";
-import { useEffect } from "react";
 
 interface MehfilReportDetailsProps {
   reportId: string;
@@ -35,19 +34,6 @@ export function MehfilReportDetails({
 
   // Use fallback data if API fails
   const finalReport = report || reportData;
-
-  // Debug logging (can be removed in production)
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("Report ID:", reportId);
-      console.log("Loading:", isLoading);
-      console.log("Error:", error);
-      console.log("Is Error:", isError);
-      console.log("Report Data:", report);
-      console.log("Report Data (fallback):", reportData);
-      console.log("Final Report:", finalReport);
-    }
-  }, [reportId, isLoading, error, isError, report, reportData, finalReport]);
 
   if (isLoading) {
     return (

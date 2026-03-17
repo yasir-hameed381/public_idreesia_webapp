@@ -7,12 +7,8 @@ export default async function RootLayout({ children, params }) {
   // Dynamically import messages for the current locale
   const messages = require(`../../../messages/${locale}.json`);
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>{children}</Providers>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <Providers>{children}</Providers>
+    </NextIntlClientProvider>
   );
 }

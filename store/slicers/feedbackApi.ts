@@ -85,9 +85,7 @@ export const feedbackApi = createApi({
     }),
     getFeedbackById: builder.query<FeedbackData, number>({
       query: (id) => `feedback/${id}`,
-      transformResponse: (response: any) => {
-        console.log('Get feedback by ID response:', response);
-        return response;
+      transformResponse: (response: any) => {        return response;
       },
       providesTags: (result, error, id) => [{ type: 'Feedback', id }],
     }),

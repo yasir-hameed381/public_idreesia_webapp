@@ -27,8 +27,6 @@ export class AdminUsersService {
       if (params?.size) url.searchParams.append("size", params.size.toString());
       if (params?.search) url.searchParams.append("search", params.search);
 
-      console.log("AdminUsersService - URL being called:", url.toString());
-      console.log("AdminUsersService - Search parameter:", params?.search);
 
       const response = await fetch(url.toString(), {
         headers: getAuthHeaders(),

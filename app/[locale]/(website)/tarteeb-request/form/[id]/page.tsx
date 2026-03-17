@@ -8,11 +8,7 @@ import { toast } from "sonner";
 const PublicTarteebRequestFormPage = () => {
   const router = useRouter();
   const params = useParams();
-  const token = params?.id as string;
-    console.log("Token:", token);
-    console.log("Params:", params);
-    console.log("Router:", router);
-  const [loading, setLoading] = useState(true);
+  const token = params?.id as string;  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tokenValid, setTokenValid] = useState(false);
   const [formData, setFormData] = useState({
@@ -74,9 +70,7 @@ const PublicTarteebRequestFormPage = () => {
       }
 
       try {
-        const result = await TarteebRequestService.validateToken(token);
-        console.log("Token validation result:", result);
-        if (result.success && result.valid && result.data) {
+        const result = await TarteebRequestService.validateToken(token);        if (result.success && result.valid && result.data) {
           setTokenValid(true);
           // Set zone and mehfil from token if available
           const zoneId = result.data?.zone_id;
@@ -143,9 +137,7 @@ const PublicTarteebRequestFormPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      console.log("Submitting form data:", formData);
-      setSubmitting(true);
+    try {      setSubmitting(true);
       await TarteebRequestService.createTarteebRequestWithToken(formData, token);
       toast.success("Tarteeb request submitted successfully!");
       router.push("/");

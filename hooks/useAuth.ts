@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch, TypedUseSelectorHook } from 'react-redux';
+import { selectAuthState } from '@/store/selectors';
 import { useRouter } from 'next/navigation';
 import { logoutUser, initializeAuth, loadUser } from '@/store/slicers/authThunks';
 import { clearError } from '@/store/slicers/authSlice';
@@ -13,7 +14,7 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 export const useAuth = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { isAuthenticated, user, isLoading, error, isLoggingIn } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user, isLoading, error, isLoggingIn } = useSelector(selectAuthState);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -21,26 +22,15 @@ export const useAuth = () => {
     const initAuth = async () => {
       if (!isInitialized) {
         try {
-          console.log('🔐 Initializing authentication...');
-          
-          // Quick check for token first (faster than isAuthenticated)
           const hasToken = authService.hasToken();
-          console.log('🔑 Has token:', hasToken);
-          
           if (!hasToken) {
-            // No token, immediately set as initialized
-            console.log('❌ No token found, skipping auth initialization');
             setIsInitialized(true);
             return;
           }
-          
-          // Only proceed with full initialization if we have a token
           await dispatch(initializeAuth()).unwrap();
-          console.log('✅ Auth initialization completed');
-        } catch (error) {
-          console.warn('❌ Auth initialization failed:', error);
+        } catch {
+          // Auth initialization failed
         } finally {
-          console.log('🏁 Setting isInitialized to true');
           setIsInitialized(true);
         }
       }
@@ -48,17 +38,6 @@ export const useAuth = () => {
 
     initAuth();
   }, [dispatch, isInitialized]);
-
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('🔄 Auth state changed:', {
-      isAuthenticated,
-      user: user ? { name: user.name, email: user.email } : null,
-      isLoading,
-      isInitialized,
-      error
-    });
-  }, [isAuthenticated, user, isLoading, isInitialized, error]);
 
   const checkAuth = () => {
     return authService.isAuthenticated();

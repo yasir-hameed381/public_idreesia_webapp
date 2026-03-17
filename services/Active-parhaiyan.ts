@@ -1,9 +1,6 @@
 import axios from "axios";
 
-export async function activeParhaiyan() {
-  console.log(process.env.NEXT_PUBLIC_API_URL);
-
-  try {
+export async function activeParhaiyan() {  try {
     const response = await axios.get(
       `${process.env.NEXT_PUBLIC_API_URL}/parhaiyan/active`
     );

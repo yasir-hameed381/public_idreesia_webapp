@@ -87,12 +87,8 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
     if (mehfilsError) {
       console.error("Error fetching mehfils:", mehfilsError);
     }
-    if (zonesData) {
-      console.log("Zones data:", zonesData);
-    }
-    if (mehfilsData) {
-      console.log("Mehfils data:", mehfilsData);
-    }
+    if (zonesData) {    }
+    if (mehfilsData) {    }
   }, [zonesData, mehfilsData, zonesError, mehfilsError]);
 
   // Use server-side filtering and pagination (matching Laravel implementation)
@@ -196,10 +192,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
         };
       });
       
-      setFilteredData(convertedData);
-      
-      console.log("✅ Loaded Ehad Karkuns:", convertedData.length, "records");
-    } else {
+      setFilteredData(convertedData);    } else {
       // Handle regular admin users
       if (!apiResponse?.data) {
         setFilteredData([]);
@@ -211,12 +204,7 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
       setFilteredData(dataArray);
 
       // Debug logging
-      if (dataArray.length > 0) {
-        console.log("✅ Loaded users:", dataArray.length, "users");
-        console.log("Sample user:", dataArray[0]);
-      } else {
-        console.log("⚠️ No users found in response");
-      }
+      if (dataArray.length > 0) {      } else {      }
     }
   }, [apiResponse, ehadKarkunsResponse, activeTab, zones]);
 
@@ -395,24 +383,12 @@ export function KarkunanTable({ onEdit, onAdd }: KarkunanTableProps) {
   // Debug logging for API response
   useEffect(() => {
     if (activeTab === "ehad_karkun") {
-      if (ehadKarkunsResponse) {
-        console.log("📦 Ehad Karkuns Response:", {
-          dataLength: ehadKarkunsResponse.data?.length || 0,
-          meta: ehadKarkunsResponse.meta,
-          hasData: !!ehadKarkunsResponse.data,
-        });
-      }
+      if (ehadKarkunsResponse) {      }
       if (ehadKarkunsError) {
         console.error("❌ Ehad Karkuns Fetch Error:", ehadKarkunsError);
       }
     } else {
-      if (apiResponse) {
-        console.log("📦 API Response:", {
-          dataLength: apiResponse.data?.length || 0,
-          meta: apiResponse.meta,
-          hasData: !!apiResponse.data,
-        });
-      }
+      if (apiResponse) {      }
       if (fetchError) {
         console.error("❌ Fetch Error:", fetchError);
       }

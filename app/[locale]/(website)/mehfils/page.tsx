@@ -98,11 +98,7 @@ const Mehfils = () => {
     setDateFilter({ startDate: "", endDate: "" });
     setCurrentPage(1);
     // URL will be updated by useEffect
-  };
-
-  console.log("mehfile data ================", data);
-
-  const handleNavigation = (item: MehfilItem) => {
+  };  const handleNavigation = (item: MehfilItem) => {
     // Note: Consider using sessionStorage or state management instead of localStorage
     // for better practices in a Next.js environment
     localStorage.setItem("mehfilsData", JSON.stringify(item));

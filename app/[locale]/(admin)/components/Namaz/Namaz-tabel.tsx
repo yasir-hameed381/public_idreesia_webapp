@@ -112,11 +112,7 @@ export function NamazTable({ onAdd }: NamazTableProps) {
           description_en: editFormData.description_en || null,
           description_ur: editFormData.description_ur || null,
         },
-      };
-
-      console.log("Update payload:", updatePayload);
-
-      await updateNamaz(updatePayload).unwrap();
+      };      await updateNamaz(updatePayload).unwrap();
 
       showSuccess("Namaz times updated successfully.");
       setEditingItemId(null);

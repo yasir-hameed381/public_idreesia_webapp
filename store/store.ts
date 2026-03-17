@@ -6,20 +6,20 @@ import { FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from "redux-persist
 // Reducers
 import languageReducer from "./slicers/languageSlice";
 import wazaifReducer from "./slicers/wazaifSlice";
-import messagesReducer from "./slicers/meesagesSlice";
 import searchReducer from "./slicers/searchSlice";
 import tagReducer from "./slicers/tagSlice";
 import categoryReducer from "./slicers/categorySlice";
 import naatShirfReducer from "./slicers/naatsharifSlice";
 import messagesSliceReducer from "./slicers/messagesSlice";
 import taleematReducer from "./slicers/taleematSlice";
+import mehfilReducer from "./slicers/mehfilSlice";
 import authReducer from "./slicers/authSlice";
 // API slices
 import { naatsharifApi } from "./slicers/naatsharifApi";
 import { taleematApi } from "./slicers/taleematApi";
 import { messagesApi } from "./slicers/messagesApi";
 import { wazaifApi } from "./slicers/wazaifApi";
-import { tagApi } from "../store/slicers/tagsApi";
+import { tagApi } from "./slicers/tagsApi";
 import { categoryApi } from "./slicers/categoryApi";
 import { mehfilApi } from "./slicers/mehfilApi";
 import { mehfilDirectoryApi } from "./slicers/mehfildirectoryApi";
@@ -130,6 +130,7 @@ const persistedCategoryReducer = persistReducer(categoryPersistConfig, categoryR
 const naatsharifReducer = persistReducer(naatsharifPersistConfig, naatShirfReducer);
 const persistedMessagesSliceReducer = persistReducer(messagesSlicePersistConfig, messagesSliceReducer);
 const taleematsReducer = persistReducer(taleematPersistConfig, taleematReducer);
+const persistedMehfilReducer = persistReducer(mehfilPersistConfig, mehfilReducer);
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 const persistedKarkunJoinRequestsReducer = persistReducer(karkunJoinRequestsPersistConfig, karkunJoinRequestsReducer);
 const persistedNewEhadFollowUpsReducer = persistReducer(newEhadFollowUpsPersistConfig, newEhadFollowUpsReducer);
@@ -140,13 +141,13 @@ export const store = configureStore({
   reducer: {
     language: persistedLanguageReducer,
     wazaif: persistedWazaifReducer,
-    messages: messagesReducer,
     messagesSlice: persistedMessagesSliceReducer,
     search: persistedSearchReducer,
     tag: persistedTagReducer,
     category: persistedCategoryReducer,
     naatsharif: naatsharifReducer,
     taleemat: taleematsReducer,
+    mehfil: persistedMehfilReducer,
     auth: persistedAuthReducer,
     karkunJoinRequests: persistedKarkunJoinRequestsReducer,
     newEhadFollowUps: persistedNewEhadFollowUpsReducer,

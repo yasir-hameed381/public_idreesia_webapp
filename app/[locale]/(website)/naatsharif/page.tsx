@@ -98,9 +98,7 @@ const NaatSharif = () => {
     setCurrentPage(1);
   };
 
-  const handleCategoryChange = (newCategory: string) => {
-    console.log("newCategory", newCategory);
-    setActiveCategory(newCategory);
+  const handleCategoryChange = (newCategory: string) => {    setActiveCategory(newCategory);
     setCurrentPage(1);
   };
 

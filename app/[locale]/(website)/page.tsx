@@ -1,10 +1,9 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { TranslationKeys } from "../../constants/translationKeys";
 import centerImage from "../../assets/centered-border.png";
 import heroImage from "../../assets/gallery-images/image_8.png";
 
 import Image from "next/image";
-// import Ramzan2025Page from "./parhaiyan/Ramzan-2025/page";
 import RamzanCard from "@/components/RamzanCard";
 import MehfilAddressCard from "@/components/Mehfil-Address";
 import Navigation from "@/components/Navigation";
@@ -14,9 +13,15 @@ import LatestMessage from "@/components/MainPageCards/LatestMessage";
 import SearchInterface from "@/components/SearchInterface";
 import ScrollToTop from "@/components/ScrollToTop";
 
-export default function HomePage() {
-  const t = useTranslations(TranslationKeys.HOME_PAGE);
-  const dashboard_t = useTranslations(TranslationKeys.DASHBOARD_CARDS);
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function HomePage({ params }: Props) {
+  const { locale } = await params;
+
+  const t = (await getTranslations({
+    locale,
+    namespace: TranslationKeys.HOME_PAGE,
+  })) as (key: string) => string;
 
   return (
     <>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useSelector } from "react-redux";
+import { selectLanguage } from "@/store/selectors";
 import { useRouter } from "next/navigation";
 import UrduIdreesiaLogo from "../app/assets/logo1.png";
 import footerlogo from "../app/assets/footerlogo.png";
@@ -15,7 +16,7 @@ import YouTube from "../app/assets/Youtub.png";
 import line from "../app/assets/Line 4.png";
 
 export default function Footer() {
-  const language = useSelector((state: any) => state.language.language);
+  const language = useSelector(selectLanguage);
   const router = useRouter();
   const t = useTranslations(TranslationKeys.ABOUT);
 

@@ -1,14 +1,14 @@
 import React from "react";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+type Props = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: Props) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "PrivacyPolicy" });
+  const t = (await getTranslations({
+    locale,
+    namespace: "PrivacyPolicy",
+  })) as (key: string) => string;
 
   return {
     title: t("title"),
@@ -16,8 +16,13 @@ export async function generateMetadata({
   };
 }
 
-export default function PrivacyPolicyPage() {
-  const t = useTranslations("PrivacyPolicy");
+export default async function PrivacyPolicyPage({ params }: Props) {
+  const { locale } = await params;
+
+  const t = (await getTranslations({
+    locale,
+    namespace: "PrivacyPolicy",
+  })) as (key: string) => string;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

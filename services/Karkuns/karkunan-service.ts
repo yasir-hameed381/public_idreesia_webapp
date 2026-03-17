@@ -83,7 +83,6 @@ export const karkunanService = {
         if (params.search) url.searchParams.append('search', params.search);
       }
 
-      console.log('🔍 Fetching karkunan from:', url.toString());
       
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -97,8 +96,6 @@ export const karkunanService = {
       }
 
       const data = await response.json();
-      console.log('✅ Karkunan fetched successfully:', data);
-      
       return data;
     } catch (error) {
       console.error('❌ Error fetching karkunan:', error);
@@ -130,8 +127,6 @@ export const karkunanService = {
   // Create new karkunan
   async createKarkunan(karkunan: CreateKarkunanRequest): Promise<Karkunan> {
     try {
-      console.log('🔍 Creating karkunan:', karkunan);
-      
       const response = await fetch(`${API_BASE_URL}/karkun/add`, {
         method: 'POST',
         headers: {
@@ -146,8 +141,6 @@ export const karkunanService = {
       }
 
       const data = await response.json();
-      console.log('✅ Karkunan created successfully:', data);
-      
       return data;
     } catch (error) {
       console.error('❌ Error creating karkunan:', error);
@@ -158,8 +151,6 @@ export const karkunanService = {
   // Update karkunan
   async updateKarkunan(id: number, karkunan: Partial<CreateKarkunanRequest>): Promise<Karkunan> {
     try {
-      console.log('🔍 Updating karkunan:', { id, karkunan });
-      
       const response = await fetch(`${API_BASE_URL}/karkun/update/${id}`, {
         method: 'PUT',
         headers: {
@@ -174,8 +165,6 @@ export const karkunanService = {
       }
 
       const data = await response.json();
-      console.log('✅ Karkunan updated successfully:', data);
-      
       return data;
     } catch (error) {
       console.error('❌ Error updating karkunan:', error);
@@ -186,8 +175,6 @@ export const karkunanService = {
   // Delete karkunan
   async deleteKarkunan(id: number): Promise<void> {
     try {
-      console.log('🔍 Deleting karkunan:', id);
-      
       const response = await fetch(`${API_BASE_URL}/karkun/${id}`, {
         method: 'DELETE',
         headers: {
@@ -199,8 +186,6 @@ export const karkunanService = {
         const errorData = await response.json();
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
-
-      console.log('✅ Karkunan deleted successfully');
     } catch (error) {
       console.error('❌ Error deleting karkunan:', error);
       throw error;

@@ -205,5 +205,57 @@
     "coming-soon": {
       "title": "Coming Soon..."
     }
+  },
+  "PrivacyPolicy": {
+    "title": "Privacy Policy",
+    "description": "Privacy policy for Silsila Muhammadia Ameenia Idreesia",
+    "introduction": {
+      "title": "Introduction",
+      "content": "We are committed to protecting your privacy."
+    },
+    "informationCollection": {
+      "title": "Information We Collect",
+      "content": "We collect the following types of information:",
+      "items": {
+        "personalInfo": "Personal identification information",
+        "contactInfo": "Contact information",
+        "usageData": "Usage data"
+      }
+    },
+    "howWeUse": {
+      "title": "How We Use Information",
+      "content": "We use the information we collect to:",
+      "items": {
+        "serviceProvision": "Provide and maintain our services",
+        "communication": "Communicate with you",
+        "improvements": "Improve our services"
+      }
+    },
+    "dataSecurity": {
+      "title": "Data Security",
+      "content": "We implement appropriate security measures to protect your personal information."
+    },
+    "dataSharing": {
+      "title": "Data Sharing",
+      "content": "We do not sell or share your personal information with third parties."
+    },
+    "yourRights": {
+      "title": "Your Rights",
+      "content": "You have the right to:",
+      "items": {
+        "access": "Access your personal data",
+        "correction": "Correct inaccurate data",
+        "deletion": "Request deletion of your data"
+      }
+    },
+    "changes": {
+      "title": "Changes to Privacy Policy",
+      "content": "We may update this privacy policy from time to time."
+    },
+    "contact": {
+      "title": "Contact Information",
+      "content": "For privacy-related inquiries, please contact us."
+    },
+    "lastUpdated": "Last updated"
   }
 }

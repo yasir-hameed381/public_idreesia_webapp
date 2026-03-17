@@ -3,14 +3,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { selectSingleMehfilData } from '@/store/selectors';
 import { HardDriveDownload } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import localforage from 'localforage'; 
 
 const MehfilDetails = () => {
-  const SingleMehfildata = useSelector((state: any) => state?.mehfil.SingleMehfildata);
-    const pathname = usePathname();
-  const locale = pathname.split('/')[1] || 'en'; 
+  const singleMehfilData = useSelector(selectSingleMehfilData);
+  const pathname = usePathname();
+  const locale = pathname.split('/')[1] || 'en';
 
   const [mehfil, setMehfil] = useState<any>(null);
 
@@ -19,14 +20,14 @@ const MehfilDetails = () => {
       const storedMehfil: any = await localforage.getItem('mehfilData');
       if (storedMehfil) {
         setMehfil(storedMehfil);
-      } else if (SingleMehfildata) {
-        const mehfilData: any = Object.values(SingleMehfildata)[0];
+      } else if (singleMehfilData && Object.keys(singleMehfilData).length > 0) {
+        const mehfilData: any = Object.values(singleMehfilData)[0];
         setMehfil(mehfilData);
         await localforage.setItem('mehfilData', mehfilData);
       }
     };
     loadMehfilData();
-  }, [SingleMehfildata]);
+  }, [singleMehfilData]);
 
   const getTitle = () => locale === 'ur' ? mehfil.title_ur : mehfil.title_en;
 

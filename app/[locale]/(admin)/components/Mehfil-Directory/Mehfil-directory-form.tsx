@@ -69,14 +69,10 @@ export function MehfilDirectoryForm({ editData, onCancel }) {
         const result = await updateMehfilDirectory({
           id: editData.id,
           ...values,
-        }).unwrap();
-        console.log("Update response:", result);
-        onCancel();
+        }).unwrap();        onCancel();
         showSuccess("Mehfil addresses updated");
       } else {
-        const result = await addMehfilDirectory(values).unwrap();
-        console.log("Add response:", result);
-        onCancel();
+        const result = await addMehfilDirectory(values).unwrap();        onCancel();
         showSuccess("Mehfil addresses created");
       }
       form.resetFields();

@@ -17,9 +17,6 @@ export async function createParhaiyanEntry(data: RamzanParhaiyanPayload) {
   try {
     const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/parhaiyan-recitations/add`, data);
     return response.data;
-  } catch (error) {
-    console.log(error?.response?.data?.message);
-
-    throw new Error("Failed to submit form data");
+  } catch (error) {    throw new Error("Failed to submit form data");
   }
 }

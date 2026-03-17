@@ -128,16 +128,15 @@ export function TabarukatTable({
           ...(selectedMehfil && { mehfil_directory_id: selectedMehfil.toString() }),
         });
 
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
         const response = await fetch(
-          `http://localhost:3000/api/tabarukat/?${params}`
+          `${apiBase.replace(/\/$/, "")}/tabarukat?${params}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch tabarukats");
         }
 
         const data = await response.json();
-
-        console.log("Fetched tabarukats data:", data);
         setApiResponse(data);
       } catch (err) {
         setError("Failed to load tabarukats data");

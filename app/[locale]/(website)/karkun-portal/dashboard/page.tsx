@@ -57,7 +57,6 @@ interface DashboardState extends DashboardStatsType {
 const KarkunDashboardPage: React.FC = () => {
   // const { user,user.zone_id } = useAuth();
   const { user } = useAuth();
-  console.log(user?.zone_id);
 
   const currentDate = new Date();
 
@@ -160,7 +159,6 @@ const KarkunDashboardPage: React.FC = () => {
     if (user) {
       // Zone admin or mehfil admin - pre-select their zone (matching Laravel)
       if (user.is_zone_admin || user.is_mehfil_admin) {
-        console.log("Setting selectedZoneId to:", user.zone_id);
         setSelectedZoneId(user.zone_id || null);
       }
       // Mehfil admin - pre-select their mehfil (matching Laravel)
@@ -205,24 +203,6 @@ const KarkunDashboardPage: React.FC = () => {
 
         const dashboardData = await DashboardService.getDashboardStats(filters);
 
-        console.log("📊 Dashboard data received:", {
-          totalZones: dashboardData.zones?.length || 0,
-          totalMehfils: dashboardData.mehfils?.length || 0,
-          zones: dashboardData.zones,
-          mehfils: dashboardData.mehfils,
-          mehfil_directory: dashboardData.mehfil_directory,
-          hasMehfilDirectory: !!dashboardData.mehfil_directory,
-          totalKarkuns: dashboardData.totalKarkuns,
-          ehadKarkuns: dashboardData.ehadKarkuns,
-          totalNewEhads: dashboardData.totalNewEhads,
-          totalTabarukats: dashboardData.totalTabarukats,
-          allKeys: Object.keys(dashboardData),
-          selectedMehfilId,
-          userZoneId: user?.zone_id,
-          userIsZoneAdmin: user?.is_zone_admin,
-          userIsMehfilAdmin: user?.is_mehfil_admin,
-        });
-
         // Always use zones from API response if available
         // The backend should always return zones based on user permissions
         const zonesToSet = dashboardData.zones && dashboardData.zones.length > 0 
@@ -238,13 +218,6 @@ const KarkunDashboardPage: React.FC = () => {
           if (dashboardData.mehfil_directory) {
             mehfilDirectoryValue = dashboardData.mehfil_directory;
           }
-
-          console.log("💾 Setting mehfil_directory from API (with preservation):", {
-            selectedMehfilId,
-            apiMehfilDirectory: dashboardData.mehfil_directory,
-            previousValue: prev.mehfil_directory,
-            finalValue: mehfilDirectoryValue,
-          });
 
           // Create new state - ensure mehfil_directory is preserved
           const { mehfil_directory, ...restData } = dashboardData;
@@ -265,18 +238,7 @@ const KarkunDashboardPage: React.FC = () => {
 
           return newState;
         });
-
-        console.log("🔍 Stats after setting:", {
-          zonesCount: zonesToSet.length,
-          zones: zonesToSet,
-          mehfilsCount: dashboardData.mehfils?.length || 0,
-          mehfil_directory: dashboardData.mehfil_directory,
-          hasMehfilDirectory: !!dashboardData.mehfil_directory,
-          ehadKarkuns: dashboardData.ehadKarkuns ?? 0,
-          totalKarkuns: dashboardData.totalKarkuns ?? 0,
-        });
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+      } catch {
         setStats((prev) => ({ ...prev, loading: false }));
       }
     };
@@ -290,23 +252,11 @@ const KarkunDashboardPage: React.FC = () => {
 
   // Load mehfils when zone changes
   useEffect(() => {
-    console.log(
-      "🔄 Mehfils useEffect triggered, selectedZoneId:",
-      selectedZoneId
-    );
-
     const loadMehfils = async () => {
       if (selectedZoneId) {
         try {
-          console.log(
-            `📋 Calling getMehfilsForZone for zone ${selectedZoneId}`
-          );
           const mehfils = await DashboardService.getMehfilsForZone(
             selectedZoneId
-          );
-          console.log(
-            `📋 Loaded ${mehfils.length} mehfils for zone ${selectedZoneId}:`,
-            mehfils
           );
           setStats((prev) => ({
             ...prev,
@@ -318,7 +268,6 @@ const KarkunDashboardPage: React.FC = () => {
           console.error("Error loading mehfils:", error);
         }
       } else {
-        console.log("⚠️ No selectedZoneId, clearing mehfils");
         // Clear mehfils when no zone is selected
         setStats((prev) => ({
           ...prev,
@@ -355,26 +304,13 @@ const KarkunDashboardPage: React.FC = () => {
     if (!stats.zones || stats.zones.length === 0) {
       return user?.zone?.title_en || "Loading...";
     }
-
-    console.log("🔍 Getting selected zone name - stats.zones:", stats.mehfils);
-
     const zone = stats.zones.find((z) => z.id === selectedZoneId);
-
-    console.log("🔍 Selected zone details:", zone);
-
     return zone
       ? `${zone.title_en} - ${zone.city_en}, ${zone.country_en}`
       : "All Zones";
   };
 
   // Debug: log stats.zones before render
-  console.log(
-    "🔍 Render - stats.zones:",
-    stats.zones,
-    "length:",
-    stats.zones?.length || 0
-  );
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -457,10 +393,6 @@ const KarkunDashboardPage: React.FC = () => {
               </label>
 
               {(() => {
-                console.log(
-                  "🔍 Inside dropdown render - stats.zones:",
-                  stats.zones
-                );
                 return (
                   <select
                     value={selectedZoneId || ""}

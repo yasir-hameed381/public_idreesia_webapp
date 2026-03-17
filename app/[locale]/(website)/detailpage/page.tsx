@@ -1,12 +1,10 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { shallowEqual } from 'shallow-equal';
 import { HardDriveDownload } from 'lucide-react';
-// import { GetStaticProps } from 'next';
-// import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { useTranslation } from "next-i18next";
-import { useRouter } from 'next/router';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import localforage from 'localforage';
 import { TranslationKeys } from '@/app/constants/translationKeys';
 
@@ -31,9 +29,9 @@ const DetailPage = () => {
   const [content, setContent] = useState<Content | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const router = useRouter();
-  const { locale = 'en' } = router;
-  const { t } = useTranslation(TranslationKeys.COMMON);
+  const params = useParams();
+  const locale = (params?.locale as string) ?? 'en';
+  const t = useTranslations(TranslationKeys.COMMON);
 
 
   const { taleematData, naatSharifData, mehfilData }:any = useSelector(
@@ -159,11 +157,5 @@ const DetailPage = () => {
     </div>
   );
 };
-
-// export const getStaticProps: GetStaticProps = async ({ locale = 'en' }) => ({
-//   props: {
-//     ...(await serverSideTranslations(locale, ["common"])),
-//   },
-// });
 
 export default DetailPage;

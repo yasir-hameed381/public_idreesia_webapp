@@ -1,12 +1,17 @@
-
-
 import React from "react";
-import { useTranslations } from 'next-intl';
+import { getTranslations, unstable_setRequestLocale } from "next-intl/server";
 import { TranslationKeys } from "../../../constants/translationKeys";
 
+type Props = { params: Promise<{ locale: string }> };
 
-const page = () => {
-  const t = useTranslations(TranslationKeys.ANDROID);
+export default async function AndroidNotifyPage({ params }: Props) {
+  const { locale } = await params;
+  unstable_setRequestLocale(locale);
+
+  const t = (await getTranslations({
+    locale,
+    namespace: TranslationKeys.ANDROID,
+  })) as (key: string) => string;
 
   return (
     <div className='flex flex-col items-center h-screen bg-[#fcf8f5]'>
@@ -26,5 +31,4 @@ const page = () => {
       </div>
     </div>
   );
-};
-export default page;
+}

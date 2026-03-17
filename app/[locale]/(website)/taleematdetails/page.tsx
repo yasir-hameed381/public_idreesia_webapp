@@ -1,14 +1,14 @@
 "use client";
 import React from 'react';
-import { useRouter } from 'next/router';
+import { useSearchParams } from 'next/navigation';
 import { HardDriveDownload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
 const TaleematDetails = () => {
-  const router = useRouter();
-  const taleematData = router.query.data; // Get the data from the router query
-  const taleemat = taleematData ? JSON.parse(taleematData as string) : null; // Parse the JSON string
+  const searchParams = useSearchParams();
+  const taleematData = searchParams.get('data');
+  const taleemat = taleematData ? JSON.parse(taleematData) : null;
   const t = useTranslations();
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'en';

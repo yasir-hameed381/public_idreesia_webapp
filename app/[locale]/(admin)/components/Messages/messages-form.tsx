@@ -191,13 +191,7 @@ export function MessagesForm({
         link_4_category_id: formData.link_4_category_id
           ? parseInt(formData.link_4_category_id, 10)
           : null,
-      };
-
-      console.log("=== PAYLOAD BEING SENT ===");
-      console.log("Form Data:", formData);
-      console.log("Processed Payload:", itemData);
-
-      if (initialData) {
+      };      if (initialData) {
         const updateMessageData = {
           ...itemData,
           updated_by: user?.id ? user.id.toString() : "",

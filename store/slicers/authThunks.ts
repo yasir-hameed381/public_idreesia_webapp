@@ -17,24 +17,9 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async (credentials: LoginCredentials, { dispatch, rejectWithValue }) => {
     try {
-      console.log("🚀 Starting login process...");
       dispatch(loginStart());
-
       const response = await authService.login(credentials);
-
-      console.log(
-        "✅ Login successful, processing user data in Redux store..."
-      );
-      console.log("👤 User data being stored:", response.user);
-
-      // User data is now included in the login response
       dispatch(loginSuccess(response.user));
-
-      console.log("✅ User data successfully stored in Redux store");
-
-      // Don't handle navigation here - let the component handle it
-      // This prevents page refresh and allows for better UX
-
       return response;
     } catch (error: any) {
       console.error("❌ Login failed:", error);
@@ -59,9 +44,7 @@ export const logoutUser = createAsyncThunk(
       authService.clearAuthData();
 
       // Handle API call in the background (don't wait for it)
-      authService.logout().catch((error) => {
-        console.warn("Logout API call failed:", error);
-      });
+      authService.logout().catch(() => {});
 
       return true;
     } catch (error: any) {
@@ -111,54 +94,28 @@ export const initializeAuth = createAsyncThunk(
   "auth/initialize",
   async (_, { dispatch, rejectWithValue, getState }) => {
     try {
-      console.log("🚀 Starting auth initialization...");
-
-      // Check if we have a token
       const hasToken = authService.isAuthenticated();
-      console.log("🔑 Has token:", hasToken);
+      if (!hasToken) return null;
 
-      if (!hasToken) {
-        console.log("❌ No token found, returning null immediately");
-        return null;
-      }
-
-      // Check if we already have user data in the store
       const state = getState() as any;
       const currentUser = state.auth.user;
-      console.log("👤 Current user in store:", currentUser);
+      if (currentUser) return currentUser;
 
-      if (currentUser) {
-        // User data is already available, no need to fetch
-        console.log("✅ User data already available in store");
-        return currentUser;
-      }
-
-      // Try to get user from localStorage first (faster)
       const userFromStorage = authService.getUserFromStorage();
-      console.log("💾 User from localStorage:", userFromStorage);
-
       if (userFromStorage) {
-        console.log("✅ Using user data from localStorage");
         dispatch(loadUserSuccess(userFromStorage));
         return userFromStorage;
       }
 
-      // Only try API if we have a token but no user data
       try {
-        console.log("📡 Fetching user data from API...");
         const user = await authService.getUser();
-        console.log("✅ User data fetched from API:", user);
         dispatch(loadUserSuccess(user));
         return user;
-      } catch (error) {
-        console.warn("⚠️ Failed to fetch user from API:", error);
-        // If API call fails and no localStorage data, clear auth state
-        console.log("🧹 No user data available, clearing auth state");
+      } catch {
         dispatch(logoutSuccess());
         return null;
       }
     } catch (error: any) {
-      console.error("❌ Auth initialization failed:", error);
       // If initialization fails, clear auth state
       dispatch(logoutSuccess());
       return rejectWithValue("Authentication failed");

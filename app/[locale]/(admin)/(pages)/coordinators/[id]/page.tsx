@@ -68,9 +68,7 @@ export default function EditCoordinatorPage() {
   const fetchDutyTypes = async () => {
     try {
       const response = await axios.get(`${API_URL}/duty-types-data/active`);
-      setDutyTypes(response.data.data || []);
-      console.log('Duty types loaded:', response.data.data);
-    } catch (error) {
+      setDutyTypes(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch duty types:', error);
       toast.error('Failed to fetch duty types');
     }
@@ -88,9 +86,7 @@ export default function EditCoordinatorPage() {
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/adminUsers?page=1&size=1000`);
-      setUsers(response.data.data || []);
-      console.log('Users loaded:', response.data.data);
-    } catch (error) {
+      setUsers(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch users:', error);
     }
   };

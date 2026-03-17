@@ -399,7 +399,7 @@ export default function AdminPage() {
                 <h2 className={`text-3xl font-bold mb-4 text-right ${
                   isDark ? "text-white" : "text-gray-800"
                 }`}>
-                  السَّلَامُ عَلَيْكُمْ وَرَحْمَهُ اللَّهِ وَبَرَكَاتُهُ
+                السَّلَامُ عَلَیْكُمْ وَرَحْمَةُ اللّٰہِ وَبَرَكَاتُهُ
                 </h2>
                 <div className="mb-4">
                   <hr className={isDark ? "border-gray-700" : "border-gray-300"} />

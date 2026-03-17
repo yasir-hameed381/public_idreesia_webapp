@@ -15,8 +15,8 @@ interface FetchMehfilDataResponse {
 }
 
 interface MehfilState {
-  allMehfildata: Record<number, MehfilData>; 
-  SingleMehfildata: Record<number, MehfilData>;
+  allMehfilData: Record<number, MehfilData>;
+  singleMehfilData: Record<number, MehfilData>;
   totalPages: number;
   loading: boolean;
   error: string | null;
@@ -44,16 +44,16 @@ export const fetchMehfilData = createAsyncThunk<FetchMehfilDataResponse, FetchMe
 const mehfilSlice = createSlice({
   name: 'mehfil',
   initialState: {
-    allMehfildata: {},
-    SingleMehfildata: {},
+    allMehfilData: {},
+    singleMehfilData: {},
     totalPages: 1,
     loading: false,
     error: null,
-  } as MehfilState, 
+  } as MehfilState,
   reducers: {
     setMehfilDataById: (state, action: PayloadAction<{ id: number; mehfil: MehfilData }>) => {
       const { id, mehfil } = action.payload;
-      state.SingleMehfildata = { [id]: mehfil };
+      state.singleMehfilData = { [id]: mehfil };
     },
   },
   extraReducers: (builder) => {
@@ -62,7 +62,7 @@ const mehfilSlice = createSlice({
         state.loading = true;
       })
       .addCase(fetchMehfilData.fulfilled, (state, action) => {
-        state.allMehfildata = action.payload.data.reduce((acc, item) => {
+        state.allMehfilData = action.payload.data.reduce((acc, item) => {
           acc[item.id] = item;
           return acc;
         }, {} as Record<number, MehfilData>);

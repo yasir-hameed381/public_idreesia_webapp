@@ -96,9 +96,7 @@ export const karkunJoinRequestsApi = createApi({
     }),
     getKarkunJoinRequestById: builder.query<KarkunJoinRequestData, number>({
       query: (id) => `karkun-join-requests/${id}`,
-      transformResponse: (response: any) => {
-        console.log('Get karkun join request by ID response:', response);
-        return response;
+      transformResponse: (response: any) => {        return response;
       },
       providesTags: (result, error, id) => [{ type: 'KarkunJoinRequest', id }],
     }),

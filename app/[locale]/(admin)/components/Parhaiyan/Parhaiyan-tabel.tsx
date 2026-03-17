@@ -53,23 +53,6 @@ export function ParhaiyanTable({ onEdit, onAdd, onView }: ParhaiyanTableProps) {
   const canDeleteParhaiyan =
     isSuperAdmin || hasPermission(PERMISSIONS.DELETE_PARHAIYAN);
 
-  // Debug logging for parhaiyan permissions
-  console.log("🔍 Parhaiyan Table Permission Debug:", {
-    isSuperAdmin,
-    hasViewParhaiyan: hasPermission(PERMISSIONS.VIEW_PARHAIYAN),
-    hasCreateParhaiyan: hasPermission(PERMISSIONS.CREATE_PARHAIYAN),
-    hasEditParhaiyan: hasPermission(PERMISSIONS.EDIT_PARHAIYAN),
-    hasDeleteParhaiyan: hasPermission(PERMISSIONS.DELETE_PARHAIYAN),
-    userRole: user?.role?.name,
-    userPermissions: user?.role?.permissions?.map((p) => p.name) || [],
-    parhaiyanPermissions: [
-      PERMISSIONS.VIEW_PARHAIYAN,
-      PERMISSIONS.CREATE_PARHAIYAN,
-      PERMISSIONS.EDIT_PARHAIYAN,
-      PERMISSIONS.DELETE_PARHAIYAN,
-    ],
-  });
-
   // Debounce search input to avoid excessive API calls
   const debouncedSearch = useDebounce(search, 500);
 

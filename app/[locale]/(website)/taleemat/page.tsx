@@ -6,7 +6,7 @@ import playImage from "../../../assets/play.png";
 import { SearchIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useGetTaleematQuery } from "../../../../store/slicers//taleematApi";
+import { useGetTaleematQuery } from "../../../../store/slicers/taleematApi";
 import { TranslationKeys } from "../../../constants/translationKeys";
 import LoadingSpinner from "@/components/ui/Loadingspinner";
 import Navigation from "../../../../components/Navigation";
@@ -200,10 +200,7 @@ const Taleemat = () => {
               className="w-full border border-[#e3e3e3] text-base rounded-[5px] bg-white mb-5 hover:bg-[#f6f6f6] hover:text-[#424242] transition"
             >
               <Link
-                href={{
-                  pathname: `/taleemat/${item.id}`,
-                  query: { data: JSON.stringify(item) },
-                }}
+                href={`/${locale}/taleemat/${item.id}?data=${encodeURIComponent(JSON.stringify(item))}`}
               >
                 <div className="flex gap-[15px] py-[15px] px-[10px] items-center">
                   <Image

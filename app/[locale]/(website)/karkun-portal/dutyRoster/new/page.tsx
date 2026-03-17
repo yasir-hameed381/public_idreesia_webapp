@@ -342,13 +342,7 @@ export default function NewDutyRosterPage() {
                             const value =
                               e.target.value !== "none"
                                 ? parseInt(e.target.value, 10)
-                                : undefined;
-                            console.log("[DutyRoster New] Duty select change", {
-                              day,
-                              rawValue: e.target.value,
-                              parsedValue: value,
-                            });
-                            return {
+                                : undefined;                            return {
                               ...prev,
                               [`duty_type_id_${day}`]: value,
                             };

@@ -42,23 +42,6 @@ export function ZoneTable({ onEdit, onAdd }: ZoneTableProps) {
   const { showError, showSuccess } = useToast();
   const { hasPermission, isSuperAdmin, user } = usePermissions();
 
-  // Debug logging for zone permissions
-  console.log("🔍 Zone Table Permission Debug:", {
-    isSuperAdmin,
-    hasViewZones: hasPermission(PERMISSIONS.VIEW_ZONES),
-    hasCreateZones: hasPermission(PERMISSIONS.CREATE_ZONES),
-    hasEditZones: hasPermission(PERMISSIONS.EDIT_ZONES),
-    hasDeleteZones: hasPermission(PERMISSIONS.DELETE_ZONES),
-    userRole: user?.role?.name,
-    userPermissions: user?.role?.permissions?.map((p) => p.name) || [],
-    zonePermissions: [
-      PERMISSIONS.VIEW_ZONES,
-      PERMISSIONS.CREATE_ZONES,
-      PERMISSIONS.EDIT_ZONES,
-      PERMISSIONS.DELETE_ZONES,
-    ],
-  });
-
   // Fetch data with pagination and search parameters
   const {
     data: zoneData,

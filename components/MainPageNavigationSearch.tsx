@@ -5,6 +5,7 @@ import SearchIcon from "./Search-Icon";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useDispatch, useSelector } from "react-redux";
+import { selectSearchState } from "@/store/selectors";
 import {
   clearSearchResults,
   setSearchDetails,
@@ -26,8 +27,7 @@ const MainPageNavigationSearch = () => {
   const router = useRouter();
   const searchContainerRef = useRef(null);
 
-  const { searchResults, isLoading, error } =
-    useSelector((state: any) => state.search);
+  const { searchResults, isLoading, error } = useSelector(selectSearchState);
 
   const navItems = [{ key: "taleem" }, { key: "mehfils" }, { key: "naat" }];
 

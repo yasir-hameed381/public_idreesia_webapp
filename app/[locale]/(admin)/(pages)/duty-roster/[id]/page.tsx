@@ -76,9 +76,7 @@ export default function EditDutyRosterPage() {
   const fetchDutyTypes = async () => {
     try {
       const response = await axios.get(`${API_URL}/duty-types-data/active`);
-      setDutyTypes(response.data.data || []);
-      console.log('Duty types loaded:', response.data.data);
-    } catch (error) {
+      setDutyTypes(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch duty types:', error);
       toast.error('Failed to fetch duty types');
     }

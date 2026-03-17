@@ -217,29 +217,17 @@ export default function KarkunPortalLayout({
 
     const normalizedHref = href.toLowerCase();
 
-    // Debug logging
-    console.log("🔍 Active Tab Check:", {
-      originalPathname: pathname,
-      normalizedPathname,
-      href: normalizedHref,
-      locale: localeMatch?.[0],
-    });
-
-    // Special case for dashboard - exact match or root karkun-portal path
+    // Debug logging    // Special case for dashboard - exact match or root karkun-portal path
     if (normalizedHref === "/karkun-portal/dashboard") {
       const isActive =
         normalizedPathname === normalizedHref ||
         normalizedPathname === "/karkun-portal" ||
-        normalizedPathname === "/karkun-portal/";
-      console.log("✅ Dashboard active?", isActive);
-      return isActive;
+        normalizedPathname === "/karkun-portal/";      return isActive;
     }
 
     // For other routes, check if pathname starts with href
     // This will match /karkun-portal/dutyRoster, /karkun-portal/dutyRoster/new, /karkun-portal/dutyRoster/123
-    const isActive = normalizedPathname.startsWith(normalizedHref);
-    console.log(`✅ ${href} active?`, isActive);
-    return isActive;
+    const isActive = normalizedPathname.startsWith(normalizedHref);    return isActive;
   };
 
   return (

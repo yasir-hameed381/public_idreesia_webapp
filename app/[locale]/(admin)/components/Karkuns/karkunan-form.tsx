@@ -101,9 +101,7 @@ export function KarkunanForm({
 
   // Set form values when editData changes
   useEffect(() => {
-    if (editData) {
-      console.log("Setting form with edit data:", editData);
-      reset({
+    if (editData) {      reset({
         id: editData.id,
         name: editData.name || "",
         name_ur: (editData as any).name_ur || "",
@@ -318,11 +316,7 @@ export function KarkunanForm({
           showError("Passwords do not match.");
           return;
         }
-      }
-
-      console.log("Form data submitted:", formData);
-
-      // Upload avatar if a new one is selected
+      }      // Upload avatar if a new one is selected
       let avatarPathToSave = avatarPath;
       if (avatar && !avatarRemoved) {
         avatarPathToSave = await uploadAvatar(avatar);
@@ -369,11 +363,7 @@ export function KarkunanForm({
         apiData.email_verified_at = new Date().toISOString();
       } else if (changePassword && canChangePassword() && formData.password) {
         apiData.password = formData.password;
-      }
-
-      console.log("API data being sent:", apiData);
-
-      if (editData && editData.id) {
+      }      if (editData && editData.id) {
         setIsUpdating(true);
         await AdminUsersService.update(editData.id, apiData);
         showSuccess("Karkun updated successfully!");

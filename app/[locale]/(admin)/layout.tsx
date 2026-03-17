@@ -97,7 +97,6 @@ function AdminContent({ children }: { children: ReactNode }) {
 
     // If no token or user data, redirect immediately
     if (!hasToken || !hasUser) {
-      console.log("No auth data found, redirecting to login");
       router.replace("/login");
       return <GlobalLoading text="Redirecting to login..." />;
     }
@@ -107,11 +106,9 @@ function AdminContent({ children }: { children: ReactNode }) {
 
   // If timeout reached, check authentication status directly
   if (loadingTimeout) {
-    console.log("Checking authentication status after timeout");
     const { hasToken, hasUser } = quickAuthCheck();
 
     if (!hasToken || !hasUser) {
-      console.log("No authentication found, redirecting to login");
       router.replace("/login");
       return <GlobalLoading text="Redirecting to login..." />;
     }
@@ -119,19 +116,15 @@ function AdminContent({ children }: { children: ReactNode }) {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    console.log("Not authenticated, redirecting to login");
     router.replace("/login");
     return <GlobalLoading text="Redirecting to login..." />;
   }
 
   // Redirect to home if not admin
   if (!user || !authService.isUserAdmin(user)) {
-    console.log("Not admin, redirecting to home");
     router.replace("/");
     return <GlobalLoading text="Redirecting..." />;
   }
-
-  console.log("Authentication successful, rendering admin content");
 
   return (
     <>
@@ -184,21 +177,19 @@ function AdminContent({ children }: { children: ReactNode }) {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <LoadingBar />
-        <Provider store={store}>
-          <ToastProvider>
-            <PersistGate loading={<GlobalLoading text="Loading app state..." />} persistor={persistor}>
-              <ThemeProvider>
-                <PermissionProvider>
-                  <AdminContent>{children}</AdminContent>
-                </PermissionProvider>
-              </ThemeProvider>
-            </PersistGate>
-          </ToastProvider>
-        </Provider>
-      </body>
-    </html>
+    <>
+      <LoadingBar />
+      <Provider store={store}>
+        <ToastProvider>
+          <PersistGate loading={<GlobalLoading text="Loading app state..." />} persistor={persistor}>
+            <ThemeProvider>
+              <PermissionProvider>
+                <AdminContent>{children}</AdminContent>
+              </PermissionProvider>
+            </ThemeProvider>
+          </PersistGate>
+        </ToastProvider>
+      </Provider>
+    </>
   );
 }

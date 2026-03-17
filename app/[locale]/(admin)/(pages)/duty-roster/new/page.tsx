@@ -71,9 +71,7 @@ export default function NewDutyRosterPage() {
   const fetchDutyTypes = async () => {
     try {
       const response = await axios.get(`${API_URL}/duty-types-data/active`);
-      setDutyTypes(response.data.data || []);
-      console.log('Duty types loaded:', response.data.data);
-    } catch (error) {
+      setDutyTypes(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch duty types:', error);
       toast.error('Failed to fetch duty types');
     }
@@ -82,9 +80,7 @@ export default function NewDutyRosterPage() {
   const fetchZones = async () => {
     try {
       const response = await axios.get(`${API_URL}/zone?page=1&size=1000`);
-      setZones(response.data.data || []);
-      console.log('Zones loaded:', response.data.data);
-    } catch (error) {
+      setZones(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch zones:', error);
     }
   };
@@ -92,9 +88,7 @@ export default function NewDutyRosterPage() {
   const fetchMehfilDirectories = async () => {
     try {
       const response = await axios.get(`${API_URL}/mehfil-directory?page=1&size=1000`);
-      setMehfilDirectories(response.data.data || []);
-      console.log('Mehfil directories loaded:', response.data.data);
-    } catch (error) {
+      setMehfilDirectories(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch mehfil directories:', error);
     }
   };
@@ -102,9 +96,7 @@ export default function NewDutyRosterPage() {
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/adminUsers?page=1&size=1000`);
-      setUsers(response.data.data || []);
-      console.log('Users loaded:', response.data.data);
-    } catch (error) {
+      setUsers(response.data.data || []);    } catch (error) {
       console.error('Failed to fetch users:', error);
     }
   };

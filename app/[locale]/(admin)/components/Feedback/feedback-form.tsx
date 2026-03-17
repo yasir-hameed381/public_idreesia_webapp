@@ -162,13 +162,7 @@ export function FeedbackForm({
         subject: formData.subject,
         description: formData.description,
         screenshot: screenshotUrl,
-      };
-
-      console.log("=== PAYLOAD BEING SENT ===");
-      console.log("Form Data:", formData);
-      console.log("Processed Payload:", itemData);
-
-      if (initialData) {
+      };      if (initialData) {
         await updateFeedback({
           id: initialData.id,
           ...itemData,

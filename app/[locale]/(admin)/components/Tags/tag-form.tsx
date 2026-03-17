@@ -71,13 +71,7 @@ export function TagForm({ onClose, initialData, onSuccess }: TagFormProps) {
       const itemData: any = {
         name: formData.name,
         normalized: formData.normalized,
-      };
-
-      console.log("=== PAYLOAD BEING SENT ===");
-      console.log("Form Data:", formData);
-      console.log("Processed Payload:", itemData);
-
-      if (initialData?.tag_id) {
+      };      if (initialData?.tag_id) {
         await updateTag({
           tag_id: initialData.tag_id,
           data: itemData,

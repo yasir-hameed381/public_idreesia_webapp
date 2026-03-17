@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
@@ -53,27 +53,27 @@ export function EhadKarkunTable({ onEdit, onAdd }: KarkunTableProps) {
 
   const [deleteKarkun, { isLoading: isDeleting }] = useDeleteKarkunMutation();
 
-  const confirmDelete = (karkun: any) => {
+  const confirmDelete = useCallback((karkun: any) => {
     setSelectedKarkun(karkun);
     setShowDeleteDialog(true);
-  };
+  }, []);
 
   // Reset to first page when search or sort changes
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, sortField, sortDirection]);
 
-  const handleSortChange = (field: "id" | "name_en" | "created_at" | "updated_at") => {
+  const handleSortChange = useCallback((field: "id" | "name_en" | "created_at" | "updated_at") => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
       setSortDirection("asc");
     }
-  };
+  }, [sortField]);
 
   // Client-side sorting since API doesn't support it yet
-  const getSortedData = (data: any[]) => {
+  const getSortedData = useCallback((data: any[]) => {
     if (!data || data.length === 0) return data;
     
     return [...data].sort((a, b) => {
@@ -101,9 +101,9 @@ export function EhadKarkunTable({ onEdit, onAdd }: KarkunTableProps) {
         ? String(aValue).localeCompare(String(bValue))
         : String(bValue).localeCompare(String(aValue));
     });
-  };
+  }, [sortField, sortDirection]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!selectedKarkun) return;
 
     try {
@@ -118,18 +118,18 @@ export function EhadKarkunTable({ onEdit, onAdd }: KarkunTableProps) {
     } finally {
       setDeleting(false);
     }
-  };
+  }, [selectedKarkun, deleteKarkun, showSuccess, showError]);
 
-  const handleDeleteClick = (karkun: any) => {
+  const handleDeleteClick = useCallback((karkun: any) => {
     if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_EHAD_KARKUN))) {
       showError("You don't have permission to delete Ehad Karkuns");
       return;
     }
     setSelectedKarkun(karkun);
     setShowDeleteDialog(true);
-  };
+  }, [isSuperAdmin, hasPermission, showError]);
 
-  const handleEdit = (karkun: any) => {
+  const handleEdit = useCallback((karkun: any) => {
     if (!(isSuperAdmin || hasPermission(PERMISSIONS.EDIT_EHAD_KARKUN))) {
       showError("You don't have permission to edit Ehad Karkuns");
       return;
@@ -137,21 +137,20 @@ export function EhadKarkunTable({ onEdit, onAdd }: KarkunTableProps) {
     if (onEdit) {
       onEdit(karkun);
     }
-  };
+  }, [isSuperAdmin, hasPermission, showError, onEdit]);
 
-  const handleView = (karkun: any) => {
+  const handleView = useCallback((_karkun: any) => {
     // Navigate to detail page if it exists, otherwise do nothing
-    // router.push(`/${locale}/ehad-karkun/${karkun.id}`);
-  };
+  }, []);
 
-  const handleTablePageChange = (newPage: number) => {
+  const handleTablePageChange = useCallback((newPage: number) => {
     setCurrentPage(newPage);
-  };
+  }, []);
 
-  const handlePerPageChange = (newPerPage: number) => {
+  const handlePerPageChange = useCallback((newPerPage: number) => {
     setPerPage(newPerPage);
     setCurrentPage(1); // Reset to first page when changing per page
-  };
+  }, []);
 
   const totalPages = Math.ceil((karkunData?.meta?.total || 0) / perPage);
   const startRecord = (currentPage - 1) * perPage + 1;

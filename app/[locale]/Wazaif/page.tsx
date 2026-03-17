@@ -12,7 +12,11 @@ function WazaifList() {
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'en';
   const t = useTranslations(TranslationKeys.ALL_TITLES);
-  const { data, isLoading, error } = useGetWazaifQuery();
+  const { data, isLoading, error } = useGetWazaifQuery({
+    page: 1,
+    limit: 100,
+    category: 'all',
+  });
 
   const getLocalizedContent = (item: any) => {
     return locale === 'ur' ? item.title_ur : item.title_en;

@@ -19,9 +19,6 @@ export default function MehfilDirectoryPage() {
   return (
     <PermissionWrapper requiredPermission={PERMISSIONS.VIEW_MEHFIL_DIRECTORY}>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Mehfil Directory</h1>
-        </div>
         <MehfilDirectoryTable onEdit={handleEdit} onAdd={handleAdd} />
       </div>
     </PermissionWrapper>

@@ -7,6 +7,7 @@ import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import REGEX_PATTERNS from "../../constants/REGX";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import { selectAuthState } from "@/store/selectors";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loginUser } from "@/store/slicers/authThunks";
@@ -57,9 +58,7 @@ export default function LoginForm() {
 
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { isLoggingIn, error, isAuthenticated, user } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { isLoggingIn, error, isAuthenticated, user } = useSelector(selectAuthState);
   const [rateLimitInfo, setRateLimitInfo] = useState<{
     limited: boolean;
     secondsRemaining?: number;
@@ -71,15 +70,12 @@ export default function LoginForm() {
     if (isAuthenticated && user) {
       // Redirect based on user role
       if (authService.isUserAdmin(user)) {
-        console.log("✅ Login successful, redirecting to admin");
         router.replace("/");
       } else {
-        console.log("✅ Login successful, redirecting to home");
         router.replace("/");
       }
     } else if (isAuthenticated && !user) {
       // User is authenticated but no user data, redirect to home
-      console.log("✅ User authenticated, redirecting to home");
       router.replace("/");
     }
   }, [isAuthenticated, user, router]);
@@ -132,7 +128,6 @@ export default function LoginForm() {
         // For all authentication errors (wrong email, wrong password, user not found, etc.)
         // Don't set field-specific errors, let the Redux error state handle it
         // The error will be displayed in the Alert component above the form
-        console.log("Authentication error:", error);
       }
     }
   };

@@ -24,20 +24,14 @@ export default function RamzanCard() {
     setIsVisible(false);
   };
 
-  useEffect(() => {
-    console.log("Active data:", activeData);
-    if (activeData?.[0]?.url_slug) {
-      console.log("Navigating to:", `/parhaiyan/${activeData[0].url_slug}`);
-    }
+  useEffect(() => {    if (activeData?.[0]?.url_slug) {    }
   }, [activeData]);
 
   useEffect(() => {
     setIsVisible(true);
     const fetchData = async () => {
       try {
-        const data = await activeParhaiyan();
-        console.log("active-parhaiyan-data", data);
-        setActiveData(data);
+        const data = await activeParhaiyan();        setActiveData(data);
       } catch (err: any) {
         setError(err.message || "Something went wrong");
         console.error("Error fetching data:", err);

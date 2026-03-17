@@ -111,9 +111,6 @@ export class DashboardService {
       }
 
       const url = `${apiConfig.baseURL}/dashboard/stats?${params.toString()}`;
-      console.log("🔗 Fetching dashboard stats from:", url);
-      console.log("🔗 API config baseURL:", apiConfig.baseURL);
-
       const response = await fetch(
         url,
         {
@@ -132,21 +129,6 @@ export class DashboardService {
       }
 
       const data = await response.json();
-      console.log("🔗 Dashboard stats API response:", {
-        hasZones: !!data.zones,
-        zonesCount: data.zones?.length || 0,
-        hasMehfils: !!data.mehfils,
-        mehfilsCount: data.mehfils?.length || 0,
-        hasMehfilDirectory: !!data.mehfil_directory,
-        mehfilDirectory: data.mehfil_directory,
-        selectedMehfilId: filters.selectedMehfilId,
-        totalKarkuns: data.totalKarkuns,
-        ehadKarkuns: data.ehadKarkuns,
-        totalNewEhads: data.totalNewEhads,
-        totalTabarukats: data.totalTabarukats,
-        dataKeys: Object.keys(data),
-        fullData: data, // Log full response for debugging
-      });
       return data;
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -211,8 +193,6 @@ export class DashboardService {
   static async getMehfilsForZone(zoneId: number): Promise<any[]> {
     try {
       const url = `${apiConfig.baseURL}/dashboard/mehfils/${zoneId}`;
-      console.log("🔗 Fetching mehfils from:", url);
-      
       const response = await fetch(
         url,
         {
@@ -231,7 +211,6 @@ export class DashboardService {
       }
 
       const result = await response.json();
-      console.log("🔗 Mehfils response:", result);
       return result.data || [];
     } catch (error) {
       console.error("Error fetching mehfils for zone:", error);

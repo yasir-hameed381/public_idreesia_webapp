@@ -7,11 +7,9 @@ import { ThemeProvider, useTheme } from "@/context/useTheme";
 import { PermissionProvider } from "../../../context/PermissionContext";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import Header from "../../../components/Header";
-import Footer from "../../../components/Footer";
 
-// Component to handle dynamic PrimeReact theme loading (exported for use in layout)
-export function PrimeThemeLoader() {
+// Component to handle dynamic PrimeReact theme loading
+function PrimeThemeLoader() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
@@ -52,12 +50,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
               // Karkun portal uses its own layout
               <>{children}</>
             ) : (
-              // Website pages use Header and Footer
-              <div className="flex min-h-screen flex-col">
-                <Header />
-                <main className="flex-grow">{children}</main>
-                <Footer />
-              </div>
+              // Website pages: Header/Footer come from parent [locale]/providers
+              <>{children}</>
             )}
           </PermissionProvider>
         </ThemeProvider>

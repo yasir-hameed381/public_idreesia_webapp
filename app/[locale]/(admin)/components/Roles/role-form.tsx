@@ -38,7 +38,8 @@ const groupPermissionsByAction = (permissions: Permission[]) => {
     View: [],
   };
 
-  permissions.forEach((permission) => {
+  const list = Array.isArray(permissions) ? permissions : [];
+  list.forEach((permission) => {
     const action = permission.name.split(" ")[0];
     const capitalizedAction = action.charAt(0).toUpperCase() + action.slice(1);
 
@@ -67,16 +68,6 @@ const RoleForm: React.FC<RoleFormProps> = ({ role, onCancel, onSuccess }) => {
   const { showSuccess, showError } = useToast();
   const { hasPermission, isSuperAdmin, user } = usePermissions();
 
-  // Debug logging for role form permissions
-  console.log("🔍 Role Form Permission Debug:", {
-    isSuperAdmin,
-    hasCreateRoles: hasPermission(PERMISSIONS.CREATE_ROLES),
-    hasEditRoles: hasPermission(PERMISSIONS.EDIT_ROLES),
-    userRole: user?.role?.name,
-    userPermissions: user?.role?.permissions?.map((p) => p.name) || [],
-    isEditing: !!role,
-  });
-
   const {
     register,
     handleSubmit,
@@ -99,12 +90,10 @@ const RoleForm: React.FC<RoleFormProps> = ({ role, onCancel, onSuccess }) => {
       setPermissionsError(null);
 
       // Always fetch all permissions from API (for both create and edit)
-      console.log("Fetching all permissions from API");
       const response = await permissionsService.getPermissions();
-      console.log("Fetched permissions:", response.length);
-      setPermissions(response);
-    } catch (error) {
-      console.error("Error fetching permissions:", error);
+      const list = Array.isArray(response) ? response : (response as { data?: Permission[] })?.data ?? [];
+      setPermissions(list);
+    } catch {
       setPermissionsError("Failed to load permissions");
     } finally {
       setPermissionsLoading(false);
@@ -187,11 +176,6 @@ const RoleForm: React.FC<RoleFormProps> = ({ role, onCancel, onSuccess }) => {
       }
 
       setIsSubmitting(true);
-      console.log("Submitting role data:", {
-        name: data.name,
-        permissionsCount: data.permissions.length,
-      });
-
       const roleData = {
         name: data.name,
         permissions: data.permissions,

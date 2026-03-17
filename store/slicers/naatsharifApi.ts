@@ -91,9 +91,7 @@ export const naatsharifApi = createApi({
     }),
     getNaatSharifById: builder.query<NaatSharifData, number>({
       query: (id) => `naatshareefs-data/${id}`,
-      transformResponse: (response: any) => {
-        console.log('Get by ID response:', response);
-        return response;
+      transformResponse: (response: any) => {        return response;
       },
       providesTags: (result, error, id) => [{ type: 'NaatSharif', id }],
     }),

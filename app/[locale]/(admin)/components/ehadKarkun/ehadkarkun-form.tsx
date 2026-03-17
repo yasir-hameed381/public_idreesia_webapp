@@ -68,15 +68,7 @@ export function EhadKarkunForm({ editData, onCancel, onSuccess }) {
   const selectedZoneId = watch("zone_id");
 
   useEffect(() => {
-    if (editData) {
-      console.log("Edit data received:", editData);
-      console.log(
-        "Zone ID from edit data:",
-        editData.zone_id,
-        typeof editData.zone_id
-      );
-
-      const formData = {
+    if (editData) {      const formData = {
         zone_id: editData.zone_id ? editData.zone_id.toString() : "",
         name_en: editData.name_en ?? "",
         name_ur: editData.name_ur ?? "",
@@ -98,10 +90,7 @@ export function EhadKarkunForm({ editData, onCancel, onSuccess }) {
           ? new Date(editData.ehad_ijazat_year, 0, 1)
           : null,
         description: editData.description ?? "",
-      };
-
-      console.log("Form data being set:", formData);
-      reset(formData);
+      };      reset(formData);
     }
   }, [editData, reset]);
 

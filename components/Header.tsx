@@ -29,9 +29,6 @@ const Header = () => {
   const t = useTranslations(TranslationKeys.NOTIFICATIONS);
   const { isAuthenticated, user, logout } = useAuth();
 
-  console.log("isauthenticted", isAuthenticated);
-  console.log("user==========", user);
-
   const menuToggler = () => setIsVisible((prevState) => !prevState);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prevState) => !prevState);
 

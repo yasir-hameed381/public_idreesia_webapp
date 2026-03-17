@@ -115,9 +115,7 @@ const getAuthHeaders = () => {
     Accept: "application/json",
   };
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("auth-token");
-    console.log("Retrieved auth token from localStorage:", token);
-    if (token) {
+    const token = localStorage.getItem("auth-token");    if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
   }
@@ -270,14 +268,8 @@ export default function DutyRosterPage() {
         headers: getAuthHeaders(),
       });
 
-      const rostersData = response.data.data || [];
-      console.log("[DutyRoster] Fetched rosters:", rostersData);
-      
-      // Log a sample roster with duties
-      if (rostersData.length > 0) {
-        console.log("[DutyRoster] Sample roster:", rostersData[0]);
-        console.log("[DutyRoster] Sample duties:", rostersData[0]?.duties);
-      }
+      const rostersData = response.data.data || [];      // Log a sample roster with duties
+      if (rostersData.length > 0) {      }
 
       setRosters(rostersData);
       setShowTable(true);
@@ -372,21 +364,6 @@ export default function DutyRosterPage() {
       return;
     }
 
-    console.log(
-      "[DutyRoster] Submitting duty assignment",
-      JSON.stringify(
-        {
-          rosterId,
-          day,
-          dutyTypeId,
-          cellKey,
-          mehfilDirectoryId: selectedMehfil,
-        },
-        null,
-        2
-      )
-    );
-
     try {
       await axios.post(
         `${API_URL}/duty-rosters-data/add-duty`,
@@ -406,11 +383,6 @@ export default function DutyRosterPage() {
 
       toast.success("Duty added successfully");
       await fetchRosters();
-
-      console.log(
-        "[DutyRoster] Duty assignment saved, clearing select key",
-        cellKey
-      );
       if (cellKey) {
         setSelectedDuties((prev) => {
           const next = { ...prev };
@@ -719,14 +691,7 @@ export default function DutyRosterPage() {
   const selectKey = rosterRowId != null ? `${rosterRowId}-${day}` : null;
   
   // Debug logging (remove in production)
-  if (roster.roster_id === 1023 && day === 'monday') {
-    console.log(`[Debug] ${day} for roster ${roster.roster_id}:`, {
-      assignments,
-      assignmentsCount: assignments.length,
-      rawDuties: roster.duties?.[day],
-      allDuties: roster.duties
-    });
-  }
+  if (roster.roster_id === 1023 && day === 'monday') {  }
   
   return (
     <TableCell key={day} className="align-top">

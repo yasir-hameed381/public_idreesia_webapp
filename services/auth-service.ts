@@ -135,25 +135,10 @@ const clearRateLimit = (email: string): void => {
 
 // Helper function to determine if user is admin
 const isUserAdmin = (user: User): boolean => {
-  console.log("USER", user);
-
-  // Check admin flags
   const hasAdminFlags =
     user.is_super_admin || user.is_mehfil_admin || user.is_zone_admin;
-
-  // Check if user has any role assigned
   const hasRole = !!user.role;
-
-  const isAdmin = hasAdminFlags || hasRole;
-
-  console.log("🔍 Admin check:", {
-    hasAdminFlags,
-    hasRole,
-    roleName: user.role?.name || "No role",
-    isAdmin,
-  });
-
-  return isAdmin;
+  return hasAdminFlags || hasRole;
 };
 
 // Authentication service
@@ -182,25 +167,9 @@ export const authService = {
     }
 
     try {
-      // Log the request payload for debugging
-      console.log("📤 Sending login request:", {
-        url: `${authApi.defaults.baseURL}/auth/login`,
-        email: normalizedEmail,
-        passwordLength: password?.length || 0,
-        remember: remember,
-      });
-
-      // Send login credentials
-      // Note: Backend only uses email and password, but we include remember for potential future use
       const response = await authApi.post("/auth/login", {
         email: normalizedEmail,
         password: password.trim(),
-      });
-
-      console.log("📥 Login response received:", {
-        status: response.status,
-        hasToken: !!response.data.token || !!response.data.accessToken,
-        hasUser: !!response.data.user,
       });
 
       const { message, token, accessToken, refreshToken, user } = response.data;
@@ -237,62 +206,8 @@ export const authService = {
         document.cookie = `auth-token=${authToken}; path=/; max-age=${maxAge}`;
       }
 
-      // 🔍 CONSOLE LOG USER PERMISSIONS
-      console.log("🔐 LOGIN SUCCESSFUL");
-      console.log("👤 User Information:", {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        is_super_admin: user.is_super_admin,
-        is_mehfil_admin: user.is_mehfil_admin,
-        is_zone_admin: user.is_zone_admin,
-      });
-
-      if (user.role) {
-        console.log("🎭 User Role:", {
-          role_id: user.role.id,
-          role_name: user.role.name,
-          guard_name: user.role.guard_name,
-        });
-
-        if (user.role.permissions && user.role.permissions.length > 0) {
-          console.log(
-            "🔑 User Permissions:",
-            user.role.permissions.map((p) => ({
-              id: p.id,
-              name: p.name,
-              guard_name: p.guard_name,
-            }))
-          );
-
-          console.log(
-            "📋 Permission Names:",
-            user.role.permissions.map((p) => p.name)
-          );
-          console.log("📊 Total Permissions:", user.role.permissions.length);
-        } else {
-          console.log("⚠️ No permissions assigned to this role");
-        }
-      } else {
-        console.log("⚠️ No role assigned to this user");
-      }
-
-      // Check admin status
-      const isAdmin = isUserAdmin(user);
-      console.log("👑 Is Admin:", isAdmin);
-
       return { message, user, token: authToken, refreshToken };
     } catch (error: any) {
-      // Enhanced error logging
-      console.error("❌ Login error details:", {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        message: error.response?.data?.message,
-        data: error.response?.data,
-        requestUrl: error.config?.url,
-        requestData: error.config?.data,
-      });
-
       // Handle rate limiting from server
       if (error.response?.status === 429) {
         const retryAfter = error.response.headers["retry-after"] || 300;
@@ -312,10 +227,8 @@ export const authService = {
         throw new Error("Invalid email or password");
       }
 
-      // Handle 400 Bad Request - could be missing fields or invalid credentials
       if (error.response?.status === 400) {
         const errorMessage = error.response?.data?.message || "Invalid email or password";
-        console.error("🔴 400 Bad Request:", errorMessage);
         hitRateLimit(normalizedEmail);
         throw new Error(errorMessage);
       }
@@ -326,9 +239,7 @@ export const authService = {
         throw new Error("Invalid email or password");
       }
 
-      // Handle network errors
       if (!error.response) {
-        console.error("🌐 Network error:", error.message);
         throw new Error("Network error. Please check your connection and try again.");
       }
 
@@ -345,9 +256,8 @@ export const authService = {
 
     try {
       await authApi.post("/auth/logout");
-    } catch (error) {
+    } catch {
       // Continue with logout even if API call fails
-      console.warn("Logout API call failed:", error);
     }
   },
 

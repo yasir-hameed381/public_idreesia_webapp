@@ -1,16 +1,16 @@
+"use client";
+
 import React, { useEffect } from "react";
-import { GetStaticProps } from "next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useSelector } from 'react-redux';
-import { useTranslation } from "next-i18next";
-import { useRouter } from 'next/router';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import { RootState } from '@/store/store';
 
 const Index = () => {
-  const router = useRouter();
-  const { locale } = router;
+  const params = useParams();
+  const locale = (params?.locale as string) ?? 'en';
 
-  const { t } = useTranslation("common");
+  const t = useTranslations('common');
 
   const searchDetails = useSelector((state: RootState) => state?.search?.searchDetails);
 
@@ -50,14 +50,6 @@ const Index = () => {
       </div>
     </div>
   );
-};
-
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale ?? 'en', ["common"])),
-    },
-  };
 };
 
 export default Index;

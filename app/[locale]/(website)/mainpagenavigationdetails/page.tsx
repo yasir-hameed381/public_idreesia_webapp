@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { selectSearchDetails } from "@/store/selectors";
 
 interface SearchAudioData {
   filepath: string;
@@ -13,15 +14,14 @@ interface SearchAudioData {
 }
 
 const page = () => {
+  const params = useParams();
   const router = useRouter();
-  const { locale }: any = router;
+  const locale = (params?.locale as string) ?? 'en';
 
   const [isLoading, setIsLoading] = useState(false);
   const audioRef = useRef(null);
 
-  const searchDetails: SearchAudioData = useSelector(
-    (state: any) => state?.search.searchDetails
-  );
+  const searchDetails = useSelector(selectSearchDetails) as SearchAudioData | null;
 
   useEffect(() => {
     const audio: any = audioRef.current;
@@ -146,6 +146,7 @@ const page = () => {
             >
               <p>{getTitle(title)}</p>
             </div>
+            {searchDetails?.filepath && (
             <div className="pt-6 border-t border-zinc-200 dark:border-zinc-700 mt-4">
               <a
                 href={searchDetails.filepath}
@@ -172,6 +173,7 @@ const page = () => {
                 Download Now
               </a>
             </div>
+            )}
           </div>
         </div>
       </div>

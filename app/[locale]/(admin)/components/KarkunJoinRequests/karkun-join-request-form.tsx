@@ -169,13 +169,7 @@ export function KarkunJoinRequestForm({
         city: formData.city,
         country: formData.country,
         is_approved: formData.is_approved,
-      };
-
-      console.log("=== PAYLOAD BEING SENT ===");
-      console.log("Form Data:", formData);
-      console.log("Processed Payload:", requestData);
-
-      if (initialData) {
+      };      if (initialData) {
         const updateRequestData = {
           ...requestData,
           updated_by: user?.id ? user.id.toString() : "",

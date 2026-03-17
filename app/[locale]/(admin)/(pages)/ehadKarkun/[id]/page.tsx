@@ -18,9 +18,7 @@ export default function EhadKarkunFormPage() {
     } else {
       const sessionData = sessionStorage.getItem("editRow");
       if (sessionData) {
-        const karkun = JSON.parse(sessionData);
-        console.log("session-data", karkun);
-        setEditData(karkun);
+        const karkun = JSON.parse(sessionData);        setEditData(karkun);
       }
       setLoading(false);
     }

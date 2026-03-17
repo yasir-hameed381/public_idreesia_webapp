@@ -130,14 +130,7 @@ const WazaifList = () => {
       localStorage.setItem("wazaifDetail", JSON.stringify(item));
 
       // Navigate using slug if available, otherwise use id
-      const navigationId = item.slug || item.id;
-      console.log("Navigating to wazaif:", {
-        id: item.id,
-        slug: item.slug,
-        navigationId,
-      });
-
-      // Navigate to detail page - search params are preserved in the list page URL
+      const navigationId = item.slug || item.id;      // Navigate to detail page - search params are preserved in the list page URL
       // and will be restored when user navigates back
       router.push(`/wazaif/${navigationId}`);
     } catch (error) {

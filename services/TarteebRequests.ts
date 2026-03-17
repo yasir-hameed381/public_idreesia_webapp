@@ -275,9 +275,7 @@ class TarteebRequestService {
     linkExpiryHours: number,
     zoneId?: number,
     mehfilDirectoryId?: number
-  ): Promise<{ token: string; url: string; expires_at: string }> {
-    console.log("Generating public link with params:", { linkExpiryHours, zoneId, mehfilDirectoryId });
-    const response = await apiClient.post<{
+  ): Promise<{ token: string; url: string; expires_at: string }> {    const response = await apiClient.post<{
       success: boolean;
       data: { token: string; url: string; expires_at: string };
     }>(

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo, ReactNode } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { selectAuthUser } from "@/store/selectors";
 import {
   UserWithPermissions,
   PermissionName,
@@ -34,7 +34,7 @@ interface PermissionProviderProps {
 export const PermissionProvider: React.FC<PermissionProviderProps> = ({
   children,
 }) => {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const user = useSelector(selectAuthUser);
 
   const permissionContextValue = useMemo(() => {
     const userWithPermissions = user as UserWithPermissions | null;
@@ -55,23 +55,6 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
         );
       }
 
-      console.log("🔐 PermissionContext initialized for user:", {
-        name: userWithPermissions.name,
-        email: userWithPermissions.email,
-        role: userWithPermissions.role?.name || "No role",
-        roles:
-          userWithPermissions.roles?.map((r) => r.name) || [
-            userWithPermissions.role?.name || "No role",
-          ],
-        permissions: Array.from(allPermissions),
-        totalRoles: userWithPermissions.roles?.length || (userWithPermissions.role ? 1 : 0),
-        is_super_admin: userWithPermissions.is_super_admin,
-        is_mehfil_admin: userWithPermissions.is_mehfil_admin,
-        is_zone_admin: userWithPermissions.is_zone_admin,
-        is_region_admin: userWithPermissions.is_region_admin,
-      });
-    } else {
-      console.log("🔐 PermissionContext initialized - No user logged in");
     }
 
     const getUserPermissions = (): string[] => {
@@ -106,7 +89,6 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
       permission: PermissionName | PermissionName[]
     ): boolean => {
       if (!userWithPermissions) {
-        console.log("❌ No user logged in");
         return false;
       }
 
@@ -114,53 +96,11 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
       // They don't automatically get all permissions
       const userPermissions = getUserPermissions();
 
-      // Debug logging
-      console.log(
-        `🔍 Checking permission: ${
-          Array.isArray(permission) ? permission.join(", ") : permission
-        }`
-      );
-      console.log(
-        `👤 User permissions (${userPermissions.length} total from ${userWithPermissions.roles?.length || (userWithPermissions.role ? 1 : 0)} role(s)):`,
-        userPermissions
-      );
-      console.log(`👤 User role(s):`, 
-        userWithPermissions.roles?.map(r => r.name).join(', ') || userWithPermissions.role?.name || 'No role'
-      );
-      console.log(`👤 Is super admin:`, userWithPermissions.is_super_admin);
-
       if (Array.isArray(permission)) {
-        const hasAny = permission.some((p) => userPermissions.includes(p));
-        console.log(
-          `🔑 Checking multiple permissions: ${permission.join(
-            ", "
-          )} - Result: ${hasAny ? "GRANTED" : "DENIED"}`
-        );
-        return hasAny;
+        return permission.some((p) => userPermissions.includes(p));
       }
 
-      const hasPermissionResult = userPermissions.includes(permission);
-      console.log(
-        `🔑 Checking permission: "${permission}" - Result: ${
-          hasPermissionResult ? "GRANTED" : "DENIED"
-        }`
-      );
-
-      // Additional debug for specific permission
-      if (!hasPermissionResult) {
-        console.log(
-          `❌ Permission "${permission}" not found in user permissions`
-        );
-        console.log(`🔍 Looking for exact match in:`, userPermissions);
-        const similarPermissions = userPermissions.filter((p) =>
-          p.toLowerCase().includes(permission.toLowerCase().split(" ")[0])
-        );
-        if (similarPermissions.length > 0) {
-          console.log(`🔍 Similar permissions found:`, similarPermissions);
-        }
-      }
-
-      return hasPermissionResult;
+      return userPermissions.includes(permission);
     };
 
     const hasAnyPermission = (permissions: PermissionName[]): boolean => {
@@ -173,13 +113,7 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({
       // In Laravel, super_admin users still need roles with permissions
       // They don't automatically get all permissions
       const userPermissions = getUserPermissions();
-      const hasAll = permissions.every((p) => userPermissions.includes(p));
-      console.log(
-        `🔑 Checking all permissions: ${permissions.join(", ")} - Result: ${
-          hasAll ? "GRANTED" : "DENIED"
-        }`
-      );
-      return hasAll;
+      return permissions.every((p) => userPermissions.includes(p));
     };
 
     return {
