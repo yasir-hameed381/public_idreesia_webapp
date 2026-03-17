@@ -128,21 +128,46 @@ const MehfilReportsPage = () => {
     setAvailableYears([currentYear + 1, currentYear, currentYear - 1, currentYear - 2]);
   }, [user]);
 
-  // Load zones (dashboard API – karkun portal)
+  // Load zones based on user permissions (matching Laravel Zone::forUser)
+  // Using /dashboard/zones endpoint which filters by user permissions
   useEffect(() => {
     const loadZones = async () => {
+      if (!user) return;
+
       try {
+        // Use /dashboard/zones endpoint which filters zones based on user permissions
+        // This matches Laravel Zone::forUser() behavior
         const response = await apiClient.get("/dashboard/zones");
-        const list = response.data?.data ?? response.data ?? [];
-        setZones(Array.isArray(list) ? list : []);
+        let filteredZones: Zone[] = response.data.data || [];
+
+        // Ensure the selected zone (if any) is always in the zones array
+        // This is important when zoneId is set before zones are loaded
+        const currentZoneId = zoneId || user?.zone_id;
+        if (currentZoneId) {
+          const selectedZoneExists = filteredZones.some((z: Zone) => z.id === currentZoneId);
+          if (!selectedZoneExists) {
+            // If zone not found in filtered list, try to fetch it separately
+            try {
+              const zoneResponse = await apiClient.get(`/zone/${currentZoneId}`);
+              if (zoneResponse.data.data) {
+                filteredZones = [zoneResponse.data.data, ...filteredZones];
+              }
+            } catch (err) {
+              console.error("Error fetching selected zone:", err);
+            }
+          }
+        }
+
+        setZones(filteredZones);
       } catch (error) {
         console.error("Error loading zones:", error);
+        // Fallback: set empty array on error
         setZones([]);
       }
     };
 
-    if (user) loadZones();
-  }, [user]);
+    loadZones();
+  }, [user, zoneId]);
 
   // Load mehfils when zone changes (dashboard API)
   useEffect(() => {

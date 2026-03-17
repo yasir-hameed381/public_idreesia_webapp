@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePathname } from "next/navigation";
 import TarteebRequestService, {
   TarteebRequest,
 } from "@/services/TarteebRequests";
@@ -48,6 +49,8 @@ interface Mehfil {
 
 const TarteebRequestsPage = () => {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const locale = (typeof pathname === "string" && pathname.split("/")[1]) || "en";
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<TarteebRequest[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
@@ -398,7 +401,7 @@ const TarteebRequestsPage = () => {
               </p>
             </div>
             <Link
-              href="/karkun-portal/tarteeb-requests/new"
+              href={`/${locale}/karkun-portal/tarteeb-requests/new`}
               className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors mt-4 md:mt-0"
             >
               + New Request
@@ -507,7 +510,7 @@ const TarteebRequestsPage = () => {
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <p className="text-gray-600">No tarteeb requests found</p>
             <Link
-              href="/karkun-portal/tarteeb-requests/new"
+              href={`/${locale}/karkun-portal/tarteeb-requests/new`}
               className="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               + Create First Request
@@ -583,13 +586,13 @@ const TarteebRequestsPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                         <div className="flex justify-center gap-2">
                           <Link
-                            href={`/karkun-portal/tarteeb-requests/${request.id}`}
+                            href={`/${locale}/karkun-portal/tarteeb-requests/${request.id}`}
                             className="text-blue-600 hover:text-blue-800"
                           >
                             View
                           </Link>
                           <Link
-                            href={`/karkun-portal/tarteeb-requests/edit/${request.id}`}
+                            href={`/${locale}/karkun-portal/tarteeb-requests/edit/${request.id}`}
                             className="text-green-600 hover:text-green-800"
                           >
                             Edit

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
@@ -186,6 +186,9 @@ type TabType = "karkun" | "ehad_karkun" | "mehfil_admin" | "zone_admin";
 const KarkunanPage = () => {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname(); 
+  const locale =
+    (typeof pathname === "string" && pathname.split("/")[1]) || "en";
 
   // State matching PHP component
   const [karkuns, setKarkuns] = useState<Karkun[]>([]);
@@ -922,7 +925,7 @@ const KarkunanPage = () => {
                                       <div className="py-1">
                                         <button
                                           onClick={() => {
-                                            router.push(`/karkun-portal/karkunan/${karkun.id}/password`);
+                                            router.push(`/${locale}/karkun-portal/karkunan/${karkun.id}/password`);
                                             setOpenActionsMenu(null);
                                           }}
                                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -1058,11 +1061,7 @@ const KarkunanPage = () => {
                                       <div className="py-1">
                                         <button
                                           onClick={() => {
-                                            sessionStorage.setItem(
-                                              "editRow",
-                                              JSON.stringify({ id: karkun.id })
-                                            );
-                                            router.push(`/karkun-portal/karkunan/${karkun.id}/edit`);
+                                            router.push(`/karkun-portal/karkunan/form/${karkun.id}`);
                                             setOpenActionsMenu(null);
                                           }}
                                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -1072,7 +1071,7 @@ const KarkunanPage = () => {
                                         </button>
                                         <button
                                           onClick={() => {
-                                            router.push(`/karkun-portal/karkunan/${karkun.id}/password`);
+                                            router.push(`/${locale}/karkun-portal/karkunan/${karkun.id}/password`);
                                             setOpenActionsMenu(null);
                                           }}
                                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"

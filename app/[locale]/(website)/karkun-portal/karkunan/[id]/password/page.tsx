@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { ArrowLeft, Lock } from "lucide-react";
@@ -17,6 +17,7 @@ const apiClient = axios.create({
   headers: {
     Accept: "application/json",
   },
+  timeout: 10000, // 10 second timeout to prevent hanging
 });
 
 apiClient.interceptors.request.use((config) => {
@@ -40,8 +41,10 @@ const KarkunPasswordFormPage = () => {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
+  const pathname = usePathname();
   const { showError, showSuccess } = useToast();
 
+  const locale = (typeof pathname === "string" && pathname.split("/")[1]) || "en";
   const karkunId = params?.id ? Number(params.id) : null;
 
   const [karkun, setKarkun] = useState<Karkun | null>(null);
@@ -49,39 +52,103 @@ const KarkunPasswordFormPage = () => {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const loadingRef = useRef(false);
 
-  // Load karkun data
+  // Load karkun data - fetch directly from API like Laravel (no sessionStorage)
   useEffect(() => {
+    let isMounted = true;
+
+    // Prevent multiple simultaneous requests
+    if (loadingRef.current) return;
+
     const loadKarkun = async () => {
       if (!karkunId) {
         showError("Invalid karkun ID");
-        router.push("/karkun-portal/karkunan");
+        router.push(`/${locale}/karkun-portal/karkunan`);
         return;
       }
 
       try {
+        loadingRef.current = true;
         setLoadingData(true);
-        const response = await apiClient.get(`/karkun/${karkunId}`);
-        
-        if (response.data.success && response.data.data) {
-          setKarkun(response.data.data);
-        } else {
-          showError("Failed to load karkun data");
-          router.push("/karkun-portal/karkunan");
+        let response;
+        let raw;
+
+        // Try /karkun/{id} first, then fallback to /adminusers/{id} if 404
+        // This matches Laravel's approach: User::findOrFail($id)
+        try {
+          response = await apiClient.get(`/karkun/${karkunId}`);
+          const body = response.data;
+          raw = body?.data ?? body;
+        } catch (karkunError: any) {
+          // If 404 or timeout, try /adminusers/{id} as fallback
+          if (karkunError.response?.status === 404 || karkunError.code === 'ECONNABORTED') {
+            try {
+              response = await apiClient.get(`/adminusers/${karkunId}`);
+              const body = response.data;
+              raw = body?.data ?? body;
+            } catch (adminError: any) {
+              console.error("Error loading karkun from both endpoints:", {
+                karkun: {
+                  status: karkunError.response?.status,
+                  message: karkunError.message,
+                },
+                adminusers: {
+                  status: adminError.response?.status,
+                  message: adminError.message,
+                },
+                karkunId,
+              });
+              
+              if (!isMounted) return;
+              showError("Failed to load karkun data");
+              router.push(`/${locale}/karkun-portal/karkunan`);
+              return;
+            }
+          } else {
+            if (!isMounted) return;
+            console.error("Error loading karkun:", karkunError);
+            showError("Failed to load karkun data");
+            router.push(`/${locale}/karkun-portal/karkunan`);
+            return;
+          }
         }
+
+        if (!isMounted) return;
+
+        if (!raw || !raw.id) {
+          showError("Karkun not found");
+          router.push(`/${locale}/karkun-portal/karkunan`);
+          return;
+        }
+
+        setKarkun({
+          id: raw.id,
+          name: raw.name || "",
+          email: raw.email || "",
+        });
       } catch (error: any) {
+        if (!isMounted) return;
         console.error("Error loading karkun:", error);
         showError("Failed to load karkun data");
-        router.push("/karkun-portal/karkunan");
+        router.push(`/${locale}/karkun-portal/karkunan`);
       } finally {
-        setLoadingData(false);
+        if (isMounted) {
+          setLoadingData(false);
+          loadingRef.current = false;
+        }
       }
     };
 
-    if (karkunId) {
+    if (karkunId && !loadingRef.current) {
       loadKarkun();
     }
-  }, [karkunId, router, showError]);
+
+    return () => {
+      isMounted = false;
+      loadingRef.current = false;
+    };
+  }, [karkunId, locale, router, showError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,12 +191,24 @@ const KarkunPasswordFormPage = () => {
 
     setLoading(true);
     try {
-      await apiClient.put(`/karkun/update/${karkunId}`, {
-        password,
-      });
+      // Try adminusers endpoint first, then fallback to karkun
+      try {
+        await apiClient.put(`/adminusers/update/${karkunId}`, {
+          password,
+        });
+      } catch (adminError: any) {
+        if (adminError.response?.status === 404) {
+          // Fallback to karkun endpoint
+          await apiClient.put(`/karkun/update/${karkunId}`, {
+            password,
+          });
+        } else {
+          throw adminError;
+        }
+      }
 
       showSuccess("Password updated successfully");
-      router.push("/karkun-portal/karkunan");
+      router.push(`/${locale}/karkun-portal/karkunan`);
     } catch (error: any) {
       console.error("Error updating password:", error);
       showError(
@@ -163,7 +242,7 @@ const KarkunPasswordFormPage = () => {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/karkun-portal/karkunan"
+            href={`/${locale}/karkun-portal/karkunan`}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft size={20} />
@@ -230,7 +309,7 @@ const KarkunPasswordFormPage = () => {
           {/* Footer */}
           <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-4">
             <Link
-              href="/karkun-portal/karkunan"
+              href={`/${locale}/karkun-portal/karkunan`}
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
               Cancel
