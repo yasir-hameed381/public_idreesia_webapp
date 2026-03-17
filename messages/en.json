@@ -158,7 +158,7 @@
 
   "sms_page": {
     "sms": "Receive SMS on mobile",
-    "subscription_instructions": "To receive teachings via SMS on your mobile, you need to subscribe every month.",
+    "subscription_instructions": "To receive teaching via SMS on your mobile, you need to subscribe every month.",
     "subscription_steps": "To subscribe, write SUB in a message and send it to the designated number.",
     "confirmation_message": "You will receive a confirmation message, and teachings SMS will be sent to your number for 30 days.",
     "subscription_charges": "Charges: 20 Rupees + Tax",
