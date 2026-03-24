@@ -9,7 +9,7 @@ import Footer from "../../components/Footer";
 import { ThemeProvider } from "../../context/useTheme";
 
 const ADMIN_ROUTE_SEGMENTS = new Set([
-  "admin", "zone", "regions", "mehfildirectary", "ehadKarkun", "karkunan",
+  "admin", "zone", "regions", "mehfildirectary", "committees", "ehadKarkun", "karkunan",
   "mehfil-reports", "tabarukats", "new-ehads", "tarteeb-requests", "khatoot",
   "response-templates", "admin-users", "roles", "categories", "tags", "Namaz",
   "naat-Shareef", "taleemats", "mehfil", "wazaifs", "messages", "Parhaiyan",
@@ -22,7 +22,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const segmentAfterLocale = pathname?.split("/")[2] ?? "";
   const isAdmin = ADMIN_ROUTE_SEGMENTS.has(segmentAfterLocale);
   const isKarkunPortal = pathname?.includes("karkun-portal");
-  const hideSiteHeaderFooter = isAdmin || isKarkunPortal;
+  const isCommitteePortal = pathname?.includes("committee-portal");
+  const hideSiteHeaderFooter = isAdmin || isKarkunPortal || isCommitteePortal;
 
   return (
     <ThemeProvider>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Edit, Trash2, Eye, Play, Clock, Copy } from "lucide-react";
+import { Edit, Trash2, Eye, Play, Clock, Copy, Users } from "lucide-react";
 
 interface ActionsDropdownProps {
   onView?: () => void;
@@ -10,12 +10,15 @@ interface ActionsDropdownProps {
   onDelete?: () => void;
   onSchedule?: () => void;
   onDuplicate?: () => void;
+  onManageMembers?: () => void;
   showView?: boolean;
   showPlay?: boolean;
   showEdit?: boolean;
   showDelete?: boolean;
   showSchedule?: boolean;
   showDuplicate?: boolean;
+  showManageMembers?: boolean;
+  manageMembersLabel?: string;
   align?: "left" | "right";
 }
 
@@ -26,12 +29,15 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
   onDelete,
   onSchedule,
   onDuplicate,
+  onManageMembers,
   showView = false,
   showPlay = false,
   showEdit = true,
   showDelete = true,
   showSchedule = false,
   showDuplicate = false,
+  showManageMembers = false,
+  manageMembersLabel = "Manage Members",
   align = "right",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -95,7 +101,14 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
     setIsOpen(false);
   };
 
-  if (!showView && !showPlay && !showEdit && !showDelete && !showSchedule && !showDuplicate) {
+  const handleManageMembers = () => {
+    if (onManageMembers) {
+      onManageMembers();
+    }
+    setIsOpen(false);
+  };
+
+  if (!showView && !showPlay && !showEdit && !showDelete && !showSchedule && !showDuplicate && !showManageMembers) {
     return null;
   }
 
@@ -169,6 +182,15 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
               >
                 <Copy className="w-4 h-4 text-gray-500" />
                 Duplicate
+              </button>
+            )}
+            {showManageMembers && onManageMembers && (
+              <button
+                onClick={handleManageMembers}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Users className="w-4 h-4 text-gray-500" />
+                {manageMembersLabel}
               </button>
             )}
             {showDelete && onDelete && (

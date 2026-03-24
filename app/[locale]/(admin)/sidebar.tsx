@@ -155,6 +155,12 @@ export function AppSidebar({
         permission: PERMISSIONS.VIEW_MEHFIL_DIRECTORY,
       },
       {
+        name: "Committees",
+        href: "/committees",
+        icon: <Users size={18} />,
+        permission: PERMISSIONS.VIEW_COMMITTEES,
+      },
+      {
         name: "Ehad Karkuns Directory",
         href: "/ehadKarkun",
         icon: <List size={18} />,

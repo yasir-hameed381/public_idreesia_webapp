@@ -14,6 +14,7 @@ import { FiLogOut, FiUser } from "react-icons/fi";
 import { IoIosArrowDown } from "react-icons/io";
 import { useAuth } from "@/hooks/useAuth";
 import NavigationLink from "./NavigationLink";
+import { useFetchCommitteePortalContextQuery } from "@/store/slicers/committeesApi";
 
 const LANG_DROPDOWN = [
   { id: 1, value: "en", label: "English" },
@@ -28,6 +29,9 @@ const Header = () => {
   const router = useRouter();
   const t = useTranslations(TranslationKeys.NOTIFICATIONS);
   const { isAuthenticated, user, logout } = useAuth();
+  const { data: committeePortalContext } = useFetchCommitteePortalContextQuery(undefined, {
+    skip: !isAuthenticated,
+  });
 
   const menuToggler = () => setIsVisible((prevState) => !prevState);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prevState) => !prevState);
@@ -44,6 +48,9 @@ const Header = () => {
 
   // Check if current path is karkun portal
   const isKarkunPortal = pathname.includes("karkun-portal");
+  const isCommitteePortal = pathname.includes("committee-portal");
+  const hasCommitteePortalAccess =
+    !!user?.has_committee_portal_access || !!committeePortalContext?.has_access;
 
   // Close mobile menu on window resize to desktop size
   useEffect(() => {
@@ -176,6 +183,28 @@ const Header = () => {
                               </NavigationLink>
                             ))}
 
+                          {/* Committee Portal */}
+                          {hasCommitteePortalAccess &&
+                            (isCommitteePortal ? (
+                              <NavigationLink
+                                href="/"
+                                onClick={() => setIsVisible(false)}
+                                className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                <FaUserCircle />
+                                <span>Home</span>
+                              </NavigationLink>
+                            ) : (
+                              <NavigationLink
+                                href="/committee-portal"
+                                onClick={() => setIsVisible(false)}
+                                className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                <FaUserCircle />
+                                <span>Committee Portal</span>
+                              </NavigationLink>
+                            ))}
+
                           {/* Logout */}
                           <button
                             onClick={() => {
@@ -276,6 +305,28 @@ const Header = () => {
                       >
                         <FaUserCircle className="text-lg" />
                         <span>Karkun Portal</span>
+                      </NavigationLink>
+                    ))}
+
+                  {/* Committee Portal */}
+                  {hasCommitteePortalAccess &&
+                    (isCommitteePortal ? (
+                      <NavigationLink
+                        href="/"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm text-white hover:bg-green-700 rounded transition-colors"
+                      >
+                        <FaUserCircle className="text-lg" />
+                        <span>Home</span>
+                      </NavigationLink>
+                    ) : (
+                      <NavigationLink
+                        href="/committee-portal"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm text-white hover:bg-green-700 rounded transition-colors"
+                      >
+                        <FaUserCircle className="text-lg" />
+                        <span>Committee Portal</span>
                       </NavigationLink>
                     ))}
 

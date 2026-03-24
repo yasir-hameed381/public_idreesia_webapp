@@ -35,6 +35,7 @@ import { karkunJoinRequestsApi } from "./slicers/karkunJoinRequestsApi";
 import { feedbackApi } from "./slicers/feedbackApi";
 import { adminUserApi } from "./slicers/adminUserApi";
 import { messageSchedulesApi } from "./slicers/messageSchedulesApi";
+import { committeesApi } from "./slicers/committeesApi";
 import karkunJoinRequestsReducer from "./slicers/karkunJoinRequestsSlice";
 import newEhadFollowUpsReducer from "./slicers/newEhadFollowUpsSlice";
 import dutyTypesReducer from "./slicers/dutyTypesSlice";
@@ -175,6 +176,7 @@ export const store = configureStore({
     [newEhadApi.reducerPath]: newEhadApi.reducer,
     [adminUserApi.reducerPath]: adminUserApi.reducer,
     [messageSchedulesApi.reducerPath]: messageSchedulesApi.reducer,
+    [committeesApi.reducerPath]: committeesApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -214,6 +216,8 @@ export const store = configureStore({
           'karkunanApi',
           'newEhadApi',
           'adminUserApi',
+          'messageSchedulesApi',
+          'committeesApi',
         ],
         warnAfter: 128,
       },
@@ -237,7 +241,8 @@ export const store = configureStore({
     .concat(karkunanApi.middleware)
     .concat(newEhadApi.middleware)
     .concat(adminUserApi.middleware)
-    .concat(messageSchedulesApi.middleware),
+    .concat(messageSchedulesApi.middleware)
+    .concat(committeesApi.middleware),
   // Enable devTools only in development
   devTools: process.env.NODE_ENV !== 'production',
 });

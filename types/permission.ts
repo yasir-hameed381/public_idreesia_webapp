@@ -15,11 +15,14 @@ export interface UserWithPermissions {
   id: number | string;
   name: string;
   email: string;
+  phone_number?: string;
+  avatar?: string;
   is_super_admin: boolean;
   is_mehfil_admin: boolean;
   is_zone_admin: boolean;
   is_region_admin?: boolean;
   is_all_region_admin?: boolean;
+  has_committee_portal_access?: boolean;
   zone_id?: number;
   mehfil_directory_id?: number;
   region_id?: number;
@@ -215,6 +218,13 @@ export const PERMISSIONS = {
   CREATE_COORDINATORS: "create coordinators",
   EDIT_COORDINATORS: "edit coordinators",
   DELETE_COORDINATORS: "delete coordinators",
+
+  // Committees
+  VIEW_COMMITTEES: "view committees",
+  CREATE_COMMITTEES: "create committees",
+  EDIT_COMMITTEES: "edit committees",
+  DELETE_COMMITTEES: "delete committees",
+  MANAGE_COMMITTEE_MEMBERS: "manage committee members",
 } as const;
 
 export type PermissionName = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -298,6 +308,13 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.CREATE_COORDINATORS,
     PERMISSIONS.EDIT_COORDINATORS,
     PERMISSIONS.DELETE_COORDINATORS,
+  ],
+  COMMITTEE_MANAGEMENT: [
+    PERMISSIONS.VIEW_COMMITTEES,
+    PERMISSIONS.CREATE_COMMITTEES,
+    PERMISSIONS.EDIT_COMMITTEES,
+    PERMISSIONS.DELETE_COMMITTEES,
+    PERMISSIONS.MANAGE_COMMITTEE_MEMBERS,
   ],
   MEHFIL_DIRECTORY_MANAGEMENT: [
     PERMISSIONS.VIEW_MEHFIL_DIRECTORY,

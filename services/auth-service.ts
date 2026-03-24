@@ -12,6 +12,9 @@ export interface User {
   id: number | string;
   name: string;
   email: string;
+  phone_number?: string;
+  avatar?: string;
+  has_committee_portal_access?: boolean;
   is_super_admin: boolean;
   is_mehfil_admin: boolean;
   is_zone_admin: boolean;
@@ -38,6 +41,18 @@ export interface AuthResponse {
 export interface AuthError {
   message: string;
   errors?: Record<string, string[]>;
+}
+
+export interface UpdateProfilePayload {
+  name: string;
+  email: string;
+  phone_number?: string;
+}
+
+export interface UpdatePasswordPayload {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
 }
 
 // Rate limiting storage
@@ -264,6 +279,16 @@ export const authService = {
   async getUser(): Promise<UserWithPermissions> {
     const response = await authApi.get("/auth/user");
     return response.data.user;
+  },
+
+  async updateProfile(payload: UpdateProfilePayload): Promise<UserWithPermissions> {
+    const response = await authApi.put("/auth/profile", payload);
+    return response.data.user;
+  },
+
+  async updatePassword(payload: UpdatePasswordPayload): Promise<{ message: string }> {
+    const response = await authApi.put("/auth/password", payload);
+    return { message: response.data.message || "Password updated successfully." };
   },
 
   async refreshToken(): Promise<{ token: string }> {
