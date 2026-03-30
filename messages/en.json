@@ -1,6 +1,14 @@
 {
   "homepage": {
     "desc1": "SILSILA-E-MUHAMMADIA AMEENIA IDREESIA started in Pakistan when Al-Muhtarim Sayedi Sheikh Al-Hafiz Amin bin Abdur Rehman (صَلَّی اللہ علیہِ وَسلَّم پڑھنے والے), came to Pakistan after spending 40 years in Madinah Munawarah, Saudi Arabia. In few years Idreesia spread in every corner of Pakistan. Millions of people are now associated with it from every aspect of life",
+    "journey": {
+      "title": "How The Idreesia Journey Began",
+      "content": "Silsila Muhammadia Ameenia Idreesia began in Pakistan when Al-Mohtaram Al-Mukarram Al-Sayyedi Al-Hafiz Al-Shaikh Muhammad Amin bin Abdur Rahman arrived in Pakistan from Madinah Munawwarah. The primary purpose of this spiritual path is to guide people toward obedience to Allah Almighty and the Prophet ﷺ, instilling in their hearts the love and greatness of Allah Almighty and the Prophet ﷺ. To achieve these goals, reading Durood Shareef, Zikr, and wazaif are given. Additionally, the invaluable treasure of Allah Almighty's and the Prophet's ﷺ teachings is preserved in the form of recordings by Mohtaram Shaikh Sahab as guidance for all until the Day of Judgement."
+    },
+    "treasures": {
+      "title": "Discover the Spiritual Treasures of Idreesia",
+      "content": "Immerse yourself in the sacred atmosphere of Idreesia, where Mehfils illuminate hearts, Taleemat offer timeless guidance, Naats echo with love for the Prophet ﷺ, and Wazaif provide spiritual solace. Whether you are seeking deeper understanding or divine connection, Idreesia.com is your gateway to authentic spiritual nourishment."
+    },
     "desc2": {
       "title": "Blessings of Wazaif's",
       "content": "If one wishes to have Allah's distinguished blessings then one should recite Wazaif with devotion, love, fondness and regularity. According to Hadith Sharif, Allah likes those deeds which are done regularly without interruption. One who is loyal to Allah and his Prophet صلی اللہ علیہ وسلم will see miracles in all his matters (Inshallah). In this world and hereafter they will have a guarantee and security of the Holy Prophet صلی اللہ علیہ وسلم. They will have love of Holy Prophet صلی اللہ علیہ وسلم. Livelihood will rain down upon them. Impossible and difficult matters shall resolve Inshallah."
@@ -14,6 +22,7 @@
       "naatShareef": "Naat Shareef",
       "wazaif": "Wazaif",
       "gallery": "Gallery",
+      "ramzanParhaiyan": "Ramzan Parhaiyan",
       "mehfilAddress": "Mahafil Address"
     }
   },
@@ -257,5 +266,96 @@
       "content": "For privacy-related inquiries, please contact us."
     },
     "lastUpdated": "Last updated"
+  },
+  "committeePortal": {
+    "common": {
+      "dashboard": "Dashboard",
+      "inbox": "Inbox",
+      "members": "Members",
+      "documents": "Documents",
+      "meetings": "Meetings",
+      "polls": "Polls",
+      "backToHome": "Back to Home",
+      "profile": "Profile",
+      "logout": "Log Out",
+      "loading": "Loading...",
+      "noData": "No data found."
+    },
+    "layout": {
+      "title": "Committee Portal",
+      "loadingPortal": "Loading committee portal...",
+      "accessDenied": "Access Denied",
+      "noCommitteeAssigned": "You are not assigned to any committee.",
+      "notifications": "Notifications",
+      "noNewNotifications": "No new notifications",
+      "subCommitteeOf": "Sub committee of {name}",
+      "roleSuperAdmin": "Super Admin",
+      "roleUser": "User",
+      "committeeFallback": "Committee",
+      "userFallback": "User"
+    },
+    "dashboardPage": {
+      "title": "Dashboard",
+      "noDashboard": "No committee dashboard available.",
+      "aboutCommittee": "About Committee",
+      "noDescription": "No description available.",
+      "recentMeetings": "Recent Meetings",
+      "noMeetingsYet": "No meetings yet.",
+      "activePolls": "Active Polls",
+      "noActivePolls": "No active polls.",
+      "messages": "Messages"
+    },
+    "inboxPage": {
+      "title": "Inbox",
+      "subtitle": "Committee messages and communications",
+      "composeMessage": "Compose Message",
+      "composeMessageTooltip": "Compose Message",
+      "composeRestricted": "Only committee admins can compose messages",
+      "received": "Received",
+      "sent": "Sent",
+      "noMessages": "No messages found.",
+      "fromUnknown": "Unknown",
+      "toCommittee": "Committee"
+    },
+    "documentsPage": {
+      "title": "Documents",
+      "subtitle": "Committee documents and files",
+      "uploadDocument": "Upload Document",
+      "searchPlaceholder": "Search documents...",
+      "noDocuments": "No documents found."
+    },
+    "documentsForm": {
+      "title": "Upload Document",
+      "subtitle": "Upload a new document",
+      "backToDocuments": "Back to Documents",
+      "fieldTitle": "Title *",
+      "fieldDescription": "Description",
+      "fieldUpload": "Upload Files (Max 10 files)",
+      "submit": "Upload Document"
+    },
+    "meetingsPage": {
+      "title": "Meetings",
+      "subtitle": "Committee meetings and minutes",
+      "scheduleMeeting": "Schedule Meeting",
+      "searchPlaceholder": "Search meetings...",
+      "tableDate": "Date",
+      "tableTitle": "Title",
+      "tableAttendance": "Attendance",
+      "tableActions": "Actions",
+      "noMeetings": "No meetings found."
+    },
+    "meetingsForm": {
+      "title": "Schedule Meeting",
+      "subtitle": "Schedule a new meeting",
+      "backToMeetings": "Back to Meetings",
+      "meetingDate": "Meeting Date *",
+      "titleField": "Title *",
+      "agenda": "Agenda",
+      "agendaPlaceholder": "Meeting agenda items...",
+      "masawat": "Masawat (Decisions/Resolutions)",
+      "masawatPlaceholder": "Meeting decisions and resolutions...",
+      "attachments": "Attachments",
+      "submit": "Schedule Meeting"
+    }
   }
 }

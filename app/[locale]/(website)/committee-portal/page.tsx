@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function CommitteePortalRootPage() {
+  const t = useTranslations("committeePortal");
   const router = useRouter();
   const params = useParams<{ locale?: string }>();
   const locale = params?.locale || "en";
@@ -16,7 +18,7 @@ export default function CommitteePortalRootPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-        <p className="text-gray-600">Redirecting to dashboard...</p>
+        <p className="text-gray-600">{t("common.loading")}</p>
       </div>
     </div>
   );

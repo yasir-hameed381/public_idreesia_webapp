@@ -12,16 +12,17 @@ import {
 } from "../../../../../store/slicers/committeesApi";
 import type { CommitteeMember } from "@/types/committee";
 import { Button, Form, Input, Modal, Select } from "antd";
-import { ArrowLeft, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, MoreVertical, Search, Trash2, UserPlus, Users } from "lucide-react";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 interface CommitteeMembersProps {
   committeeId: string | number;
   committeeName?: string;
   onBack: () => void;
+  portalView?: boolean;
 }
 
-export function CommitteeMembers({ committeeId, committeeName, onBack }: CommitteeMembersProps) {
+export function CommitteeMembers({ committeeId, committeeName, onBack, portalView = false }: CommitteeMembersProps) {
   const { showError, showSuccess } = useToast();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -35,6 +36,7 @@ export function CommitteeMembers({ committeeId, committeeName, onBack }: Committ
   const [editForm] = Form.useForm();
   const [userSearch, setUserSearch] = useState("");
   const debouncedUserSearch = useDebounce(userSearch, 300);
+  const [openActionId, setOpenActionId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = useFetchCommitteeMembersQuery({
     committeeId,
@@ -141,14 +143,18 @@ export function CommitteeMembers({ committeeId, committeeName, onBack }: Committ
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Committee Members</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{portalView ? "Members" : "Committee Members"}</h1>
             <p className="text-gray-600 mt-1">
-              {committeeName ? `Manage members for: ${committeeName}` : "Manage committee members"}
+              {portalView
+                ? "Committee members and their roles"
+                : committeeName
+                ? `Manage members for: ${committeeName}`
+                : "Manage committee members"}
             </p>
           </div>
           <div className="flex gap-2">
             <Button icon={<ArrowLeft size={14} />} onClick={onBack}>
-              Back to Committees
+              {portalView ? "Back to Dashboard" : "Back to Committees"}
             </Button>
             <Button type="primary" icon={<UserPlus size={14} />} onClick={() => setShowAddModal(true)}>
               Add Member
@@ -186,6 +192,74 @@ export function CommitteeMembers({ committeeId, committeeName, onBack }: Committ
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           {isLoading ? (
             <div className="p-8 text-center text-gray-600">Loading members...</div>
+          ) : members.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
+              <Users className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+              No committee members found.
+            </div>
+          ) : portalView ? (
+            <div className="p-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {members.map((m) => (
+                <div key={m.id} className="relative rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-semibold">
+                      {(m.user?.name || "U")
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-15px font-semibold text-gray-900 truncate uppercase">
+                        {m.user?.name || "Unknown User"}
+                      </div>
+                      <div className="text-[13px] text-gray-500 truncate">{m.user?.email || "-"}</div>
+                      <div className="text-[13px] text-gray-500 truncate">
+                        {m.created_at ? new Date(m.created_at).toLocaleDateString() : "-"}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenActionId((prev) => (prev === m.id ? null : m.id))}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      {openActionId === m.id && (
+                        <div className="absolute right-0 mt-1 z-10 bg-white border border-gray-200 rounded-md shadow-md min-w-[120px]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenActionId(null);
+                              openEdit(m);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                        m.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {m.role === "admin" ? "Admin" : "Member"}
+                    </span>
+                    {m.duty ? (
+                      <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                        {m.duty}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
@@ -198,54 +272,45 @@ export function CommitteeMembers({ committeeId, committeeName, onBack }: Committ
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {members.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                      <Users className="h-10 w-10 mx-auto mb-2 text-gray-400" />
-                      No committee members found.
+                {members.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">{m.user?.name || "Unknown User"}</div>
+                      <div className="text-xs text-gray-500">{m.user?.email || ""}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                          m.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {m.role === "admin" ? "Admin" : "Member"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{m.duty || "-"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {m.created_at ? new Date(m.created_at).toLocaleString() : "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button size="small" onClick={() => openEdit(m)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<Trash2 size={14} />}
+                          onClick={() => {
+                            setSelectedMember(m);
+                            setShowDeleteDialog(true);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  members.map((m) => (
-                    <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{m.user?.name || "Unknown User"}</div>
-                        <div className="text-xs text-gray-500">{m.user?.email || ""}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                            m.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {m.role === "admin" ? "Admin" : "Member"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{m.duty || "-"}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {m.created_at ? new Date(m.created_at).toLocaleString() : "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button size="small" onClick={() => openEdit(m)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="small"
-                            danger
-                            icon={<Trash2 size={14} />}
-                            onClick={() => {
-                              setSelectedMember(m);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           )}
@@ -324,18 +389,20 @@ export function CommitteeMembers({ committeeId, committeeName, onBack }: Committ
         </Form>
       </Modal>
 
-      <DeleteConfirmationDialog
-        isOpen={showDeleteDialog}
-        title="Remove Committee Member"
-        message={`Are you sure you want to remove "${selectedMember?.user?.name || "this member"}" from committee?`}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setSelectedMember(null);
-        }}
-        onConfirm={handleDelete}
-        isLoading={deleting}
-        confirmText="Remove"
-      />
+      {!portalView && (
+        <DeleteConfirmationDialog
+          isOpen={showDeleteDialog}
+          title="Remove Committee Member"
+          message={`Are you sure you want to remove "${selectedMember?.user?.name || "this member"}" from committee?`}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setSelectedMember(null);
+          }}
+          onConfirm={handleDelete}
+          isLoading={deleting}
+          confirmText="Remove"
+        />
+      )}
     </div>
   );
 }

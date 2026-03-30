@@ -50,20 +50,10 @@ export default async function HomePage({ params }: Props) {
               lineHeight: "120%",
             }}
           >
-            How The Idreesia Journey Began
+            {t("journey.title")}
           </h2>
           <p className="text-base md:text-lg leading-relaxed text-gray-700 px-4">
-            Silsila Muhammadia Ameenia Idreesia began in Pakistan when
-            Al-Mohtaram Al-Mukarram Al-Sayyedi Al-Hafiz Al-Shaikh Muhammad Amin
-            bin Abdur Rahman arrived in Pakistan from Madinah Munawwarah. The
-            primary purpose of this spiritual path is to guide people toward
-            obedience to Allah Almighty and the Prophet ﷺ, instilling in their
-            hearts the love and greatness of Allah Almighty and the Prophet ﷺ.
-            To achieve these goals, reading Durood Shareef, Zikr, and wazaif are
-            given. Additionally, the invaluable treasure of Allah Almighty's and
-            the Prophet's ﷺ teachings is preserved in the form of recordings by
-            Mohtaram Shaikh Sahab as a guidance for all until the day of
-            judgement.
+            {t("journey.content")}
           </p>
           <div className="flex justify-center mt-6 md:mt-8">
             <Image
@@ -91,15 +81,10 @@ export default async function HomePage({ params }: Props) {
                 lineHeight: "120%",
               }}
             >
-              Discover the Spiritual Treasures of Idreesia
+              {t("treasures.title")}
             </h2>
             <p className="text-base md:text-lg leading-relaxed text-gray-700 px-4">
-              Immerse yourself in the sacred atmosphere of Idreesia, where
-              Mehfils illuminate hearts, Taleemat offer timeless guidance, Naats
-              echo with love for the Prophet ﷺ, and Wazaif provide spiritual
-              solace. Whether you're seeking deeper understanding or divine
-              connection, Idreesia.com is your gateway to authentic spiritual
-              nourishment.
+              {t("treasures.content")}
             </p>
           </div>
         </div>

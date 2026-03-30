@@ -32,6 +32,7 @@ export default function CommitteePortalMembersPage() {
       committeeId={selected.committee_id}
       committeeName={selected.committee.name}
       onBack={() => router.push(`/${locale}/committee-portal/dashboard`)}
+      portalView
     />
   );
 }

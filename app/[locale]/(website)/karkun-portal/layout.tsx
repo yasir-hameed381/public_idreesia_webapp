@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/context/PermissionContext";
+import LoadingBar from "@/components/LoadingBar";
 import { FaUserCircle } from "react-icons/fa";
 import { FiChevronDown, FiLogOut, FiUser } from "react-icons/fi";
 import { IoIosArrowDown } from "react-icons/io";
@@ -217,21 +218,25 @@ export default function KarkunPortalLayout({
 
     const normalizedHref = href.toLowerCase();
 
-    // Debug logging    // Special case for dashboard - exact match or root karkun-portal path
+    // Debug logging
+    // Special case for dashboard - exact match or root karkun-portal path
     if (normalizedHref === "/karkun-portal/dashboard") {
       const isActive =
         normalizedPathname === normalizedHref ||
         normalizedPathname === "/karkun-portal" ||
-        normalizedPathname === "/karkun-portal/";      return isActive;
+        normalizedPathname === "/karkun-portal/";
+      return isActive;
     }
 
     // For other routes, check if pathname starts with href
     // This will match /karkun-portal/dutyRoster, /karkun-portal/dutyRoster/new, /karkun-portal/dutyRoster/123
-    const isActive = normalizedPathname.startsWith(normalizedHref);    return isActive;
+    const isActive = normalizedPathname.startsWith(normalizedHref);
+    return isActive;
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+      <LoadingBar />
       {/* Islamic Header Banner Slider */}
       <header className="relative">
         <div className="relative w-full h-60 md:h-65 overflow-hidden">

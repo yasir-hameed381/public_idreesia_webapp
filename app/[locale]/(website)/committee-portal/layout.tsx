@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { useFetchCommitteePortalContextQuery } from "@/store/slicers/committeesApi";
 import { useTheme } from "@/context/useTheme";
+import LoadingBar from "@/components/LoadingBar";
+import { useTranslations } from "next-intl";
 import { Button, Layout, Menu } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import {
@@ -19,7 +22,7 @@ import {
   Users,
   Vote,
 } from "lucide-react";
-
+import IdreesiaLogo from "../../../assets/urdu-idreesia-logo.png"
 const { Sider } = Layout;
 
 export default function CommitteePortalLayout({
@@ -27,6 +30,7 @@ export default function CommitteePortalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations("committeePortal");
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -48,7 +52,7 @@ export default function CommitteePortalLayout({
     if (isInitialized && (!user || !isAuthenticated)) {
       router.push(`/${locale}/login`);
     }
-  }, [isInitialized, user, isAuthenticated, router, locale]);
+  }, [isInitialized, user, isAuthenticated, locale, router]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -78,7 +82,7 @@ export default function CommitteePortalLayout({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading committee portal...</p>
+          <p className="text-gray-600">{t("layout.loadingPortal")}</p>
         </div>
       </div>
     );
@@ -93,15 +97,15 @@ export default function CommitteePortalLayout({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="text-red-600 text-5xl mb-4">🚫</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("layout.accessDenied")}</h1>
           <p className="text-gray-600 mb-6">
-            You are not assigned to any committee.
+            {t("layout.noCommitteeAssigned")}
           </p>
           <button
             onClick={() => router.push(`/${locale}`)}
             className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
           >
-            Go to Home
+            {t("common.backToHome")}
           </button>
         </div>
       </div>
@@ -110,18 +114,19 @@ export default function CommitteePortalLayout({
 
   const selectedCommittee = data?.selected_committee?.committee;
   const navItems = [
-    { href: `/${locale}/committee-portal/dashboard`, label: "Dashboard", icon: LayoutDashboard },
-    { href: `/${locale}/committee-portal/inbox`, label: "Inbox", icon: MessageSquare },
-    { href: `/${locale}/committee-portal/members`, label: "Members", icon: Users },
-    { href: `/${locale}/committee-portal/documents`, label: "Documents", icon: FileText },
-    { href: `/${locale}/committee-portal/meetings`, label: "Meetings", icon: Bell },
-    { href: `/${locale}/committee-portal/polls`, label: "Polls", icon: Vote },
+    { href: `/${locale}/committee-portal/dashboard`, label: t("common.dashboard"), icon: LayoutDashboard },
+    { href: `/${locale}/committee-portal/inbox`, label: t("common.inbox"), icon: MessageSquare },
+    { href: `/${locale}/committee-portal/members`, label: t("common.members"), icon: Users },
+    { href: `/${locale}/committee-portal/documents`, label: t("common.documents"), icon: FileText },
+    { href: `/${locale}/committee-portal/meetings`, label: t("common.meetings"), icon: Bell },
+    { href: `/${locale}/committee-portal/polls`, label: t("common.polls"), icon: Vote },
   ];
   const selectedKey =
     navItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href || "";
 
   return (
     <div className={`min-h-screen flex ${isDark ? "bg-black" : "bg-[#f5f3f1]"}`}>
+      <LoadingBar />
       <Sider
         trigger={null}
         collapsible
@@ -145,32 +150,67 @@ export default function CommitteePortalLayout({
         className={isMobile && collapsed ? "hidden" : ""}
       >
         <div className="p-4 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-4">
+          <div className={`rounded-full flex items-center justify-center p-1 transition-colors ${
+            isDark ? "bg-[#6bb179]" : "bg-gray-200"
+          }`}>
+            <Image
+              src={IdreesiaLogo}
+              alt="IdreesiaLogo"
+              width={collapsed ? 36 : 48}
+              height={collapsed ? 36 : 48}
+            />
+          </div>
+          {!collapsed && (
+            <div className={isDark ? "text-white" : "text-gray-900"}>
+              <span>{user?.name || "User"}</span>
+              <div className={`text-xs transition-colors ${
+                isDark ? "text-gray-300" : "text-gray-600"
+              }`}>
+                {" "}
+                {user?.is_super_admin
+                  ? "Super Admin"
+                  : user?.role?.name || "User"}
+              </div>
+            </div>
+          )}
+        </div>
           <div className="flex justify-between items-center mb-3">
             {!collapsed && (
-              <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-                Committee Portal
-              </h2>
+              <div
+                className={`w-full mr-2 flex items-center gap-2 rounded-xl px-3 py-2 ${
+                  isDark ? "bg-[#1f2937] text-indigo-200" : "bg-indigo-100 text-indigo-700"
+                }`}
+              >
+                <MessageSquare size={16} />
+                <h2 className="text-[15px] leading-tight font-medium">Committee Portal</h2>
+              </div>
             )}
-            <Button
+            {/* <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               style={{ color: isDark ? "white" : "#111827" }}
-            />
+            /> */}
           </div>
 
           {!collapsed && (
             <div className="space-y-2 border-t pt-3 border-gray-200/60">
-              <div className={`text-sm font-medium px-3 py-2 rounded-md ${
-                isDark ? "bg-[#111827] text-gray-100" : "bg-indigo-50 text-indigo-700"
+              <div className={`text-[15px] text-center font-medium px-3 py-2 rounded-xl ${
+                isDark ? "bg-[#1f2937] text-gray-100" : "bg-gray-100 text-gray-800"
               }`}>
                 {selectedCommittee?.name || "Committee"}
               </div>
               {selectedCommittee?.parent_name && (
-                <div className={`text-xs px-3 py-2 rounded-md ${
-                  isDark ? "bg-[#2b1a00] text-amber-200" : "bg-amber-50 text-amber-700"
-                }`}>
-                  Sub committee of {selectedCommittee.parent_name}
+                <div
+                  className={`text-sm px-3 py-2 rounded-xl flex items-center gap-2 ${
+                    isDark ? "bg-[#2b1a00] text-amber-200" : "bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  <span className="text-base">↳</span>
+                  <span>
+                    Sub committee of {selectedCommittee.parent_name}
+                  </span>
                 </div>
               )}
             </div>
