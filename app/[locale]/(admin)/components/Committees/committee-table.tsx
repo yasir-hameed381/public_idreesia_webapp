@@ -15,8 +15,6 @@ import { PERMISSIONS } from "@/types/permission";
 import {
   Search,
   Plus,
-  Edit,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -32,9 +30,7 @@ export interface CommitteeTableProps {
 }
 
 export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTableProps) {
-  const params = useParams();
-  const locale = (params?.locale as string) || "en";
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { hasPermission } = usePermissions();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -63,9 +59,14 @@ export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTabl
   const totalPages = Math.ceil(total / perPage) || 1;
   const startRecord = (currentPage - 1) * perPage + 1;
   const endRecord = Math.min(startRecord + perPage - 1, total);
+  const canCreateCommittee = hasPermission(PERMISSIONS.CREATE_COMMITTEES);
+  const canEditCommittee = hasPermission(PERMISSIONS.EDIT_COMMITTEES);
+  const canDeleteCommittee = hasPermission(PERMISSIONS.DELETE_COMMITTEES);
+  const canManageCommitteeMembers = hasPermission(PERMISSIONS.MANAGE_COMMITTEE_MEMBERS);
+  const canShowActions = canEditCommittee || canDeleteCommittee || canManageCommitteeMembers;
 
   const handleDeleteClick = (committee: Committee) => {
-    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_COMMITTEES))) {
+    if (!canDeleteCommittee) {
       showError("You don't have permission to delete committees");
       return;
     }
@@ -75,7 +76,7 @@ export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTabl
 
   const handleDelete = async () => {
     if (!selectedCommittee) return;
-    if (!(isSuperAdmin || hasPermission(PERMISSIONS.DELETE_COMMITTEES))) {
+    if (!canDeleteCommittee) {
       setShowDeleteDialog(false);
       setSelectedCommittee(null);
       return;
@@ -103,7 +104,7 @@ export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTabl
   };
 
   const handleEdit = (committee: Committee) => {
-    if (!(isSuperAdmin || hasPermission(PERMISSIONS.EDIT_COMMITTEES))) {
+    if (!canEditCommittee) {
       showError("You don't have permission to edit committees");
       return;
     }
@@ -136,7 +137,7 @@ export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTabl
                 Manage committees and their members
               </p>
             </div>
-            {(isSuperAdmin || hasPermission(PERMISSIONS.CREATE_COMMITTEES)) && (
+            {canCreateCommittee && (
               <button
                 onClick={onAdd}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
@@ -214,15 +215,17 @@ export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTabl
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Created At
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+                      {canShowActions && (
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {data.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center">
+                        <td colSpan={canShowActions ? 7 : 6} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center">
                             <Users className="h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -274,29 +277,22 @@ export function CommitteeTable({ onEdit, onAdd, onManageMembers }: CommitteeTabl
                               ? format(new Date(row.created_at), "MMM dd, yyyy")
                               : "N/A"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                            <ActionsDropdown
-                              onEdit={
-                                isSuperAdmin || hasPermission(PERMISSIONS.EDIT_COMMITTEES)
-                                  ? () => handleEdit(row)
-                                  : undefined
-                              }
-                              onDelete={
-                                isSuperAdmin || hasPermission(PERMISSIONS.DELETE_COMMITTEES)
-                                  ? () => handleDeleteClick(row)
-                                  : undefined
-                              }
-                              onManageMembers={
-                                isSuperAdmin || hasPermission(PERMISSIONS.MANAGE_COMMITTEE_MEMBERS)
-                                  ? () => onManageMembers(row.id)
-                                  : undefined
-                              }
-                              showEdit={isSuperAdmin || hasPermission(PERMISSIONS.EDIT_COMMITTEES)}
-                              showDelete={isSuperAdmin || hasPermission(PERMISSIONS.DELETE_COMMITTEES)}
-                              showManageMembers={isSuperAdmin || hasPermission(PERMISSIONS.MANAGE_COMMITTEE_MEMBERS)}
-                              align="right"
-                            />
-                          </td>
+                          {canShowActions && (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                              <ActionsDropdown
+                                onEdit={canEditCommittee ? () => handleEdit(row) : undefined}
+                                onDelete={canDeleteCommittee ? () => handleDeleteClick(row) : undefined}
+                                onManageMembers={
+                                  canManageCommitteeMembers ? () => onManageMembers(row.id) : undefined
+                                }
+                                showEdit={canEditCommittee}
+                                showDelete={canDeleteCommittee}
+                                showManageMembers={canManageCommitteeMembers}
+                                align="right"
+                                openDown
+                              />
+                            </td>
+                          )}
                         </tr>
                       ))
                     )}

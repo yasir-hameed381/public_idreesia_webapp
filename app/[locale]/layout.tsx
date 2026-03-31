@@ -1,13 +1,25 @@
 import { Inter } from 'next/font/google';
+import type { Metadata } from "next";
 import { NextIntlClientProvider } from 'next-intl';
 import { unstable_setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Providers } from './providers';
+import logo1 from "../assets/logo1.png";
 import "../../app/assets/styles/globals.css";
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const locales = ['en', 'ur'];
+
+export const metadata: Metadata = {
+  title: "سلسلہ محمدیہ امینیہ ادریسیہ تعلیمات | Silsila Muhammadia Ameenia Idreesia",
+  description: "Idreesia Web App",
+  icons: {
+    icon: logo1.src,
+    shortcut: logo1.src,
+    apple: logo1.src,
+  },
+};
 
 type Props = {
   children: React.ReactNode;

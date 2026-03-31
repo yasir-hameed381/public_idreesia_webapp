@@ -20,6 +20,8 @@ interface ActionsDropdownProps {
   showManageMembers?: boolean;
   manageMembersLabel?: string;
   align?: "left" | "right";
+  openUp?: boolean;
+  openDown?: boolean;
 }
 
 const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
@@ -39,6 +41,8 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
   showManageMembers = false,
   manageMembersLabel = "Manage Members",
   align = "right",
+  openUp = false,
+  openDown = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -136,7 +140,7 @@ const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
         <div
           className={`absolute ${
             align === "right" ? "right-0" : "left-0"
-          } mt-2 w-48 bg-white rounded-lg shadow-lg z-50 border border-gray-200`}
+          } ${openUp ? "bottom-full mb-2" : openDown ? "top-full mt-2" : "mt-2"} w-48 bg-white rounded-lg shadow-lg z-50 border border-gray-200`}
         >
           <div className="py-1">
             {showView && onView && (
