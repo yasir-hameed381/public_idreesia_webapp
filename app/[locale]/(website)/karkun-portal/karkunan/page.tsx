@@ -298,7 +298,7 @@ const KarkunanPage = () => {
     loadMehfils();
   }, [zoneId]);
 
-  // Load karkuns
+  
   useEffect(() => {
     loadKarkuns();
   }, [
